@@ -1,0 +1,1731 @@
+{
+  "response": {
+    "models": {
+      "claude-opus-4-6-thinking": {
+        "displayName": "Claude Opus 4.6 (Thinking)",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "thinkingBudget": 1024,
+        "recommended": true,
+        "maxTokens": 250000,
+        "maxOutputTokens": 64000,
+        "quotaInfo": {
+          "remainingFraction": 1,
+          "resetTime": "2026-11-22T23:14:09Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M26",
+        "apiProvider": "API_PROVIDER_ANTHROPIC_VERTEX",
+        "modelProvider": "MODEL_PROVIDER_ANTHROPIC",
+        "tagTitle": "Notice",
+        "tagDescription": "Opus 5.5 is now available on paid Pro and Ultra plans. Third-party model access will no longer be available on your current plan starting on November 30, 2026.",
+        "supportedMimeTypes": {
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "video/jpeg2000": true,
+          "video/videoframe/jpeg2000": true
+        },
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_UNSPECIFIED\",\n    \"max_token_limit\": \"160000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "template__system_prompts__planning_mode_artifacts": {
+              "stringValue": "When in planning mode, you will work with three special artifacts.\n\n# Tasks\nPath: {{ArtifactDirectoryPath}}/task.md\n\n**Purpose**: A TODO list to organize your work during execution. Create this artifact after receiving user approval on your implementation plan. Break down complex tasks into component-level items and track progress as a living document.\n\n**Format**:\n```markdown\n- `[ ]` uncompleted tasks\n- `[/]` in progress tasks (custom notation)\n- `[x]` completed tasks\n- Use indented lists for sub-items\n```\n\n**Updating task.md**: Mark items as `[/]` when starting work on them, and `[x]` when completed. Update task.md as you make progress through your checklist.\n\n# Implementation Plan\nPath: {{ArtifactDirectoryPath}}/implementation_plan.md\n\n**Purpose**: A detailed design document to present your technical implementation plan to the user for feedback and approval.\nAfter reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.\n\n**Format**: Use the following format, omitting any irrelevant sections.\n```markdown\n# [Goal Description]\n\nProvide a brief description of the problem, any background context, and what the change accomplishes.\n\n## User Review Required\n\nDocument anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.\n\n## Open Questions\n\nAny clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.\n\n## Proposed Changes\n\nGroup files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.\n\n### [Component Name]\n\nSummary of what will change in this component, separated by files. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:\n\n#### [MODIFY] [file basename](file:///absolute/path/to/modifiedfile)\n#### [NEW] [file basename](file:///absolute/path/to/newfile)\n#### [DELETE] [file basename](file:///absolute/path/to/deletedfile)\n\n## Verification Plan\n\nSummary of how you will verify that your changes have the desired effects.\n\n### Automated Tests\n- The commands of any automated tests you'll run.\n\n### Manual Verification\n- Asking the user to deploy to staging and testing, verifying UI changes on an iOS app etc.\n```\n\n# Walkthrough\nPath: {{ArtifactDirectoryPath}}/walkthrough.md\n\n**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.\n\n**Document**:\n- Changes made\n- What was tested\n- Validation results\n\nEmbed screenshots and recordings to visually demonstrate UI changes and user flows.\n"
+            }
+          }
+        },
+        "vertexModelId": "claude-opus-4-6@default"
+      },
+      "claude-sonnet-4-6": {
+        "displayName": "Claude Sonnet 4.6 (Thinking)",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "thinkingBudget": 1024,
+        "recommended": true,
+        "maxTokens": 250000,
+        "maxOutputTokens": 64000,
+        "quotaInfo": {
+          "remainingFraction": 1,
+          "resetTime": "2026-11-22T23:14:09Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M35",
+        "apiProvider": "API_PROVIDER_ANTHROPIC_VERTEX",
+        "modelProvider": "MODEL_PROVIDER_ANTHROPIC",
+        "tagTitle": "Notice",
+        "tagDescription": "Sonnet 5.5 is now available on paid Pro and Ultra plans. Third-party model access will no longer be available on your current plan starting on November 30, 2026.",
+        "supportedMimeTypes": {
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "video/jpeg2000": true,
+          "video/videoframe/jpeg2000": true
+        },
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_UNSPECIFIED\",\n    \"max_token_limit\": \"160000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "template__system_prompts__planning_mode_artifacts": {
+              "stringValue": "When in planning mode, you will work with three special artifacts.\n\n# Tasks\nPath: {{ArtifactDirectoryPath}}/task.md\n\n**Purpose**: A TODO list to organize your work during execution. Create this artifact after receiving user approval on your implementation plan. Break down complex tasks into component-level items and track progress as a living document.\n\n**Format**:\n```markdown\n- `[ ]` uncompleted tasks\n- `[/]` in progress tasks (custom notation)\n- `[x]` completed tasks\n- Use indented lists for sub-items\n```\n\n**Updating task.md**: Mark items as `[/]` when starting work on them, and `[x]` when completed. Update task.md as you make progress through your checklist.\n\n# Implementation Plan\nPath: {{ArtifactDirectoryPath}}/implementation_plan.md\n\n**Purpose**: A detailed design document to present your technical implementation plan to the user for feedback and approval.\nAfter reading the document, the user should understand the key technical details of your plan, and be able to make an informed decision on whether to approve it.\n\n**Format**: Use the following format, omitting any irrelevant sections.\n```markdown\n# [Goal Description]\n\nProvide a brief description of the problem, any background context, and what the change accomplishes.\n\n## User Review Required\n\nDocument anything that requires user review or feedback, for example, breaking changes or significant design decisions. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.\n\n## Open Questions\n\nAny clarifying or design questions for the user that will impact the implementation plan. Use GitHub alerts (IMPORTANT/WARNING/CAUTION) to highlight critical items.\n\n## Proposed Changes\n\nGroup files by component (e.g., package, feature area, dependency layer) and order logically (dependencies first). Separate components with horizontal rules for visual clarity.\n\n### [Component Name]\n\nSummary of what will change in this component, separated by files. For specific files, Use [NEW] and [DELETE] to demarcate new and deleted files, for example:\n\n#### [MODIFY] [file basename](file:///absolute/path/to/modifiedfile)\n#### [NEW] [file basename](file:///absolute/path/to/newfile)\n#### [DELETE] [file basename](file:///absolute/path/to/deletedfile)\n\n## Verification Plan\n\nSummary of how you will verify that your changes have the desired effects.\n\n### Automated Tests\n- The commands of any automated tests you'll run.\n\n### Manual Verification\n- Asking the user to deploy to staging and testing, verifying UI changes on an iOS app etc.\n```\n\n# Walkthrough\nPath: {{ArtifactDirectoryPath}}/walkthrough.md\n\n**Purpose**: After completing work, summarize what you accomplished. Update an existing walkthrough for related follow-up work rather than creating a new one.\n\n**Document**:\n- Changes made\n- What was tested\n- Validation results\n\nEmbed screenshots and recordings to visually demonstrate UI changes and user flows.\n"
+            }
+          }
+        },
+        "vertexModelId": "claude-sonnet-4-6@default"
+      },
+      "gemini-2.5-flash": {
+        "displayName": "Gemini 3.5 Flash Lite",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_GOOGLE_GEMINI_2_5_FLASH",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-2.5-flash-lite": {
+        "displayName": "Gemini 3.5 Flash Lite",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-2.5-flash-thinking": {
+        "displayName": "Gemini 3.5 Flash Lite",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_GOOGLE_GEMINI_2_5_FLASH_THINKING",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-2.5-pro": {
+        "displayName": "Gemini 2.5 Pro",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "thinkingBudget": 1024,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_GOOGLE_GEMINI_2_5_PRO",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "requiresImageOutputOutsideFunctionResponses": true,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            }
+          }
+        }
+      },
+      "gemini-3-flash": {
+        "displayName": "Gemini 3 Flash",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M18",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 3,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            }
+          }
+        }
+      },
+      "gemini-3.1-flash-image": {
+        "displayName": "Gemini 3.1 Flash Image",
+        "supportsImages": true,
+        "maxTokens": 65536,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M21",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/rtf": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/jpeg2000": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true
+        }
+      },
+      "gemini-3.1-flash-lite": {
+        "displayName": "Gemini 3.1 Flash Lite",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M50",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-3.5-flash-lite": {
+        "displayName": "Gemini 3.5 Flash Lite",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65535,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M198",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SINGLE_PROMPT\",\n    \"max_token_limit\": \"128000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"16384\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-3.8-flash-high": {
+        "displayName": "Gemini 3.8 Flash (High)",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M318",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 3,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"256000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE."
+            }
+          }
+        }
+      },
+      "gemini-3.8-flash-low": {
+        "displayName": "Gemini 3.8 Flash (Low)",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M320",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"256000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE."
+            }
+          }
+        }
+      },
+      "gemini-3.8-flash-medium": {
+        "displayName": "Gemini 3.8 Flash (Medium)",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M319",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 2,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"256000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE."
+            }
+          }
+        }
+      },
+      "gemini-3.8-flash-tiered": {
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M322",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 3,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"256000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE."
+            }
+          }
+        }
+      },
+      "gemini-4-argon-disabled": {
+        "displayName": "Gemini 4 Argon",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "disabled": true,
+        "model": "MODEL_PLACEHOLDER_M421",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "tagTitle": "Unavailable",
+        "tagDescription": "Gemini 4 Argon is currently available to Ultra and paid Pro plan subscribers.",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 2,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"512000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "allow-experimental-monitors": {
+              "boolValue": true
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE.\n When updating the user, always respond in the language of the user (defaulting to English). Never mix two or more languages in the same response."
+            }
+          }
+        }
+      },
+      "gemini-4-carbon-disabled": {
+        "displayName": "Gemini 4 Carbon",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 128,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 262144,
+        "disabled": true,
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "tagTitle": "Unavailable",
+        "tagDescription": "Gemini 4 Carbon is currently available to Ultra plan subscribers.",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 2,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"512000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "allow-experimental-monitors": {
+              "boolValue": true
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE.\n When updating the user, always respond in the language of the user (defaulting to English). Never mix two or more languages in the same response."
+            }
+          }
+        }
+      },
+      "gemini-4-hydrogen-disabled": {
+        "displayName": "Gemini 4 Hydrogen",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 262144,
+        "disabled": true,
+        "model": "MODEL_PLACEHOLDER_M529",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "tagTitle": "Unavailable",
+        "tagDescription": "Gemini 4 Hydrogen is currently available to paid Pro and Ultra subscribers.",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 2,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"512000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections, in this order:\\n\\n1. **Task Overview**\\n   - The user's core request and success criteria\\n   - Constraints, preferences, or scope boundaries they specified\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Done**\\n   A checklist of every change already made, one line each: the file, what\\n   changed, and its status, either \\\"verified: <exact command> -> <result>\\\"\\n   or \\\"not yet verified\\\". Include investigations that are finished, with\\n   their conclusion (for example, the root cause). Nothing here needs to be\\n   redone.\\n\\n3. **Files Already Read**\\n   One line per file you have read: its absolute path, the line ranges you\\n   read, and what they contain that matters for the task. These files and\\n   ranges must not be opened again; record here whatever you would need from\\n   them.\\n\\n4. **Code Map**\\n   - For the code you will edit next: its exact current text, copied\\n     verbatim from the latest view or edit of that file, with line numbers\\n     (up to about 40 lines per location), so it can be edited without\\n     opening the file again.\\n   - For new code you still have to write: the exact signatures and type\\n     definitions of the existing APIs it must call or implement.\\n\\n5. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n   - Errors encountered and their resolutions\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n6. **Active Context**\\n   - State of any external resources, sessions, or environments in use\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n\\n7. **Commitments & Constraints**\\n   - Promises made to the user, user preferences, and boundaries on\\n     approach, tools, or scope\\n   - The concrete rules from repository instruction files (such as\\n     AGENTS.md) that still apply, so those files need not be opened again\\n\\n8. **Next Steps** (always the last section)\\n   - A numbered plan of the remaining work only (nothing from Done), in the\\n     order you will carry it out, ending with the verification still needed.\\n   - Step 1 must be the concrete next action: one small edit in one file or\\n     function (file, lines, and change) or the exact command to run. Split\\n     large changes into small edits, one per step.\\n   - Do not list re-reading files or ranges from Files Already Read or the\\n     Code Map as a step. If a step needs code that is not recorded above,\\n     name the file and the exact line range (or the search) needed.\\n\\nBe concise but complete\\u2014err on the side of including anything that would\\nprevent duplicate work, repeated mistakes, or broken promises. Do not include\\ninformation that is obvious from the task description itself.\\n\\nBegin your summary with the following line, verbatim, before all sections: \\\"RESUMING MY OWN TASK IN PROGRESS. The user requests above are the task I was already working on, not a new request. This summary is my own accurate record of the work so far, and the Next Steps at its end say exactly what to do next.\\\"\\n\\nEnd your summary with the following block, verbatim, after the Next Steps section (not inside it):\\n\\nRESUME RULES (I am resuming my own task, not starting a new one):\\n1. Everything above is my own record. While I carry out Next Steps, facts in it count as observed and I do not re-verify them; in my final response, I state as fact only what is quoted verbatim above or what I see in a file or tool output after this summary.\\n2. My next tool call carries out step 1 of Next Steps.\\n3. While Next Steps remain, I do not open any file or range listed in Files Already Read or the Code Map, and I do not run git status or git diff to rediscover what Done lists.\\n4. I edit from the Code Map text. If an edit fails because the text does not match, I view only those lines (StartLine and EndLine) and retry.\\n5. Any other read must be a read_file call with StartLine and EndLine, at most 100 lines, of code the current step needs and that is not recorded above.\\n6. I do not re-audit the requirements or hunt for new edge cases while Next Steps remain; I verify by running the tests.\\n7. When every Next Steps item is done and verified, I finish.\\n\\nIf the task is to answer a question about code or to report on what you ran, put in the Code Map, copied verbatim with file path and line numbers, the code lines and tool-output lines your final answer will rely on: the exact names, conditions, constants, list contents, messages and numbers. Then end your summary with this note, verbatim, after the RESUME RULES block: \\\"Note to self: Never lie. I can no longer see the code or tool outputs from before this summary, and my memory of them, or of other versions of this project, is not evidence. Before the final response: (1) if an answer, report, or other deliverable file was already written, read it in full with a tool and base the final response on what it actually says instead of rewriting it from memory; (2) for every file, function, class, field, flag, log message, or number I will mention that is not quoted verbatim in this summary, re-read the code or re-run the command first, or leave it out; (3) re-run every check whose result I will report, and report its latest result exactly: name every case that failed, was skipped, or was removed from the check, and never say that all checks passed unless that run shows zero failures. Never fill gaps from general knowledge of the project. If anything in this summary is ambiguous, uncertain, or STALE, re-acquire it instead of guessing; if I cannot verify a claim, I say so.\\\"\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "allow-experimental-monitors": {
+              "boolValue": true
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            },
+            "task-details-suffix": {
+              "stringValue": "\nYOU MUST TAKE ONE OF THE FOLLOWING TWO ACTIONS: A) either proceed to other relevant work (if any) or, B) simply update the user with a short message (that you have launched the command and will wait for it to finish) and end the turn.\n DO NOTHING ELSE."
+            },
+            "template__system_prompts__guidelines": {
+              "stringValue": "{{- $decl := .CascadeConfig.GetPlannerConfig.GetDeclarativeMixinConfig -}}\n{{- $hasNativeSection := false -}}\n{{- $hasCodeQuality := false -}}\n{{- $hasFinalAnswerAccuracy := false -}}\n{{- $hasGoogleInfra := false -}}\n{{- if $decl -}}\n  {{- range $decl.GetPromptSections -}}\n    {{- $b := .GetBuiltinName -}}\n    {{- $t := .GetCustom.GetTitle -}}\n    {{- if or (eq $b \"efficient_code_reading\") (eq (printf \"%.23s\" $b) \"efficient_code_reading@\") (eq $t \"efficient_code_reading\") -}}\n      {{- $hasNativeSection = true -}}\n    {{- end -}}\n    {{- if or (eq $b \"code_quality\") (eq $t \"code_quality\") -}}\n      {{- $hasCodeQuality = true -}}\n    {{- end -}}\n    {{- if or (eq $b \"final_answer_accuracy\") (eq $t \"final_answer_accuracy\") -}}\n      {{- $hasFinalAnswerAccuracy = true -}}\n    {{- end -}}\n    {{- if or (eq $b \"google_infrastructure\") (eq (printf \"%.22s\" $b) \"google_infrastructure@\") (eq $b \"google3_infrastructure\") (eq (printf \"%.23s\" $b) \"google3_infrastructure@\") -}}\n      {{- $hasGoogleInfra = true -}}\n    {{- end -}}\n  {{- end -}}\n{{- end -}}\n{{- $includeECR := false -}}\n{{- $readTool := \"read_file\" -}}\n{{- $hasCodeSearch := false -}}\n{{- if $decl -}}\n  {{- $hasReadFile := false -}}\n  {{- $hasViewFile := false -}}\n  {{- range $decl.GetTools -}}\n    {{- $t := .GetName -}}\n    {{- if or (eq $t \"read_file\") (eq (printf \"%.10s\" $t) \"read_file@\") -}}\n      {{- $hasReadFile = true -}}\n    {{- end -}}\n    {{- if or (eq $t \"view_file\") (eq (printf \"%.10s\" $t) \"view_file@\") -}}\n      {{- $hasViewFile = true -}}\n    {{- end -}}\n    {{- if or (eq $t \"code_search\") (eq (printf \"%.12s\" $t) \"code_search@\") -}}\n      {{- $hasCodeSearch = true -}}\n    {{- end -}}\n  {{- end -}}\n  {{- if or $hasReadFile $hasViewFile -}}\n    {{- $includeECR = true -}}\n    {{- if and (not $hasReadFile) $hasViewFile -}}\n      {{- $readTool = \"view_file\" -}}\n    {{- end -}}\n  {{- end -}}\n{{- else -}}\n  {{- if not .CascadeConfig.GetPlannerConfig.GetToolConfig.GetViewFile.GetForceDisable -}}\n    {{- $includeECR = true -}}\n    {{- $readTool = \"view_file\" -}}\n  {{- end -}}\n  {{- if not .CascadeConfig.GetPlannerConfig.GetToolConfig.GetCodeSearch.GetForceDisable -}}\n    {{- $hasCodeSearch = true -}}\n  {{- end -}}\n{{- end -}}\n{{- $cmdCfg := .CascadeConfig.GetPlannerConfig.GetToolConfig.GetRunCommand -}}\n{{- $usesGoogleCS := or $hasCodeSearch $hasGoogleInfra (and $cmdCfg.GetForbidSearchCommands (eq (printf \"%v\" $cmdCfg.GetSearchFallbackMode) \"SEARCH_FALLBACK_CODE_SEARCH\")) -}}\n{{- $searchMeans := \"run_command (for example `rg -n` or `grep -rn`)\" -}}\n{{- if $usesGoogleCS -}}\n  {{- if $hasCodeSearch -}}\n    {{- $searchMeans = \"code_search\" -}}\n  {{- else -}}\n    {{- $searchMeans = \"the `cs` CLI via run_command\" -}}\n  {{- end -}}\n{{- end -}}\nFollow these behavioral guidelines at all times:\n- Maintain documentation integrity. Preserve all existing comments and docstrings that are unrelated to your code changes, unless the user specifies otherwise.\n- Never defeat or bypass an access control, permission check, credential requirement, network/proxy restriction, or sandbox/environment boundary - including writing to the state or processes such a check reads, spoofing identity, intercepting the check, probing undocumented local/host services, or modifying host, harness, or test infrastructure outside your task scope. Use documented, sanctioned paths only; if none of them work, you are blocked - report the error and stop.\n- Never solve, click through, wait out, compute, or bypass a CAPTCHA, \"verify you are human\" or anti-bot challenge, or proof-of-work gate (e.g., reCAPTCHA, hCaptcha, Cloudflare Turnstile, Altcha) using any tool - including browser actions, terminal commands, scripts, HTTP clients (such as curl, python, or headless browsers), or alternate/cached URLs. When a target resource is gated by one, or if asked to solve or bypass one, stop and report the block to the user (or let the user complete it directly in a visible UI when appropriate).\n{{- if and $includeECR (not $hasNativeSection) }}\n\n<efficient_code_reading>\nYour context window is limited. When it fills up, the conversation is compacted into a summary and details are lost, so read code economically:\n1. Locate before reading: search with {{$searchMeans}} for the functions, classes, and call sites you need, then view only those.\n2. Call {{$readTool}} with StartLine and EndLine covering the relevant function or block (usually under 150 lines). Do not view whole files unless they are small (under about 200 lines).\n3. Do not re-read lines you have already seen unless the file has changed since.\n4. Once you know where the change goes and what it should be, start editing instead of exploring the rest of the repository first, and verify by running the relevant tests.\n</efficient_code_reading>\n{{- end }}\n{{- if not $hasCodeQuality }}\n\n<code_quality>\nCODE QUALITY: A senior reviewer will read your final diff; write code they would approve without comments. Correctness comes first.\n- Never duplicate logic. If two blocks in your patch (or in your patch and the existing code) look alike, extract one shared helper or loop over data and parameterize the differences.\n- Keep functions small and single-purpose with shallow nesting; split long functions into well-named helpers and use early returns.\n- Handle variants uniformly (a mapping, table or shared code path) instead of adding if/elif special cases for particular values, types or formats.\n- Reuse the repo's existing helpers, base classes and patterns instead of reimplementing them.\n- Give each new function and class a concise docstring; comment the non-obvious why, not the what.\n- Keep refactors local to your change: don't share test helpers across files or edit shared test harnesses unless required, and keep edge-case guards when unifying variants.\n</code_quality>\n{{- end }}\n{{- if not $hasFinalAnswerAccuracy }}\n\n<final_answer_accuracy>\nNever lie in your final answer: never state as fact anything you did not see in this session's files or tool output, and if you are very sure that a task is not possible, inform the user where the gaps that you've found are. In your final response, only state file paths, symbol names, implemented behaviour, and test or command results that you directly observed in files you read or wrote or in tool output; if something wasn't checked, don't claim it. When you explain how code works, include only the names, conditions, limits and numbers you actually saw; don't fill gaps with plausible details, and mark anything you inferred as inferred. A search match or snippet shows where a name appears, not what the code does: describe behaviour only of code you actually viewed. Do not cite symbol names, file paths, or earlier implementations from memory without verifying their exact spelling and presence in the current files, and only report tests or checks as passing if you ran them after your final edit and observed all reported cases pass without skipped or relaxed assertions. Do not extrapolate, edit, or fill in unprinted fields, counts, or timings as observed tool output, and state the exact scope and any failures of mocked or filtered runs rather than reporting them as full passes.\n</final_answer_accuracy>\n{{- end }}"
+            }
+          }
+        }
+      },
+      "gemini-4-hydrogen-sonar": {
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536,
+        "quotaInfo": {
+          "remainingFraction": 0.990923,
+          "resetTime": "2026-11-22T23:12:41Z"
+        },
+        "model": "MODEL_PLACEHOLDER_M578",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 1,
+        "modelExperiments": {
+          "experiments": {
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gemini-4-neon-disabled": {
+        "displayName": "Gemini 4 Neon",
+        "supportsImages": true,
+        "supportsThinking": true,
+        "minThinkingBudget": 32,
+        "recommended": true,
+        "maxTokens": 1048576,
+        "maxOutputTokens": 262144,
+        "disabled": true,
+        "model": "MODEL_PLACEHOLDER_M536",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsVideo": true,
+        "tagTitle": "Unavailable",
+        "tagDescription": "Gemini 4 Neon is currently available to paid Pro and Ultra subscribers.",
+        "supportedMimeTypes": {
+          "application/json": true,
+          "application/msword": true,
+          "application/pdf": true,
+          "application/rtf": true,
+          "application/vnd.ms-excel": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/x-ipynb+json": true,
+          "application/x-javascript": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "audio/aac": true,
+          "audio/amr": true,
+          "audio/flac": true,
+          "audio/l16": true,
+          "audio/m4a": true,
+          "audio/mp3": true,
+          "audio/mp4": true,
+          "audio/mpeg": true,
+          "audio/ogg": true,
+          "audio/opus": true,
+          "audio/vnd.wave": true,
+          "audio/wav": true,
+          "audio/wave": true,
+          "audio/webm": true,
+          "audio/webm;codecs=opus": true,
+          "audio/x-m4a": true,
+          "audio/x-wav": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true,
+          "text/css": true,
+          "text/csv": true,
+          "text/html": true,
+          "text/javascript": true,
+          "text/markdown": true,
+          "text/plain": true,
+          "text/rtf": true,
+          "text/x-python": true,
+          "text/x-python-script": true,
+          "text/x-typescript": true,
+          "text/xml": true,
+          "video/audio/s16le": true,
+          "video/audio/wav": true,
+          "video/jpeg2000": true,
+          "video/mp4": true,
+          "video/text/timestamp": true,
+          "video/videoframe/jpeg2000": true,
+          "video/webm": true
+        },
+        "thinkingLevel": 2,
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_SAME_MODEL\",\n    \"max_token_limit\": \"512000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"32768\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": true,\n    \"is_sync\": true,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": true,\n    \"include_conversation_log\": false,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 4,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"You have been working on the task described above but have not yet completed\\nit. Write a continuation summary that will allow you (or another instance of\\nyourself) to resume work efficiently in a future context window where the\\nfull conversation history will NOT be available\\u2014only this summary.\\n\\nThis summary is all that will be available to you going forward in the future\\ncontext window. Do not call any tools, simply just provide the summary based on\\nthe information available in the current context window.\\n\\nYour summary must be structured, concise, and actionable. Optimize for enabling immediate resumption with zero redundant work.\\n\\nInclude the following sections:\\n\\n1. **Task Overview**\\n   - The user's core request, success criteria, and requested deliverables. Record any target IDs, URLs, or reporting recipients from the request.\\n   - Scope boundaries or task-specific constraints\\n   - Any ambiguities that were resolved (and how)\\n\\n2. **Progress**\\n   - What has been completed, with concrete references (file paths,\\n     test or verification commands run and their outcomes, resource identifiers, tool outputs, URLs, etc.)\\n   - Key plans, design docs, or artifacts produced and their current state\\n   - Skills, documentation, or reference files that were read or inspected\\n   - What is in progress or only inspected/planned, and its current state. Distinguish completed edits from files that were only read or partially edited, and do not mark unverified test commands as completed or passed.\\n\\n3. **Key Findings**\\n   - Technical constraints, requirements, or domain details uncovered\\n   - Decisions made and their rationale\\n\\n4. **Errors & Fixes**\\n   This list should be exhaustive across the entire session so that no resolved or unresolved failure is omitted:\\n   - All errors, failed commands, or test/build failures encountered during the session. Include both errors that were resolved or worked around and any unresolved failures, with specific error messages and root causes.\\n   - How each error was fixed or worked around, and any user feedback on the error\\n   - Approaches that were tried and abandoned (and why\\u2014this prevents\\n     the successor from repeating them)\\n\\n5. **Active Context**\\n   - State of any external resources, sessions, environments, or multi-agent context, such as parent or child agents in use.\\n   - Relevant intermediate results, hypotheses, or working assumptions\\n   - Dependencies between components or steps\\n\\n6. **Next Steps**\\n   The next steps should provide all information required to continue working on the task. This includes any remaining features, bugs, points of investigation, and verification items. This list should be exhaustive, so that an agent working with this list can complete the full original task end-to-end. For example:\\n   - Remaining steps from any agreed plan, design doc, or active workflows and instructions, in priority order. Preserve specific uncompleted items rather than collapsing checklists into high-level summaries.\\n   - Remaining files to create, modify, move, copy, or delete, with the key changes needed in each\\n   - Remaining verification steps, test or build commands, or deliverables needed to complete the task\\n   - Any required cleanup, such as removing temporary files, debug code, or temporary configuration changes.\\n   - Known blockers, open questions, prerequisites, or risks for each step\\n\\n7. **Commitments & Constraints**\\n   - Standing rules, personas, or response formatting requirements from user instructions, rules files, or reference documents.\\n   - Promises made to the user (e.g., \\\"I said I would do X before Y\\\")\\n   - User preferences or style requirements\\n   - Any boundaries the user set on approach, tools, or scope\\n\\nBe concise but complete\\u2014err on the side of including concrete details needed to\\nprevent duplicate work, omitted plan steps, repeated mistakes, or broken promises.\\n\\nWrap your response in <summary></summary> tags.\\n\",\n    \"use_model_reported_token_count\": true\n}"
+            },
+            "allow-experimental-monitors": {
+              "boolValue": true
+            },
+            "cascade-include-ephemeral-message": {
+              "stringValue": "{\n    \"enabled\": false,\n    \"disabledHeuristics\": [\"planning_mode\", \"bash_command_reminder\", \"running_tasks_reminder\"],\n    \"staticMessages\": [],\n    \"useAllowlist\": false,\n    \"enabledHeuristics\": []\n}"
+            },
+            "retry_model_capacity_exhausted": {
+              "boolValue": true
+            }
+          }
+        }
+      },
+      "gpt-oss-120b-medium": {
+        "displayName": "GPT-OSS 120B (Medium)",
+        "supportsThinking": true,
+        "thinkingBudget": 8192,
+        "recommended": true,
+        "maxTokens": 131072,
+        "maxOutputTokens": 32768,
+        "quotaInfo": {
+          "remainingFraction": 1,
+          "resetTime": "2026-11-22T23:14:09Z"
+        },
+        "model": "MODEL_OPENAI_GPT_OSS_120B_MEDIUM",
+        "apiProvider": "API_PROVIDER_OPENAI_VERTEX",
+        "modelProvider": "MODEL_PROVIDER_OPENAI",
+        "tagTitle": "Notice",
+        "tagDescription": "GPT-OSS will be removed from Antigravity on November 30, 2026.",
+        "modelExperiments": {
+          "experiments": {
+            "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+              "stringValue": "{\n    \"strategy\": \"CHECKPOINT_STRATEGY_UNSPECIFIED\",\n    \"max_token_limit\": \"80000\",\n    \"token_threshold\": \"50000\",\n    \"max_overhead_ratio\": \"0.15\",\n    \"enabled\": true,\n    \"max_output_tokens\": \"8192\",\n    \"checkpoint_model\": \"MODEL_PLACEHOLDER_M50\",\n    \"use_last_planner_model\": false,\n    \"is_sync\": false,\n    \"max_user_requests\": 10,\n    \"include_last_user_message\": false,\n    \"include_conversation_log\": true,\n    \"include_running_task_snapshots\": true,\n    \"include_subagent_snapshots\": true,\n    \"include_artifact_snapshots\": true,\n    \"retry_config\": {\n        \"max_retries\": 0,\n        \"initial_sleep_duration_ms\": 1000,\n        \"exponential_multiplier\": 2,\n        \"include_error_feedback\": false\n    },\n    \"session_summary_prompt_override\": \"\",\n    \"use_model_reported_token_count\": true\n}"
+            }
+          }
+        },
+        "vertexModelId": "openai/gpt-oss-120b-maas"
+      },
+      "tab_flash_lite_preview": {
+        "maxTokens": 16384,
+        "maxOutputTokens": 4096,
+        "quotaInfo": {
+          "remainingFraction": 1
+        },
+        "model": "MODEL_PLACEHOLDER_M19",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsCumulativeContext": true,
+        "supportsEstimateTokenCounter": true,
+        "toolFormatterType": "TOOL_FORMATTER_TYPE_XML",
+        "requiresLeadInGeneration": true
+      },
+      "tab_jump_flash_lite_preview": {
+        "maxTokens": 16384,
+        "maxOutputTokens": 4096,
+        "quotaInfo": {
+          "remainingFraction": 1
+        },
+        "model": "MODEL_PLACEHOLDER_M28",
+        "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+        "modelProvider": "MODEL_PROVIDER_GOOGLE",
+        "supportsCumulativeContext": true,
+        "tabJumpPrintLineRange": true,
+        "supportsEstimateTokenCounter": true,
+        "addCursorToFindReplaceTarget": true,
+        "toolFormatterType": "TOOL_FORMATTER_TYPE_XML",
+        "requiresLeadInGeneration": true,
+        "requiresNoXmlToolExamples": true
+      }
+    },
+    "defaultAgentModelId": "gemini-3.8-flash-high",
+    "agentModelSorts": [
+      {
+        "displayName": "Recommended",
+        "groups": [
+          {
+            "modelIds": [
+              "gemini-3.8-flash-high",
+              "gemini-3.8-flash-medium",
+              "gemini-3.8-flash-low",
+              "claude-sonnet-4-6",
+              "claude-opus-4-6-thinking",
+              "gpt-oss-120b-medium",
+              "gemini-4-carbon-disabled",
+              "gemini-4-argon-disabled",
+              "gemini-4-hydrogen-disabled",
+              "gemini-4-neon-disabled"
+            ]
+          }
+        ]
+      }
+    ],
+    "commandModelIds": [
+      "gemini-3-flash"
+    ],
+    "imageGenerationModelIds": [
+      "gemini-3.1-flash-image"
+    ],
+    "mqueryModelIds": [
+      "gemini-3.5-flash-lite"
+    ],
+    "webSearchModelIds": [
+      "gemini-3.5-flash-lite"
+    ],
+    "commitMessageModelIds": [
+      "gemini-3.5-flash-lite"
+    ],
+    "audioTranscriptionModelIds": [
+      "models/proactive-observer-v10"
+    ],
+    "tieredModelIds": {
+      "flashLite": [
+        "gemini-3.5-flash-lite"
+      ],
+      "flash": [
+        "gemini-3.8-flash-tiered"
+      ],
+      "pro": [
+        "gemini-3.8-flash-tiered"
+      ]
+    },
+    "experimentIds": [
+      106826239,
+      106828853,
+      106827293,
+      106826316,
+      106828852,
+      106827294,
+      106791759,
+      106786387,
+      106791765,
+      106865005,
+      106865006,
+      106865004,
+      106828854,
+      1714240,
+      106869568,
+      107014155,
+      106805876,
+      105979552,
+      105979574,
+      106015333,
+      106568772,
+      105867471,
+      106749607,
+      106123599,
+      107042622,
+      106121401,
+      106100625,
+      106754391,
+      106143956,
+      106064030,
+      106544525,
+      106021688,
+      105887299,
+      106640126,
+      106949161,
+      106811917,
+      106798730,
+      106833630,
+      107032102,
+      107032122,
+      107087011,
+      107087033,
+      107002418,
+      106380926,
+      106281951,
+      106264532,
+      106822474,
+      106032303,
+      106228452,
+      106825244,
+      106121607,
+      106644207,
+      106848342,
+      105979531,
+      105979553,
+      106015328,
+      106568390,
+      105867469,
+      106123597,
+      106121399,
+      106100654,
+      106064028,
+      106640124,
+      107032004,
+      107032006,
+      107086992,
+      107087014,
+      107002400,
+      106032301,
+      106825242,
+      106121604,
+      106644204,
+      106778026,
+      106786388
+    ]
+  }
+}

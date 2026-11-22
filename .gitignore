@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec.bak
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Build artifacts
+dist/
+build/
+*.exe
+*.pkg
+
+# Node / Electron
+node_modules/
+ui/node_modules/
+ui/dist/
+
+# Local User Data (persisted in %APPDATA%\AntigravityFlow)
+data/recordings/
+data/history.json
+data/history.db
+data/config.json
+data/.key_recording
+crash.log
+
+# IDE
+.vscode/
+.idea/

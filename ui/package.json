@@ -1,0 +1,40 @@
+{
+  "name": "antigravity-flow",
+  "productName": "AntigravityFlow",
+  "version": "1.0.0",
+  "description": "Smart Voice Dictation for Google Antigravity",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.antigravityflow.app",
+    "productName": "AntigravityFlow",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AntigravityFlow"
+    },
+    "extraResources": [
+      {
+        "from": "../dist/AntigravityFlowDaemon.exe",
+        "to": "bin/AntigravityFlowDaemon.exe"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

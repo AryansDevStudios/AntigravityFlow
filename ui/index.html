@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wispr Flow — Desktop</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <script src="tailwind.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0d0e12;
+      color: #f1f5f9;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #232630;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #333846;
+    }
+    .drag-region {
+      -webkit-app-region: drag;
+    }
+    .no-drag {
+      -webkit-app-region: no-drag;
+    }
+    .serif-italic {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-[#0d0e12] text-slate-200">
+
+  <!-- 1. Top Frameless Header & Titlebar -->
+  <header class="h-10 w-full flex items-center justify-between px-3 bg-[#0d0e12] border-b border-[#181a22] drag-region z-50">
+    <div class="flex items-center space-x-2 no-drag select-none pl-1">
+      <img src="icon.png" class="w-4 h-4 rounded-full border border-amber-500/40" alt="AntigravityFlow">
+      <span class="text-xs font-semibold text-slate-300 tracking-wide">Antigravity Flow</span>
+    </div>
+
+    <!-- Window controls -->
+    <div class="flex items-center space-x-1 no-drag text-slate-400">
+      <button id="btn-win-min" class="p-1.5 hover:text-white rounded hover:bg-[#1a1c24] transition" title="Minimize">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+      <button id="btn-win-max" class="p-1.5 hover:text-white rounded hover:bg-[#1a1c24] transition" title="Maximize">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+        </svg>
+      </button>
+      <button id="btn-win-close" class="p-1.5 hover:text-rose-400 rounded hover:bg-rose-500/10 transition" title="Close">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Main App Body (Sidebar + Content View) -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Sidebar -->
+    <aside class="w-14 bg-[#101115] border-r border-[#1a1c24] flex flex-col items-center py-3 justify-between z-40 select-none">
+      
+      <!-- Top Navigation Group -->
+      <div class="flex flex-col items-center space-y-3">
+        <!-- App Emblem Logo -->
+        <div class="w-9 h-9 flex items-center justify-center mb-1 cursor-pointer" title="Antigravity Flow">
+          <img src="icon.png" class="w-7 h-7 rounded-full border border-amber-500/40 shadow-lg object-contain" alt="Flow">
+        </div>
+
+        <!-- Dictations List View -->
+        <button id="nav-dictations" class="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition" title="Dictations">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+          </svg>
+        </button>
+
+        <!-- Insights & Analytics View -->
+        <button id="nav-insights" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition" title="Insights & Analytics">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </button>
+
+        <!-- Custom Vocabulary Quick Access -->
+        <button id="nav-vocab" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition font-bold text-xs" title="Custom Vocabulary & Acronyms">
+          <span class="font-mono text-[11px] tracking-tight text-slate-300">Aa</span>
+        </button>
+      </div>
+
+      <!-- Bottom Settings Group -->
+      <div class="flex flex-col items-center">
+        <button id="nav-settings" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition" title="Settings">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative">
+
+      <!-- ============================================================= -->
+      <!-- SCREEN 1: TODAY'S DICTATIONS (media_1795348206795.png)        -->
+      <!-- ============================================================= -->
+      <section id="view-dictations" class="absolute inset-0 p-8 overflow-y-auto custom-scroll flex flex-col space-y-6">
+        
+        <!-- Header & Live Dictation Hotkey Indicator -->
+        <div class="flex items-center justify-between pb-1">
+          <div>
+            <h1 id="user-greeting" class="text-2xl font-bold text-white tracking-tight">Welcome back, Copy</h1>
+            <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+              <span>Hold</span>
+              <kbd id="header-ptt-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-amber-400 font-semibold shadow-inner">Ctrl + Space</kbd>
+              <span>for Push-to-Talk or tap</span>
+              <kbd id="header-toggle-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-emerald-400 font-semibold shadow-inner">Ctrl + Shift + S</kbd>
+              <span>for hands-free</span>
+            </p>
+          </div>
+          <div class="flex items-center space-x-2 bg-[#14151b] border border-[#20232c] px-3.5 py-1.5 rounded-full text-xs shadow-sm select-none">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-slate-300 font-medium">Engine Active</span>
+          </div>
+        </div>
+
+        <!-- Real 3-Card Metrics Deck -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Total Words -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            <div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Total Words</div>
+              <div id="hero-total-words" class="text-2xl font-bold text-white mt-1">0</div>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg">
+              📝
+            </div>
+          </div>
+
+          <!-- Average WPM -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            <div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Speech Speed</div>
+              <div class="flex items-baseline space-x-1 mt-1">
+                <span id="hero-avg-wpm" class="text-2xl font-bold text-white">0</span>
+                <span class="text-xs text-slate-400 font-medium ml-1">WPM</span>
+              </div>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 text-lg">
+              ⚡
+            </div>
+          </div>
+
+          <!-- Streak Days -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-5 flex items-center justify-between shadow-sm">
+            <div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Active Streak</div>
+              <div class="flex items-baseline space-x-1 mt-1">
+                <span id="hero-streak-days" class="text-2xl font-bold text-white">0</span>
+                <span class="text-xs text-slate-400 font-medium ml-1">Days</span>
+              </div>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg">
+              🔥
+            </div>
+          </div>
+        </div>
+
+        <!-- Dictations List (Full Width) -->
+        <div class="w-full space-y-3">
+          <!-- Section Header & Search -->
+          <div class="flex items-center justify-between pb-2 border-b border-[#1b1d25]">
+            <div class="flex items-center space-x-2.5">
+              <span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Recent Dictations</span>
+              <span id="dictations-count-badge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">0</span>
+            </div>
+            <div class="relative">
+              <input id="search-input" type="text" placeholder="Search dictations..." 
+                class="bg-[#15161d] border border-[#232632] rounded-lg px-2.5 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition w-48 focus:w-64">
+              <svg class="w-3 h-3 text-slate-400 absolute right-2.5 top-2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Dictation Rows Container -->
+          <div id="dictations-list" class="space-y-1">
+            <!-- Dynamically populated via JS -->
+            <div class="text-center py-12 text-slate-500 text-xs">Loading dictations...</div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- SCREEN 2: INSIGHTS                                            -->
+      <!-- ============================================================= -->
+      <section id="view-insights" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-2 border-b border-[#1b1d25]">
+          <div>
+            <h1 class="text-xl font-bold text-white tracking-tight">Insights & Analytics</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Real-time statistics calculated from your encrypted dictations</p>
+          </div>
+        </div>
+
+        <!-- Top 3 Stat Cards Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          
+          <!-- Card 1: Words Per Minute + Semi-circular Gauge -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+            <div>
+              <div id="insight-wpm-num" class="text-3xl font-bold text-white">0</div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1 flex items-center gap-1">
+                WORDS PER MINUTE <span class="text-slate-500 cursor-help" title="Based on active speech duration">ⓘ</span>
+              </div>
+            </div>
+
+            <!-- Gauge Graphic (SVG arc) -->
+            <div class="relative flex flex-col items-center justify-center pt-4">
+              <svg class="w-36 h-20" viewBox="0 0 100 50">
+                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1d222a" stroke-width="8" stroke-linecap="round"></path>
+                <path id="gauge-arc" d="M 10 50 A 40 40 0 0 1 82 24" fill="none" stroke="#0d9488" stroke-width="8" stroke-linecap="round"></path>
+              </svg>
+              <div class="absolute bottom-1 text-center">
+                <div class="text-xs text-slate-400 font-medium">Top</div>
+                <div id="insight-percentile" class="text-sm font-bold text-emerald-400">5%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Fixes Made by Flow -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+            <div>
+              <div id="insight-fixes-num" class="text-3xl font-bold text-white">0</div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1 flex items-center gap-1">
+                FIXES MADE BY FLOW
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-4 text-xs text-slate-300">
+              <div class="flex items-center justify-between">
+                <span id="insight-words-corrected">0 words corrected</span>
+                <span class="text-slate-500 cursor-help" title="Grammar & casing improvements">ⓘ</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span id="insight-dict-fixes">0 dictionary fixes</span>
+                <span class="text-slate-500 cursor-help" title="Technical terminology & syntax">ⓘ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Total Words Dictated -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+            <div>
+              <div id="insight-total-words" class="text-3xl font-bold text-white">0</div>
+              <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1">
+                TOTAL WORDS DICTATED
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4">
+              <div class="flex items-center space-x-1.5 text-xs text-slate-300">
+                <span>💻</span>
+                <span>Desktop</span>
+                <span id="insight-desktop-words" class="text-slate-400 font-medium">0 words</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom 2 Large Cards Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          
+          <!-- Card 4: Desktop Usage Breakdown -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 space-y-4 shadow-md">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-semibold text-white">Desktop usage</h3>
+              <span id="stat-apps-used" class="text-[11px] font-medium text-slate-400 uppercase">TOTAL APPS USED | 0</span>
+            </div>
+
+            <!-- Categories -->
+            <div class="space-y-3 pt-1 text-xs">
+              <!-- AI Prompts -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">🤖</span>
+                    <span class="text-slate-200">AI Prompts</span>
+                  </div>
+                  <span id="stat-ai-prompts-label" class="text-slate-400 font-mono text-[11px]">0 AI PROMPTS</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-3 overflow-hidden flex">
+                  <div id="bar-ai-prompts" class="bg-[#0d9488] h-full rounded-full transition-all duration-500 text-[9px] font-bold text-white flex items-center justify-center" style="width: 0%;">
+                    0%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Documents -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">📄</span>
+                    <span class="text-slate-200">Documents</span>
+                  </div>
+                  <span id="stat-docs-label" class="text-slate-400 font-mono text-[11px]">0 DOCUMENTS</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-docs" class="bg-[#14b8a6] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Emails -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">✉️</span>
+                    <span class="text-slate-200">Emails</span>
+                  </div>
+                  <span id="stat-emails-label" class="text-slate-400 font-mono text-[11px]">0 EMAILS</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-emails" class="bg-[#0f766e] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Work Messages -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">💼</span>
+                    <span class="text-slate-200">Work messages</span>
+                  </div>
+                  <span id="stat-work-label" class="text-slate-400 font-mono text-[11px]">0 WORK MESSAGES</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-work" class="bg-[#0d9488] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Personal Messages -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">💬</span>
+                    <span class="text-slate-200">Personal messages</span>
+                  </div>
+                  <span id="stat-personal-label" class="text-slate-400 font-mono text-[11px]">0 PERSONAL MESSAGES</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-personal" class="bg-[#0f766e] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Other Tasks -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-slate-400">⚡</span>
+                    <span class="text-slate-200">Other tasks</span>
+                  </div>
+                  <span id="stat-other-label" class="text-slate-400 font-mono text-[11px]">0 OTHER TASKS</span>
+                </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-other" class="bg-[#2dd4bf] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Card 5: Streak & Activity Grid -->
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 space-y-4 shadow-md flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <h3 id="insight-streak-header" class="text-base font-semibold text-white">0 day streak</h3>
+              <span id="insight-longest-streak" class="text-[11px] font-medium text-slate-400 uppercase">LONGEST STREAK | 0 DAYS</span>
+            </div>
+
+            <!-- Heatmap Contribution Matrix -->
+            <div class="space-y-2 overflow-x-auto custom-scroll pb-2">
+              <div class="flex text-[10px] text-slate-400 space-x-8 pl-7">
+                <span>Aug</span>
+                <span>Sep</span>
+                <span>Oct</span>
+                <span>Nov</span>
+              </div>
+              <div class="flex space-x-1.5 items-center">
+                <!-- Day labels -->
+                <div class="flex flex-col space-y-1 text-[9px] text-slate-500 pr-1">
+                  <span>Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span>Sat</span>
+                </div>
+                <!-- Heatmap grid container -->
+                <div id="heatmap-grid" class="flex space-x-1">
+                  <!-- Generated via JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex items-center justify-between pt-2 border-t border-[#1e212b] text-[10px] text-slate-400">
+              <div class="flex items-center space-x-1.5">
+                <span>More</span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-[#0d9488]"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-[#14b8a6]"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-[#2dd4bf]"></span>
+                <span class="w-2.5 h-2.5 rounded-sm bg-[#99f6e4]"></span>
+                <span>Less</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-3 h-3 rounded-sm border border-emerald-400 bg-[#0d9488]/30"></span>
+                <span>Current streak</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- MODAL: SETTINGS & CONFIGURATION                              -->
+      <!-- ============================================================= -->
+      <div id="modal-settings" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#14151b] border border-[#262934] rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
+          
+          <!-- Modal Topbar -->
+          <div class="flex items-center justify-between pb-3 border-b border-[#20232c]">
+            <div class="flex items-center space-x-1">
+              <button id="modal-tab-general" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1e212b] border border-[#2d3140] transition">
+                ⚙️ General
+              </button>
+              <button id="modal-tab-ai" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition">
+                🤖 AI Polish (Gemini)
+              </button>
+              <button id="modal-tab-vocab" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition">
+                📖 Custom Vocabulary & Acronyms
+              </button>
+            </div>
+            <button id="btn-close-settings" class="text-slate-400 hover:text-white p-1 text-base">
+              ✕
+            </button>
+          </div>
+
+          <!-- TAB 1: GENERAL PREFERENCES -->
+          <div id="tab-pane-general" class="space-y-4 text-xs overflow-y-auto custom-scroll pr-1">
+            <!-- User Display Name -->
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">User Greeting Name</label>
+              <input id="cfg-user-name" type="text" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- Dictation Modality -->
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Active Dictation Modality</label>
+              <select id="cfg-dictation-mode" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-emerald-500">
+                <option value="both">Both Modes Active (Hold to Push-to-Talk OR Tap to Toggle)</option>
+                <option value="push_to_talk">Push-to-Talk Only (Hold key while speaking)</option>
+                <option value="toggle">Hands-Free Toggle Only (Tap to start, tap to stop)</option>
+              </select>
+            </div>
+
+            <!-- Push-to-Talk Hotkey -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                  <span>🎙️ Push-to-Talk Shortcut</span>
+                  <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 font-medium">Hold to speak, release to paste</span>
+                </label>
+              </div>
+              <div class="flex items-center gap-2">
+                <input id="cfg-ptt-hotkey" type="text" readonly class="flex-1 bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold focus:outline-none focus:border-emerald-500" value="ctrl+space">
+                <button id="btn-record-ptt" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap">
+                  <span>⌨️ Record Key</span>
+                </button>
+              </div>
+              <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'windows+alt')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt</button>
+                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Space</button>
+                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Alt+Space</button>
+                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'caps lock')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Caps Lock</button>
+                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">F8</button>
+              </div>
+            </div>
+
+            <!-- Hands-Free Toggle Hotkey -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                  <span>⚡ Hands-Free Toggle Shortcut</span>
+                  <span class="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20 font-medium">Tap to start, tap to stop</span>
+                </label>
+              </div>
+              <div class="flex items-center gap-2">
+                <input id="cfg-toggle-hotkey" type="text" readonly class="flex-1 bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold focus:outline-none focus:border-emerald-500" value="ctrl+shift+s">
+                <button id="btn-record-toggle" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap">
+                  <span>⌨️ Record Key</span>
+                </button>
+              </div>
+              <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+alt+h')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt+H</button>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+shift+s')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-emerald-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Shift+S</button>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+alt')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt</button>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Space</button>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Alt+Space</button>
+                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">F8</button>
+              </div>
+            </div>
+
+            <!-- Soft Sound Cues -->
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <div class="text-slate-200 font-medium">Soft Acoustic Chimes</div>
+                <div class="text-slate-400 text-[11px]">Play discreet audio tones when recording starts, ends, or switches to hands-free.</div>
+              </div>
+              <input id="cfg-sound" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+            </div>
+
+            <!-- Start on Windows Login -->
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <div class="text-slate-200 font-medium">Start on Windows Login</div>
+                <div class="text-slate-400 text-[11px]">Automatically launch silently in the background when your PC boots or restarts.</div>
+              </div>
+              <input id="cfg-start-login" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+            </div>
+
+            <!-- Active Cascade & Workspace Context Biasing -->
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <div class="text-slate-200 font-medium">Cascade & Workspace Context Biasing</div>
+                <div class="text-slate-400 text-[11px]">Peeks active Antigravity session trajectory to boost recognition of code symbols and project identifiers.</div>
+              </div>
+              <input id="cfg-cascade-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+            </div>
+
+            <!-- System Status -->
+            <div class="bg-[#181a22] rounded-xl p-3 space-y-1.5 border border-[#222530] text-[11px]">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Audio Storage:</span>
+                <span class="text-emerald-400 font-medium">Encrypted Vault (AES-256)</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Dictation Engine:</span>
+                <span class="text-slate-300 font-medium">Google Antigravity</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Input Mode:</span>
+                <span class="text-slate-300 font-medium">Single-Shot Block Paste</span>
+              </div>
+            </div>
+
+            <!-- Clear All History -->
+            <div class="pt-1">
+              <button id="btn-clear-history" class="w-full text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 py-2 rounded-xl transition">
+                Clear All Dictations & Audio Vault
+              </button>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-[#20232c]">
+              <button id="btn-save-settings" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                Save Settings
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 2: AI POLISH (GEMINI) -->
+          <div id="tab-pane-ai" class="hidden flex-col space-y-4 text-xs overflow-y-auto custom-scroll pr-1 flex-1">
+            
+            <!-- Description & Local Antigravity Server Status -->
+            <div class="bg-[#181a22] p-3 rounded-xl border border-[#242733] space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Local Google Antigravity Refiner</span>
+                </span>
+                <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  127.0.0.1:57071
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                Clean up grammatical slips, remove stuttering, filler words, or apply custom formatting instructions using your authenticated local Antigravity session.
+              </p>
+            </div>
+
+            <!-- Toggle Switch -->
+            <div class="flex items-center justify-between p-3 rounded-xl bg-[#161820] border border-[#222530]">
+              <div>
+                <div class="text-slate-200 font-semibold">Enable AI Post-Processing</div>
+                <div class="text-slate-400 text-[11px]">
+                  When OFF: Instant single-shot paste (&lt; 10ms). When ON: Gemini polishes text before paste (~250ms).
+                </div>
+              </div>
+              <input id="cfg-ai-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+            </div>
+
+            <!-- Model Selector -->
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1">Gemini Model Choice</label>
+              <select id="cfg-ai-model" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500">
+                <option value="MODEL_PLACEHOLDER_M318">Gemini 3.8 Flash (Low Reasoning - Ultra Fast, ~200ms)</option>
+                <option value="MODEL_PLACEHOLDER_M318_HIGH">Gemini 3.8 Flash (High Reasoning - Deep Cleanup, ~500ms)</option>
+              </select>
+            </div>
+
+            <!-- System Prompt & Presets -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-slate-300 font-semibold">System Prompt / Instructions</label>
+                <span class="text-[10px] text-slate-500">Click a preset to insert:</span>
+              </div>
+
+              <!-- Quick Preset Pills -->
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="clean">
+                  ✨ Clean & Natural
+                </button>
+                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="executive">
+                  👔 Executive & Polished
+                </button>
+                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="bullets">
+                  📋 Bullet Points
+                </button>
+                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="code">
+                  💻 Code & Terminal
+                </button>
+              </div>
+
+              <textarea id="cfg-ai-prompt" rows="5" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed resize-none"></textarea>
+            </div>
+
+            <!-- Save & Status -->
+            <div class="flex items-center justify-between pt-2 border-t border-[#20232c]">
+              <span id="ai-status-msg" class="text-[11px] text-emerald-400 font-medium hidden">
+                ✓ AI settings successfully saved
+              </span>
+              <button id="btn-save-ai" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                Save AI Settings
+              </button>
+            </div>
+
+          </div>
+
+          <!-- TAB 3: CUSTOM VOCABULARY & ACRONYMS -->
+          <div id="tab-pane-vocab" class="hidden flex-col space-y-3.5 text-xs overflow-hidden flex-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[11px] text-slate-400">
+                  Teach Flow technical acronyms, proper names, or developer jargon.
+                </p>
+              </div>
+              <span id="vocab-total-count" class="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                0 Rules
+              </span>
+            </div>
+
+            <!-- Add new mapping form -->
+            <div class="bg-[#181a22] p-3 rounded-xl border border-[#242733] space-y-2">
+              <div class="text-[11px] font-semibold text-slate-300">Add New Mapping</div>
+              <div class="flex items-center space-x-2">
+                <input id="input-vocab-spoken" type="text" placeholder="Spoken phrase (e.g. k eight s)" 
+                  class="flex-1 bg-[#121318] border border-[#2d303d] rounded-lg px-2.5 py-1.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-mono">
+                <span class="text-slate-500 font-bold">→</span>
+                <input id="input-vocab-target" type="text" placeholder="Replacement (e.g. K8s)" 
+                  class="flex-1 bg-[#121318] border border-[#2d303d] rounded-lg px-2.5 py-1.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-medium">
+                <button id="btn-add-vocab" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1.5 rounded-lg transition text-xs whitespace-nowrap">
+                  + Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Search filter -->
+            <div class="relative">
+              <input id="input-vocab-search" type="text" placeholder="Filter active vocabulary..." 
+                class="w-full bg-[#161820] border border-[#262935] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-500">
+            </div>
+
+            <!-- Scrollable Mappings List -->
+            <div id="vocab-list" class="max-h-[220px] overflow-y-auto custom-scroll space-y-1.5 pr-1 border border-[#1e2029] rounded-xl p-2 bg-[#101115]">
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Footer Save & Status -->
+            <div class="flex items-center justify-between pt-2 border-t border-[#20232c]">
+              <span id="vocab-status-msg" class="text-[11px] text-emerald-400 font-medium hidden">
+                ✓ Vocabulary successfully saved
+              </span>
+              <button id="btn-save-vocab" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                Save Vocabulary
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Audio Player Instance (In-memory playback) -->
+  <audio id="global-audio-player" class="hidden"></audio>
+
+  <script>
+    let allHistory = [];
+    let currentConfig = { user_name: 'Copy', hotkey: 'ctrl+shift+s', enable_sound: true };
+    let currentVocabulary = {};
+    let currentPlayingId = null;
+
+    const audioPlayer = document.getElementById('global-audio-player');
+
+    // Navigation Tabs
+    const navDictations = document.getElementById('nav-dictations');
+    const navInsights = document.getElementById('nav-insights');
+    const navSettings = document.getElementById('nav-settings');
+    const viewDictations = document.getElementById('view-dictations');
+    const viewInsights = document.getElementById('view-insights');
+    const modalSettings = document.getElementById('modal-settings');
+
+    function showDictations() {
+      navDictations.className = "w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition";
+      navInsights.className = "w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition";
+      viewDictations.classList.remove('hidden');
+      viewInsights.classList.add('hidden');
+      loadData();
+    }
+
+    function showInsights() {
+      navInsights.className = "w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition";
+      navDictations.className = "w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition";
+      viewInsights.classList.remove('hidden');
+      viewDictations.classList.add('hidden');
+      renderInsightsMetrics();
+    }
+
+    navDictations.addEventListener('click', showDictations);
+    navInsights.addEventListener('click', showInsights);
+
+    // Modal Tabs & View Logic
+    const modalTabGeneral = document.getElementById('modal-tab-general');
+    const modalTabAi = document.getElementById('modal-tab-ai');
+    const modalTabVocab = document.getElementById('modal-tab-vocab');
+    const tabPaneGeneral = document.getElementById('tab-pane-general');
+    const tabPaneAi = document.getElementById('tab-pane-ai');
+    const tabPaneVocab = document.getElementById('tab-pane-vocab');
+
+    const AI_PRESETS = {
+      clean: "You are an expert voice dictation assistant. Clean up grammatical slips, remove stuttering, filler words (um, uh, repeats), and fix punctuation. Preserve the exact meaning, technical terms, and speaker tone. Return ONLY the final polished text with no surrounding quotes, markdown fences, preamble, or commentary.",
+      executive: "You are an executive editor. Rewrite the spoken dictation into polished, concise, high-impact business communication. Remove rambling, maintain a confident and professional tone, and ensure impeccable grammar. Return ONLY the polished text with no commentary or quotes.",
+      bullets: "You are a structured note-taking assistant. Convert the spoken dictation into clean, well-organized markdown bullet points. Group related points logically, bold key concepts, and eliminate filler speech. Return ONLY the bulleted list with no preamble.",
+      code: "You are a developer assistant. Format code snippets, terminal commands, function names, and technical terminology accurately in markdown. Fix syntax mistakes and return clean, ready-to-run code or markdown without conversational commentary."
+    };
+
+    function switchModalTab(tab) {
+      const activeClass = "px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1e212b] border border-[#2d3140] transition";
+      const inactiveClass = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition";
+
+      // Reset tabs
+      modalTabGeneral.className = inactiveClass;
+      modalTabAi.className = inactiveClass;
+      modalTabVocab.className = inactiveClass;
+
+      // Hide panes
+      tabPaneGeneral.classList.add('hidden');
+      tabPaneAi.classList.add('hidden');
+      tabPaneAi.classList.remove('flex');
+      tabPaneVocab.classList.add('hidden');
+      tabPaneVocab.classList.remove('flex');
+
+      if (tab === 'general') {
+        modalTabGeneral.className = activeClass;
+        tabPaneGeneral.classList.remove('hidden');
+      } else if (tab === 'ai') {
+        modalTabAi.className = activeClass;
+        tabPaneAi.classList.remove('hidden');
+        tabPaneAi.classList.add('flex');
+      } else if (tab === 'vocab') {
+        modalTabVocab.className = activeClass;
+        tabPaneVocab.classList.remove('hidden');
+        tabPaneVocab.classList.add('flex');
+        loadVocabulary();
+      }
+    }
+
+    modalTabGeneral.addEventListener('click', () => switchModalTab('general'));
+    modalTabAi.addEventListener('click', () => switchModalTab('ai'));
+    modalTabVocab.addEventListener('click', () => switchModalTab('vocab'));
+
+    function updateHeaderBadges(cfg) {
+      const pttBadge = document.getElementById('header-ptt-badge');
+      const toggleBadge = document.getElementById('header-toggle-badge');
+      if (pttBadge) pttBadge.textContent = (cfg.push_to_talk_hotkey || 'ctrl+space').toUpperCase();
+      if (toggleBadge) toggleBadge.textContent = (cfg.toggle_hotkey || cfg.hotkey || 'ctrl+shift+s').toUpperCase();
+    }
+
+    function setPresetHotkey(inputId, combo) {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = combo;
+        saveAllConfig();
+      }
+    }
+
+    function setupKeyRecorder(buttonId, inputId) {
+      const btn = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      if (!btn || !input) return;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Temporarily pause dictation hotkeys while recording keys in UI
+        if (window.api && window.api.setKeyRecordingActive) {
+          window.api.setKeyRecordingActive(true);
+        }
+
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<span class="animate-pulse text-amber-400 font-bold">⏺ Press up to 3 keys...</span>`;
+        btn.classList.add('border-amber-400/50', 'bg-amber-500/10');
+
+        const pressedSet = new Set();
+        let timeoutHandle = null;
+        let commitHandle = null;
+
+        function normalizeKey(event) {
+          const code = event.code || '';
+          const key = (event.key || '').toLowerCase();
+
+          if (code.startsWith('Meta') || key === 'meta' || key === 'os' || key === 'win' || event.metaKey) {
+            return 'windows';
+          }
+          if (code.startsWith('Control') || key === 'control' || key === 'ctrl' || event.ctrlKey) {
+            return 'ctrl';
+          }
+          if (code.startsWith('Alt') || key === 'alt' || event.altKey) {
+            return 'alt';
+          }
+          if (code.startsWith('Shift') || key === 'shift' || event.shiftKey) {
+            return 'shift';
+          }
+          if (key === ' ' || code === 'Space') {
+            return 'space';
+          }
+          if (key === 'capslock' || code === 'CapsLock') {
+            return 'caps lock';
+          }
+          if (key === 'escape' || code === 'Escape') {
+            return 'escape';
+          }
+          return key;
+        }
+
+        function formatCombo(keysSet) {
+          const order = ['windows', 'alt', 'ctrl', 'shift'];
+          const result = [];
+          for (const m of order) {
+            if (keysSet.has(m)) result.push(m);
+          }
+          for (const k of keysSet) {
+            if (!order.includes(k)) result.push(k);
+          }
+          return result.slice(0, 3).join('+');
+        }
+
+        function commitChord() {
+          if (pressedSet.size > 0) {
+            const finalCombo = formatCombo(pressedSet);
+            if (finalCombo) {
+              input.value = finalCombo;
+              saveAllConfig();
+            }
+            cleanup();
+          }
+        }
+
+        function onKeyDown(event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const k = normalizeKey(event);
+          if (k === 'escape') {
+            cleanup();
+            return;
+          }
+
+          if (commitHandle) {
+            clearTimeout(commitHandle);
+            commitHandle = null;
+          }
+
+          if (event.ctrlKey) pressedSet.add('ctrl');
+          if (event.altKey) pressedSet.add('alt');
+          if (event.shiftKey) pressedSet.add('shift');
+          if (event.metaKey) pressedSet.add('windows');
+          if (k) pressedSet.add(k);
+
+          const preview = formatCombo(pressedSet);
+          if (preview) {
+            input.value = preview;
+          }
+        }
+
+        function onKeyUp(event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (!commitHandle && pressedSet.size > 0) {
+            commitHandle = setTimeout(commitChord, 140);
+          }
+        }
+
+        function onWindowBlur() {
+          commitChord();
+          cleanup();
+        }
+
+        function cleanup() {
+          if (commitHandle) clearTimeout(commitHandle);
+          if (timeoutHandle) clearTimeout(timeoutHandle);
+          window.removeEventListener('keydown', onKeyDown, true);
+          window.removeEventListener('keyup', onKeyUp, true);
+          window.removeEventListener('blur', onWindowBlur, true);
+          btn.innerHTML = originalHtml;
+          btn.classList.remove('border-amber-400/50', 'bg-amber-500/10');
+          // Resume normal dictation triggers
+          if (window.api && window.api.setKeyRecordingActive) {
+            window.api.setKeyRecordingActive(false);
+          }
+        }
+
+        window.addEventListener('keydown', onKeyDown, true);
+        window.addEventListener('keyup', onKeyUp, true);
+        window.addEventListener('blur', onWindowBlur, true);
+        timeoutHandle = setTimeout(cleanup, 7000);
+      });
+    }
+
+    setupKeyRecorder('btn-record-ptt', 'cfg-ptt-hotkey');
+    setupKeyRecorder('btn-record-toggle', 'cfg-toggle-hotkey');
+
+    function openSettingsModal(defaultTab = 'general') {
+      document.getElementById('cfg-user-name').value = currentConfig.user_name || 'Copy';
+      document.getElementById('cfg-dictation-mode').value = currentConfig.dictation_mode || 'both';
+      document.getElementById('cfg-ptt-hotkey').value = currentConfig.push_to_talk_hotkey || 'windows+alt';
+      document.getElementById('cfg-toggle-hotkey').value = currentConfig.toggle_hotkey || currentConfig.hotkey || 'windows+alt+h';
+      document.getElementById('cfg-sound').checked = currentConfig.enable_sound !== false;
+      document.getElementById('cfg-start-login').checked = currentConfig.start_on_login !== false;
+      document.getElementById('cfg-cascade-enabled').checked = currentConfig.enable_context_cascade !== false;
+      
+      document.getElementById('cfg-ai-enabled').checked = currentConfig.enable_ai_polish === true;
+      document.getElementById('cfg-ai-model').value = currentConfig.ai_model || 'MODEL_PLACEHOLDER_M318';
+      document.getElementById('cfg-ai-prompt').value = currentConfig.ai_system_prompt || AI_PRESETS.clean;
+
+      switchModalTab(defaultTab);
+      modalSettings.classList.remove('hidden');
+    }
+
+    navSettings.addEventListener('click', () => openSettingsModal('general'));
+
+    const navVocab = document.getElementById('nav-vocab');
+    if (navVocab) navVocab.addEventListener('click', () => openSettingsModal('vocab'));
+
+    document.getElementById('btn-close-settings').addEventListener('click', () => {
+      modalSettings.classList.add('hidden');
+    });
+
+    // Preset button clicks
+    document.querySelectorAll('.btn-prompt-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const presetKey = btn.dataset.preset;
+        if (AI_PRESETS[presetKey]) {
+          document.getElementById('cfg-ai-prompt').value = AI_PRESETS[presetKey];
+          saveAllConfig();
+        }
+      });
+    });
+
+    async function saveAllConfig() {
+      const pttVal = document.getElementById('cfg-ptt-hotkey').value.trim() || 'windows+alt';
+      const toggleVal = document.getElementById('cfg-toggle-hotkey').value.trim() || 'windows+alt+h';
+      const modeVal = document.getElementById('cfg-dictation-mode').value || 'both';
+      const startLoginVal = document.getElementById('cfg-start-login') ? document.getElementById('cfg-start-login').checked : true;
+      const cfg = {
+        ...currentConfig,
+        user_name: document.getElementById('cfg-user-name').value.trim() || 'Copy',
+        dictation_mode: modeVal,
+        push_to_talk_hotkey: pttVal,
+        toggle_hotkey: toggleVal,
+        hotkey: toggleVal,
+        enable_sound: document.getElementById('cfg-sound').checked,
+        start_on_login: startLoginVal,
+        enable_context_cascade: document.getElementById('cfg-cascade-enabled').checked,
+        enable_ai_polish: document.getElementById('cfg-ai-enabled').checked,
+        ai_model: document.getElementById('cfg-ai-model').value,
+        ai_system_prompt: document.getElementById('cfg-ai-prompt').value.trim()
+      };
+      await window.api.saveConfig(cfg);
+      currentConfig = cfg;
+      document.getElementById('user-greeting').textContent = `Welcome back, ${cfg.user_name}`;
+      updateHeaderBadges(cfg);
+      return cfg;
+    }
+
+    // Instant real-time auto-save listeners on all settings toggles
+    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-enabled', 'cfg-ai-model'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => saveAllConfig());
+    });
+    ['cfg-user-name'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => saveAllConfig());
+    });
+
+    document.getElementById('btn-save-settings').addEventListener('click', async () => {
+      await saveAllConfig();
+      modalSettings.classList.add('hidden');
+    });
+
+    document.getElementById('btn-save-ai').addEventListener('click', async () => {
+      await saveAllConfig();
+      const statusMsg = document.getElementById('ai-status-msg');
+      statusMsg.classList.remove('hidden');
+      setTimeout(() => statusMsg.classList.add('hidden'), 2500);
+    });
+
+    // Custom Vocabulary & Acronyms Management
+    async function loadVocabulary() {
+      try {
+        const res = await window.api.getVocabulary();
+        if (res.success && res.data) {
+          currentVocabulary = res.data;
+          renderVocabularyList();
+        }
+      } catch (err) {
+        console.error('Failed to load vocabulary:', err);
+      }
+    }
+
+    function renderVocabularyList() {
+      const listEl = document.getElementById('vocab-list');
+      const searchVal = (document.getElementById('input-vocab-search').value || '').toLowerCase().trim();
+      const countEl = document.getElementById('vocab-total-count');
+      
+      const keys = Object.keys(currentVocabulary);
+      countEl.textContent = `${keys.length} Rules`;
+
+      const filteredKeys = keys.filter(k => 
+        k.toLowerCase().includes(searchVal) || (currentVocabulary[k] || '').toLowerCase().includes(searchVal)
+      );
+
+      if (filteredKeys.length === 0) {
+        listEl.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs">${searchVal ? 'No matching vocabulary rules found.' : 'No vocabulary rules configured yet.'}</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filteredKeys.map(spoken => {
+        const target = currentVocabulary[spoken];
+        return `
+          <div class="flex items-center justify-between px-3 py-1.5 bg-[#15171f] hover:bg-[#1a1d28] rounded-lg border border-[#212431] group transition">
+            <div class="flex items-center space-x-2.5 overflow-hidden">
+              <span class="font-mono text-slate-300 text-[11px] truncate max-w-[170px] bg-[#1d202b] px-2 py-0.5 rounded border border-[#2b2f3f]">${escapeHtml(spoken)}</span>
+              <span class="text-slate-500 font-bold text-xs">→</span>
+              <span class="font-semibold text-emerald-400 text-xs truncate max-w-[170px]">${escapeHtml(target)}</span>
+            </div>
+            <button onclick="deleteVocabRule('${escapeHtml(spoken).replace(/'/g, "\\'")}')" 
+              class="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-500/10 transition opacity-60 group-hover:opacity-100" title="Delete mapping">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.deleteVocabRule = async function(spoken) {
+      delete currentVocabulary[spoken];
+      renderVocabularyList();
+      await window.api.saveVocabulary(currentVocabulary);
+    };
+
+    document.getElementById('input-vocab-search').addEventListener('input', () => {
+      renderVocabularyList();
+    });
+
+    async function handleAddVocab() {
+      const spokenInput = document.getElementById('input-vocab-spoken');
+      const targetInput = document.getElementById('input-vocab-target');
+      const spoken = spokenInput.value.trim().toLowerCase();
+      const target = targetInput.value.trim();
+
+      if (!spoken || !target) return;
+
+      currentVocabulary[spoken] = target;
+      spokenInput.value = '';
+      targetInput.value = '';
+      spokenInput.focus();
+      renderVocabularyList();
+      await window.api.saveVocabulary(currentVocabulary);
+
+      const statusMsg = document.getElementById('vocab-status-msg');
+      statusMsg.classList.remove('hidden');
+      setTimeout(() => statusMsg.classList.add('hidden'), 2000);
+    }
+
+    document.getElementById('btn-add-vocab').addEventListener('click', handleAddVocab);
+    document.getElementById('input-vocab-target').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleAddVocab();
+    });
+
+    document.getElementById('btn-save-vocab').addEventListener('click', async () => {
+      await window.api.saveVocabulary(currentVocabulary);
+      const statusMsg = document.getElementById('vocab-status-msg');
+      statusMsg.classList.remove('hidden');
+      setTimeout(() => statusMsg.classList.add('hidden'), 2000);
+    });
+
+    // Window controls
+    document.getElementById('btn-win-min').addEventListener('click', () => window.api.minimize());
+    document.getElementById('btn-win-max').addEventListener('click', () => window.api.maximize());
+    document.getElementById('btn-win-close').addEventListener('click', () => window.api.close());
+
+    // Search filter
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = allHistory.filter(i => (i.text || '').toLowerCase().includes(q));
+      renderDictations(filtered);
+    });
+
+    // Clear History
+    document.getElementById('btn-clear-history').addEventListener('click', async () => {
+      if (confirm('Clear all dictation history and securely delete encrypted recordings?')) {
+        await window.api.clearHistory();
+        modalSettings.classList.add('hidden');
+        loadData();
+      }
+    });
+
+    // Load Data
+    async function loadData() {
+      // Load config
+      const cfgRes = await window.api.getConfig();
+      if (cfgRes.success && cfgRes.data) {
+        currentConfig = cfgRes.data;
+        document.getElementById('user-greeting').textContent = `Welcome back, ${currentConfig.user_name || 'Copy'}`;
+        updateHeaderBadges(currentConfig);
+      }
+
+      // Load History
+      const histRes = await window.api.getHistory();
+      if (histRes.success) {
+        allHistory = histRes.data || [];
+        renderDictations(allHistory);
+        updateTopStats(allHistory);
+      }
+    }
+
+    function calculateStreak(items) {
+      if (!items || items.length === 0) return { current: 0, longest: 0 };
+      const dateSet = new Set();
+      items.forEach(i => {
+        const d = i.date_str || (i.timestamp ? i.timestamp.split(' ')[0] : '');
+        if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) dateSet.add(d);
+      });
+      if (dateSet.size === 0) return { current: 0, longest: 0 };
+
+      const sortedDates = Array.from(dateSet).sort();
+      
+      const now = new Date();
+      const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
+
+      const todayStr = formatDate(now);
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = formatDate(yesterday);
+
+      let currentStreak = 0;
+      let checkDate = null;
+      if (dateSet.has(todayStr)) {
+        checkDate = new Date(now);
+      } else if (dateSet.has(yesterdayStr)) {
+        checkDate = new Date(yesterday);
+      }
+
+      if (checkDate) {
+        while (true) {
+          const s = formatDate(checkDate);
+          if (dateSet.has(s)) {
+            currentStreak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      }
+
+      let longestStreak = 0;
+      let tempStreak = 0;
+      let prevTime = null;
+      sortedDates.forEach(dStr => {
+        const dTime = new Date(dStr).getTime();
+        if (prevTime === null) {
+          tempStreak = 1;
+        } else {
+          const diffDays = Math.round((dTime - prevTime) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            tempStreak++;
+          } else if (diffDays > 1) {
+            tempStreak = 1;
+          }
+        }
+        prevTime = dTime;
+        if (tempStreak > longestStreak) longestStreak = tempStreak;
+      });
+
+      return {
+        current: currentStreak,
+        longest: Math.max(longestStreak, currentStreak)
+      };
+    }
+
+    function updateTopStats(items) {
+      const totalWords = items.reduce((acc, i) => {
+        if (typeof i.word_count === 'number' && i.word_count > 0) return acc + i.word_count;
+        return acc + ((i.text || '').trim().split(/\s+/).filter(Boolean).length);
+      }, 0);
+      const totalSeconds = items.reduce((acc, i) => acc + (parseFloat(i.duration_seconds) || 0), 0);
+      const avgWpm = (totalSeconds > 1 && totalWords > 0) ? Math.round((totalWords / (totalSeconds / 60))) : 0;
+
+      let wordDisplay = totalWords.toLocaleString();
+      if (totalWords >= 10000) {
+        wordDisplay = (totalWords / 1000).toFixed(1) + 'K';
+      }
+
+      const streak = calculateStreak(items);
+
+      document.getElementById('hero-total-words').textContent = wordDisplay;
+      document.getElementById('hero-avg-wpm').textContent = avgWpm > 0 ? avgWpm : '0';
+      document.getElementById('hero-streak-days').textContent = streak.current;
+    }
+
+    // Render Dictation Rows
+    function renderDictations(items) {
+      const container = document.getElementById('dictations-list');
+      const badge = document.getElementById('dictations-count-badge');
+      if (badge) badge.textContent = items.length;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-500 space-y-2">
+            <div class="text-2xl">🎙️</div>
+            <div class="text-xs font-medium">No dictations found</div>
+            <div class="text-[11px] text-slate-600">Press [Ctrl+Shift+S] anywhere on your PC to dictate.</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = items.map(item => {
+        const timeDisplay = item.time_str || (item.timestamp ? item.timestamp.split(' ')[1] : '');
+        const isPlaying = currentPlayingId === item.id;
+        const appLabel = (item.app_name || '').replace('.exe', '');
+
+        return `
+          <div class="group relative rounded-xl hover:bg-[#16171f] transition px-4 py-3.5 border-b border-[#181a23] flex items-start space-x-4">
+            
+            <!-- Left: Time & App Badge -->
+            <div class="w-24 shrink-0 pt-0.5 flex flex-col space-y-1 select-none">
+              <span class="text-xs text-slate-400 font-mono font-medium">${timeDisplay}</span>
+              ${appLabel ? `<span class="text-[10px] text-slate-500 font-mono truncate max-w-[88px] bg-[#181a24] px-1.5 py-0.5 rounded border border-[#242735]" title="${escapeHtml(item.app_name)}">${escapeHtml(appLabel)}</span>` : ''}
+            </div>
+
+            <!-- Middle: Dictation Text & Metadata -->
+            <div class="flex-1 pr-3">
+              <p class="text-xs text-slate-200 leading-relaxed font-normal selection:bg-emerald-500/30">
+                ${escapeHtml(item.text)}
+              </p>
+              
+              <!-- Metrics: duration & words -->
+              <div class="flex items-center space-x-3 mt-1.5 text-[10px] text-slate-500 font-mono">
+                ${item.duration_seconds ? `<span>⏱ ${parseFloat(item.duration_seconds).toFixed(1)}s</span>` : ''}
+                ${item.word_count ? `<span>📝 ${item.word_count} words</span>` : ''}
+                ${item.wpm ? `<span>⚡ ${item.wpm} WPM</span>` : ''}
+              </div>
+
+              <!-- Inline Audio Player Indicator if active -->
+              <div id="player-bar-${item.id}" class="${isPlaying ? 'flex' : 'hidden'} items-center space-x-2 mt-2 pt-2 border-t border-[#232634]">
+                <div class="flex items-center space-x-0.5 h-3">
+                  <span class="w-0.5 h-2 bg-emerald-400 animate-pulse"></span>
+                  <span class="w-0.5 h-3 bg-emerald-400 animate-pulse delay-75"></span>
+                  <span class="w-0.5 h-1.5 bg-emerald-400 animate-pulse delay-150"></span>
+                  <span class="w-0.5 h-2.5 bg-emerald-400 animate-pulse delay-100"></span>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-medium">Playing decrypted audio</span>
+              </div>
+            </div>
+
+            <!-- Right: Direct Functional Actions -->
+            <div class="shrink-0 flex items-center space-x-1 opacity-70 group-hover:opacity-100 transition">
+              <!-- 1. Play Audio -->
+              <button onclick="playDictationAudio(${item.id})" class="p-1.5 text-slate-400 hover:text-white hover:bg-[#20222e] rounded-lg transition" title="Play Recording">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+
+              <!-- 2. Copy Text -->
+              <button onclick="copyDictationText(${item.id}, this)" class="p-1.5 text-slate-400 hover:text-white hover:bg-[#20222e] rounded-lg transition" title="Copy to Clipboard">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+
+              <!-- 3. Retry Transcription -->
+              <button id="btn-retry-${item.id}" onclick="retryDictation(${item.id})" class="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-[#20222e] rounded-lg transition" title="Re-transcribe Audio">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+              </button>
+
+              <!-- 4. Export WAV -->
+              <button onclick="extractDictationAudio(${item.id})" class="p-1.5 text-slate-400 hover:text-white hover:bg-[#20222e] rounded-lg transition" title="Export WAV Audio">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </button>
+
+              <!-- 5. Delete -->
+              <button onclick="deleteDictationItem(${item.id})" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="Delete Recording">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Play Decrypted Audio in-memory
+    async function playDictationAudio(id) {
+      if (currentPlayingId === id && !audioPlayer.paused) {
+        audioPlayer.pause();
+        currentPlayingId = null;
+        renderDictations(allHistory);
+        return;
+      }
+
+      const res = await window.api.getAudioUrl(id);
+      if (!res.success) {
+        alert(res.error || 'Audio not found');
+        return;
+      }
+
+      currentPlayingId = id;
+      audioPlayer.src = res.audioUrl;
+      audioPlayer.play();
+      renderDictations(allHistory);
+
+      audioPlayer.onended = () => {
+        currentPlayingId = null;
+        renderDictations(allHistory);
+      };
+    }
+
+    // Copy Text to Clipboard
+    async function copyDictationText(id, btnElem) {
+      const target = allHistory.find(i => i.id === id);
+      if (!target) return;
+      await navigator.clipboard.writeText(target.text);
+      
+      const origHtml = btnElem.innerHTML;
+      btnElem.innerHTML = `<span class="text-[10px] text-emerald-400 font-bold">✓</span>`;
+      setTimeout(() => {
+        btnElem.innerHTML = origHtml;
+      }, 1200);
+    }
+
+    // Extract Audio to WAV
+    async function extractDictationAudio(id) {
+      const res = await window.api.extractAudio(id);
+      if (res.success && res.filePath) {
+        alert(`Extracted audio successfully saved to:\n${res.filePath}`);
+      } else if (!res.canceled && res.error) {
+        alert(`Extraction failed: ${res.error}`);
+      }
+    }
+
+    // Retry Transcription
+    async function retryDictation(id) {
+      const retryBtn = document.getElementById(`btn-retry-${id}`);
+      if (retryBtn) {
+        retryBtn.innerHTML = `
+          <svg class="w-3.5 h-3.5 animate-spin text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        `;
+      }
+
+      const res = await window.api.retryTranscription(id);
+      if (res.success && res.data) {
+        const idx = allHistory.findIndex(i => i.id === id);
+        if (idx !== -1) {
+          allHistory[idx] = res.data;
+          renderDictations(allHistory);
+        }
+      } else {
+        alert(`Retry failed: ${res.error || 'Unknown error'}`);
+        renderDictations(allHistory);
+      }
+    }
+
+    // Delete item
+    async function deleteDictationItem(id) {
+      if (confirm('Delete this dictation and its encrypted recording?')) {
+        await window.api.deleteHistoryItem(id);
+        allHistory = allHistory.filter(i => i.id !== id);
+        renderDictations(allHistory);
+        updateTopStats(allHistory);
+      }
+    }
+
+    // Render Insights Metrics & Heatmap (100% Real Accurate Analytics)
+    function renderInsightsMetrics() {
+      const totalWords = allHistory.reduce((acc, i) => {
+        if (typeof i.word_count === 'number' && i.word_count > 0) return acc + i.word_count;
+        return acc + ((i.text || '').trim().split(/\s+/).filter(Boolean).length);
+      }, 0);
+      const totalSecs = allHistory.reduce((acc, i) => acc + (parseFloat(i.duration_seconds) || 0), 0);
+      const avgWpm = (totalSecs > 1 && totalWords > 0) ? Math.round((totalWords / (totalSecs / 60))) : 0;
+
+      // Card 1: Words Per Minute + Dynamic SVG Arc Gauge
+      document.getElementById('insight-wpm-num').textContent = avgWpm;
+      
+      let percentileText = 'N/A';
+      if (avgWpm >= 140) percentileText = 'Top 1%';
+      else if (avgWpm >= 120) percentileText = 'Top 3%';
+      else if (avgWpm >= 100) percentileText = 'Top 5%';
+      else if (avgWpm >= 80) percentileText = 'Top 12%';
+      else if (avgWpm >= 60) percentileText = 'Top 25%';
+      else if (avgWpm > 0) percentileText = 'Top 40%';
+      document.getElementById('insight-percentile').textContent = percentileText;
+
+      const gaugeArc = document.getElementById('gauge-arc');
+      if (gaugeArc) {
+        if (avgWpm <= 0) {
+          gaugeArc.setAttribute('d', 'M 10 50 A 40 40 0 0 1 10.5 49.5');
+        } else {
+          const frac = Math.min(1.0, Math.max(0.05, avgWpm / 150));
+          const angle = Math.PI - (frac * Math.PI);
+          const x = (50 + 40 * Math.cos(angle)).toFixed(1);
+          const y = (50 - 40 * Math.sin(angle)).toFixed(1);
+          gaugeArc.setAttribute('d', `M 10 50 A 40 40 0 0 1 ${x} ${y}`);
+        }
+      }
+
+      // Card 2: Fixes Made by Flow (Accurate calculation from records & grammar/punctuation)
+      let wordsCorrected = 0;
+      let dictFixes = 0;
+      allHistory.forEach(item => {
+        if (typeof item.words_corrected === 'number' && item.words_corrected > 0) {
+          wordsCorrected += item.words_corrected;
+        } else {
+          const text = item.text || '';
+          const words = text.trim().split(/\s+/).filter(Boolean);
+          wordsCorrected += words.filter(w => /^[A-Z]/.test(w)).length;
+        }
+
+        if (typeof item.dictionary_fixes === 'number' && item.dictionary_fixes > 0) {
+          dictFixes += item.dictionary_fixes;
+        } else {
+          const text = item.text || '';
+          dictFixes += (text.match(/[\.,\?!:;\-\(\)]/g) || []).length;
+        }
+      });
+      const totalFixes = wordsCorrected + dictFixes;
+
+      document.getElementById('insight-fixes-num').textContent = totalFixes.toLocaleString();
+      document.getElementById('insight-words-corrected').textContent = `${wordsCorrected.toLocaleString()} words corrected`;
+      document.getElementById('insight-dict-fixes').textContent = `${dictFixes.toLocaleString()} dictionary fixes`;
+
+      // Card 3: Total Words Dictated
+      const wordsDisplay = totalWords.toLocaleString();
+      document.getElementById('insight-total-words').textContent = wordsDisplay;
+      document.getElementById('insight-desktop-words').textContent = `${wordsDisplay} words`;
+
+      // Card 4: Desktop Usage & Categories Breakdown (Real dynamic calculation)
+      const totalItems = allHistory.length;
+      const catCounts = {
+        "AI Prompts": 0,
+        "Documents": 0,
+        "Emails": 0,
+        "Work Messages": 0,
+        "Personal Messages": 0,
+        "Other Tasks": 0
+      };
+
+      const uniqueApps = new Set();
+
+      allHistory.forEach(item => {
+        if (item.app_name) uniqueApps.add(item.app_name);
+        let cat = item.category;
+        if (!cat || !catCounts.hasOwnProperty(cat)) {
+          const t = (item.text || '').toLowerCase();
+          const app = (item.app_name || '').toLowerCase();
+          if (app.includes('code') || app.includes('cursor') || app.includes('terminal') || app.includes('powershell') || app.includes('cmd') || /^(explain|write|generate|how to|can you|create|what is|refactor|debug|fix|prompt)/i.test(t)) {
+            cat = "AI Prompts";
+          } else if (app.includes('slack') || app.includes('teams') || app.includes('discord') || /\b(pr|pull request|commit|ticket|deploy|sprint|standup)\b/i.test(t)) {
+            cat = "Work Messages";
+          } else if (app.includes('mail') || app.includes('outlook') || /\b(dear|hello|regards|sincerely|subject:)\b/i.test(t)) {
+            cat = "Emails";
+          } else if (app.includes('word') || app.includes('notepad') || app.includes('obsidian') || (item.word_count || 0) > 40) {
+            cat = "Documents";
+          } else if (app.includes('whatsapp') || app.includes('telegram') || /\b(hey|see you|cool|sure thing|tomorrow)\b/i.test(t)) {
+            cat = "Personal Messages";
+          } else {
+            cat = "Other Tasks";
+          }
+        }
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+      });
+
+      document.getElementById('stat-apps-used').textContent = `TOTAL APPS USED | ${uniqueApps.size}`;
+
+      const updateCategoryRow = (labelId, barId, count, labelName) => {
+        const pct = totalItems > 0 ? Math.round((count / totalItems) * 100) : 0;
+        const labelEl = document.getElementById(labelId);
+        const barEl = document.getElementById(barId);
+        if (labelEl) labelEl.textContent = `${count} ${labelName}`;
+        if (barEl) {
+          barEl.style.width = `${pct}%`;
+          if (pct >= 8) {
+            barEl.textContent = `${pct}%`;
+          } else {
+            barEl.textContent = '';
+          }
+        }
+      };
+
+      updateCategoryRow('stat-ai-prompts-label', 'bar-ai-prompts', catCounts["AI Prompts"], 'AI PROMPTS');
+      updateCategoryRow('stat-docs-label', 'bar-docs', catCounts["Documents"], 'DOCUMENTS');
+      updateCategoryRow('stat-emails-label', 'bar-emails', catCounts["Emails"], 'EMAILS');
+      updateCategoryRow('stat-work-label', 'bar-work', catCounts["Work Messages"], 'WORK MESSAGES');
+      updateCategoryRow('stat-personal-label', 'bar-personal', catCounts["Personal Messages"], 'PERSONAL MESSAGES');
+      updateCategoryRow('stat-other-label', 'bar-other', catCounts["Other Tasks"], 'OTHER TASKS');
+
+      // Card 5: Real Streak & 16-Week Activity Grid
+      const streak = calculateStreak(allHistory);
+      document.getElementById('insight-streak-header').textContent = `${streak.current} day streak`;
+      document.getElementById('insight-longest-streak').textContent = `LONGEST STREAK | ${streak.longest} DAYS`;
+
+      // Build daily dictation count map for accurate heatmap
+      const dateCountMap = {};
+      allHistory.forEach(item => {
+        const d = item.date_str || (item.timestamp ? item.timestamp.split(' ')[0] : '');
+        if (d) dateCountMap[d] = (dateCountMap[d] || 0) + 1;
+      });
+
+      const grid = document.getElementById('heatmap-grid');
+      grid.innerHTML = '';
+      const totalCols = 16;
+      const today = new Date();
+      // End day of current week (Saturday)
+      const currentDayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+      const daysToSaturday = 6 - currentDayOfWeek;
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + daysToSaturday);
+
+      const totalDays = totalCols * 7;
+      const startDate = new Date(endDate);
+      startDate.setDate(endDate.getDate() - totalDays + 1);
+
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      let iterDate = new Date(startDate);
+      for (let c = 0; c < totalCols; c++) {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'flex flex-col space-y-1';
+        for (let r = 0; r < 7; r++) {
+          const dStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
+          const count = dateCountMap[dStr] || 0;
+          const isToday = (dStr === todayStr);
+
+          const tile = document.createElement('div');
+          tile.title = `${dStr}: ${count} dictation${count === 1 ? '' : 's'}`;
+
+          let colorClass = 'bg-[#1a1c25]';
+          if (count >= 10) colorClass = 'bg-[#2dd4bf]';
+          else if (count >= 6) colorClass = 'bg-[#14b8a6]';
+          else if (count >= 3) colorClass = 'bg-[#0d9488]';
+          else if (count >= 1) colorClass = 'bg-[#0f766e]';
+
+          if (isToday) {
+            tile.className = `w-2.5 h-2.5 rounded-sm border border-emerald-400 ${colorClass}`;
+          } else {
+            tile.className = `w-2.5 h-2.5 rounded-sm ${colorClass}`;
+          }
+
+          colDiv.appendChild(tile);
+          iterDate.setDate(iterDate.getDate() + 1);
+        }
+        grid.appendChild(colDiv);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Auto-refresh when pre-warmed window is shown/focused, and poll every 5s if kept open
+    window.addEventListener('focus', () => loadData());
+    setInterval(() => loadData(), 5000);
+
+    // Initialize
+    loadData();
+  </script>
+</body>
+</html>
