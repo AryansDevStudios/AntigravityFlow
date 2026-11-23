@@ -13,7 +13,11 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:x64": "electron-builder --win --x64",
+    "dist:ia32": "electron-builder --win --ia32",
+    "dist:arm64": "electron-builder --win --arm64",
+    "dist:all": "electron-builder --win --x64 --ia32 --arm64"
   },
   "build": {
     "appId": "com.antigravityflow.app",
@@ -32,7 +36,14 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "AntigravityFlow"
+      "shortcutName": "AntigravityFlow",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
+    },
+    "zip": {
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
     "extraResources": [
       {
