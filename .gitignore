@@ -19,15 +19,34 @@ build/
 node_modules/
 ui/node_modules/
 ui/dist/
+ui/out/
 
-# Local User Data (persisted in %APPDATA%\AntigravityFlow)
+# Local User Data & Databases (persisted in %APPDATA%\AntigravityFlow)
 data/recordings/
 data/history.json
-data/history.db
+data/history.db*
+data/flow.db*
 data/config.json
+data/user_cache.json
+data/models_cache.json
+data/.server_cache.json
 data/.key_recording
+
+# Logs
+*.log
+daemon_stdout.log
+daemon_crash.log
 crash.log
+ui/*.log
+
+# Scratch / Test artifacts
+@AutomationLog.txt
+test_snap.jpg
+sounds/test_speech.wav
+ui/startup_test.log
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo

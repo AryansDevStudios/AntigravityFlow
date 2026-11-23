@@ -45,7 +45,14 @@ a = Analysis(
         'dsp_pipeline',
         'pill',
         'db',
-        'llm_refiner'
+        'llm_refiner',
+        'assistant_service',
+        'edge_tts_service',
+        'edge_tts',
+        'system_context',
+        'prompts',
+        'quota_service',
+        'uiautomation'
     ],
     hookspath=[],
     hooksconfig={},

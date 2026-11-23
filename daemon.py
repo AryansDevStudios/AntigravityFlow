@@ -7,20 +7,28 @@ import json
 import sys
 import os
 
-# Windows console encoding safeguard & pythonw support
+# Windows console encoding safeguard & fallback logger
+DAEMON_OUT_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon_stdout.log")
+
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+    try:
+        sys.stdout = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+    except Exception:
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
 elif hasattr(sys.stdout, 'reconfigure'):
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
     except Exception:
         pass
 
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+    try:
+        sys.stderr = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+    except Exception:
+        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 elif hasattr(sys.stderr, 'reconfigure'):
     try:
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
     except Exception:
         pass
 
@@ -49,8 +57,34 @@ from formatter import format_transcript
 from accumulator import TranscriptAccumulator
 import batch_transcriber
 import llm_refiner
+import system_context
+import prompts
+import traceback
+
+CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon_crash.log")
+
+def log_uncaught_exception(exctype, value, tb):
+    err_msg = "".join(traceback.format_exception(exctype, value, tb))
+    sys.stdout.write(f"\n[FATAL EXCEPTION] {err_msg}\n")
+    sys.stdout.flush()
+    try:
+        with open(CRASH_LOG, "a", encoding="utf-8") as f:
+            f.write(f"\n--- {time.ctime()} ---\n{err_msg}\n")
+    except Exception:
+        pass
+
+sys.excepthook = log_uncaught_exception
+if hasattr(threading, 'excepthook'):
+    threading.excepthook = lambda args: log_uncaught_exception(args.exc_type, args.exc_value, args.exc_traceback)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+try:
+    os.chdir(BASE_DIR)
+except Exception:
+    pass
+
 UI_DIR = os.path.join(BASE_DIR, "ui")
 SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
 
@@ -62,49 +96,7 @@ ctx.verify_mode = ssl.CERT_NONE
 # 1. Fast In-Memory Discovery via psutil (< 25ms)
 # ---------------------------------------------------------------------------
 def discover_antigravity_server():
-    server_proc = None
-    for p in psutil.process_iter(['name', 'cmdline']):
-        if p.info['name'] == 'language_server.exe':
-            server_proc = p
-            break
-
-    if not server_proc:
-        raise RuntimeError("Antigravity is not running. Please launch Antigravity first.")
-
-    cmd = ' '.join(server_proc.info['cmdline'] or [])
-    token_match = re.search(r'--csrf_token\s+([a-f0-9-]+)', cmd)
-    if not token_match:
-        raise RuntimeError("Could not find CSRF token in language_server arguments.")
-    csrf_token = token_match.group(1)
-
-    ports = []
-    try:
-        conns = [c for c in psutil.net_connections(kind='tcp') if c.pid == server_proc.pid and c.status == 'LISTEN']
-        ports = [c.laddr.port for c in conns if c.laddr.ip in ('127.0.0.1', '::1', '0.0.0.0')]
-    except Exception:
-        pass
-
-    if not ports:
-        ports = [57071, 57072]
-
-    active_port = None
-    for port in ports:
-        try:
-            req = urllib.request.Request(
-                f"https://127.0.0.1:{port}/",
-                headers={"x-codeium-csrf-token": csrf_token}
-            )
-            with urllib.request.urlopen(req, context=ctx, timeout=0.3) as res:
-                if res.status == 200:
-                    active_port = port
-                    break
-        except Exception:
-            continue
-
-    if not active_port:
-        raise RuntimeError(f"Could not connect via HTTPS to any detected port: {ports}")
-
-    return active_port, csrf_token
+    return llm_refiner.discover_server()
 
 
 # ---------------------------------------------------------------------------
@@ -141,11 +133,14 @@ def set_windows_autostart(enable: bool):
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
         if enable:
-            python_exe = sys.executable
-            pythonw_exe = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
-            exec_bin = pythonw_exe if os.path.exists(pythonw_exe) else python_exe
-            script_path = os.path.abspath(__file__)
-            cmd = f'"{exec_bin}" "{script_path}"'
+            if getattr(sys, 'frozen', False):
+                cmd = f'"{sys.executable}"'
+            else:
+                python_exe = sys.executable
+                pythonw_exe = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
+                exec_bin = pythonw_exe if os.path.exists(pythonw_exe) else python_exe
+                script_path = os.path.abspath(__file__)
+                cmd = f'"{exec_bin}" "{script_path}"'
             winreg.SetValueEx(key, val_name, 0, winreg.REG_SZ, cmd)
         else:
             try:
@@ -174,7 +169,7 @@ def play_sound(cue_type, enabled):
                 winsound.PlaySound(wav_file, winsound.SND_FILENAME | winsound.SND_ASYNC)
             else:
                 winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS | winsound.SND_ASYNC)
-        else: # "stop"
+        else: # "stop" or "done"
             wav_file = os.path.join(SOUNDS_DIR, "stop.wav")
             if os.path.exists(wav_file):
                 winsound.PlaySound(wav_file, winsound.SND_FILENAME | winsound.SND_ASYNC)
@@ -183,84 +178,292 @@ def play_sound(cue_type, enabled):
     except Exception:
         pass
 
-def get_foreground_app():
+def get_foreground_window_info():
+    app_name = "Desktop"
+    window_title = ""
     try:
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
-        if not hwnd:
-            return "Desktop"
-        pid = wintypes.DWORD()
-        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        if pid.value:
-            return psutil.Process(pid.value).name()
+        if hwnd:
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length > 0:
+                buff = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(hwnd, buff, length + 1)
+                window_title = buff.value
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if pid.value:
+                app_name = psutil.Process(pid.value).name()
     except Exception:
         pass
-    return "Desktop"
+    return app_name, window_title
+
+def get_foreground_app():
+    return get_foreground_window_info()[0]
 
 def paste_all_at_once(text: str):
-    """Puts final formatted text on Windows clipboard and sends Ctrl+V in one shot."""
-    if not text:
-        return
+    """Puts final formatted text on Windows clipboard with Win+V exclusion flags and sends Ctrl+V."""
+    system_context.paste_cleanly(text)
 
-    old_clip = ""
+def notify_assistant_bridge(action: str, text: str = "", state: str = "idle"):
+    """Notifies Electron Desktop Assistant window via local HTTP bridge."""
     try:
-        old_clip = pyperclip.paste()
+        data = json.dumps({"action": action, "text": text, "state": state}).encode("utf-8")
+        req = urllib.request.Request("http://127.0.0.1:48199", data=data, headers={"content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=0.35) as res:
+            pass
     except Exception:
         pass
 
-    try:
-        pyperclip.copy(text)
-        time.sleep(0.02)
+def is_conversational_query(text: str) -> bool:
+    """Detects whether spoken input is a conversational inquiry vs an active write/paste directive."""
+    t = text.lower().strip()
+    write_prefixes = ("write ", "type ", "insert ", "draft ", "paste ", "generate code ", "create a function ")
+    if any(t.startswith(p) for p in write_prefixes):
+        return False
+    question_starters = ("what ", "what's ", "why ", "how ", "who ", "when ", "where ", "can you explain", "explain ", "tell me ", "is there ", "should i ", "which ", "describe ")
+    if any(t.startswith(s) for s in question_starters) or t.endswith("?"):
+        return True
+    return False
 
-        VK_CONTROL = 0x11
-        VK_V = 0x56
-        KEYEVENTF_KEYUP = 0x0002
-
-        user32 = ctypes.windll.user32
-        user32.keybd_event(VK_CONTROL, 0, 0, 0)
-        user32.keybd_event(VK_V, 0, 0, 0)
-        time.sleep(0.03)
-        user32.keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0)
-        user32.keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0)
-
-        # Restore clipboard after 200ms
-        def restore():
-            time.sleep(0.20)
+def start_daemon_control_server(daemon_instance, port=48198):
+    """Starts a local HTTP server for Electron to trigger or toggle dictation,
+    or accelerate assistant queries in-process with zero cold start."""
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    class DaemonControlHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+        def do_GET(self):
+            if self.path == "/assistant/macros":
+                macros = db.get_macros()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "data": macros}, ensure_ascii=False).encode('utf-8'))
+                return
+            elif self.path == "/assistant/models":
+                import assistant_service
+                res = assistant_service.get_available_models_catalog()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                return
+            elif self.path == "/tts/voices":
+                import edge_tts_service
+                voices = edge_tts_service.get_voices_catalog()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "voices": voices}, ensure_ascii=False).encode('utf-8'))
+                return
+            elif self.path == "/health":
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
+                return
+            self.send_response(404)
+            self.end_headers()
+        def do_POST(self):
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length) if length > 0 else b'{}'
             try:
-                pyperclip.copy(old_clip)
-            except Exception:
-                pass
-        threading.Thread(target=restore, daemon=True).start()
+                data = json.loads(body.decode('utf-8') or '{}')
+                if self.path == "/assistant/query":
+                    import assistant_service
+                    res = assistant_service.query_gemini_assistant(
+                        prompt=data.get("prompt") or data.get("message", ""),
+                        history=data.get("history", []),
+                        model=data.get("model"),
+                        system_instruction=data.get("system_instruction") or data.get("system_prompt"),
+                        screenshot_info=data.get("screenshot_info"),
+                        enable_web_search=data.get("enable_web_search") or data.get("web_search", False)
+                    )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/models":
+                    import assistant_service
+                    res = assistant_service.get_available_models_catalog()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/exec":
+                    import assistant_service
+                    res = assistant_service.execute_system_command(data.get("command", ""), data.get("shell", "powershell"))
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/macros":
+                    macros = db.get_macros()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "data": macros}, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/macros/save":
+                    res = db.save_macro(
+                        trigger_keyword=data.get("trigger_keyword", data.get("trigger", "")),
+                        expansion_text=data.get("expansion_text", data.get("expansion", "")),
+                        description=data.get("description", ""),
+                        category=data.get("category", "General"),
+                        macro_id=data.get("id")
+                    )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/macros/delete":
+                    macro_id = data.get("id")
+                    res = db.delete_macro(int(macro_id)) if macro_id is not None else False
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": res}, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/tts/synth":
+                    import edge_tts_service
+                    res = edge_tts_service.synthesize_text(
+                        text=data.get("text", ""),
+                        voice=data.get("voice", "en-IN-NeerjaNeural"),
+                        rate=data.get("rate", "+0%")
+                    )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/tts/demo":
+                    import edge_tts_service
+                    res = edge_tts_service.get_demo_audio(
+                        voice=data.get("voice", "en-IN-NeerjaNeural")
+                    )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+
+                action = data.get('action', 'toggle')
+                session_type = data.get('session_type', 'ai')
+                if action == 'start':
+                    if not daemon_instance.is_recording:
+                        daemon_instance.start_session("toggle", session_type)
+                elif action == 'stop':
+                    if daemon_instance.is_recording:
+                        daemon_instance.stop_session()
+                elif action == 'toggle':
+                    if daemon_instance.is_recording:
+                        daemon_instance.stop_session()
+                    else:
+                        daemon_instance.start_session("toggle", session_type)
+                elif action == 'cancel':
+                    daemon_instance.cancel_session()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "recording": daemon_instance.is_recording}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    try:
+        HTTPServer.allow_reuse_address = True
+        server = HTTPServer(('127.0.0.1', port), DaemonControlHandler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        print(f"[Daemon] Local Control Server listening on 127.0.0.1:{port}")
     except Exception as e:
-        print(f"[Paste Error] {e}")
+        print(f"[Daemon] Local Control Server error: {e}")
 
-
-# ---------------------------------------------------------------------------
-# 3. Dual-Mode Hotkey Manager (Push-to-Talk + Hands-Free Toggle)
+# 3. Dual-Lane Hotkey Manager (Thought Dictation + AI Execution Hotkeys)
 # ---------------------------------------------------------------------------
 class HotkeyManager:
-    def __init__(self, toggle_hotkey="windows+alt+h", ptt_hotkey="windows+alt", mode="both", on_start=None, on_stop=None, on_mode_change=None):
+    def __init__(
+        self,
+        toggle_hotkey="windows+alt+h",
+        ptt_hotkey="windows+alt",
+        paste_last_hotkey="alt+v",
+        mode="both",
+        ai_ptt_hotkey="windows+ctrl",
+        ai_toggle_hotkey="windows+ctrl+h",
+        ai_hotkey="windows+ctrl+a",
+        ai_mode="both",
+        enable_ai_hotkey=True,
+        on_start=None,
+        on_stop=None,
+        on_mode_change=None,
+        on_paste_last=None,
+        on_cancel=None
+    ):
         self.mode_setting = mode  # "both", "push_to_talk", "toggle"
-        self.toggle_keys = self._normalize_combo(toggle_hotkey)
-        self.ptt_keys = self._normalize_combo(ptt_hotkey)
-        self.toggle_raw = toggle_hotkey
-        self.ptt_raw = ptt_hotkey
-        self.on_start = on_start
-        self.on_stop = on_stop
+        self.dictate_toggle_keys = self._normalize_combo(toggle_hotkey)
+        self.dictate_ptt_keys = self._normalize_combo(ptt_hotkey)
+        self.paste_last_keys = self._normalize_combo(paste_last_hotkey)
+        self.dictate_toggle_raw = toggle_hotkey
+        self.dictate_ptt_raw = ptt_hotkey
+        self.paste_last_raw = paste_last_hotkey
+
+        # Dedicated AI Assistant Hotkey parameters
+        self.ai_ptt_raw = ai_ptt_hotkey
+        self.ai_toggle_raw = ai_toggle_hotkey
+        self.ai_hotkey_raw = ai_hotkey
+        self.ai_ptt_keys = self._normalize_combo(ai_ptt_hotkey)
+        self.ai_toggle_keys = self._normalize_combo(ai_toggle_hotkey)
+        self.ai_alias_keys = self._normalize_combo(ai_hotkey)
+        self.ai_mode = ai_mode  # "both", "hold", "toggle"
+        self.enable_ai_hotkey = enable_ai_hotkey
+
+        self.on_start = on_start  # callback(mode, session_type="dictate"|"ai")
+        self.on_stop = on_stop    # callback(mode, session_type="dictate"|"ai")
         self.on_mode_change = on_mode_change
+        self.on_paste_last = on_paste_last
+        self.on_cancel = on_cancel
 
         self.currently_pressed = set()
-        self.current_session_mode = None
+        self.current_session_mode = None  # "ptt", "toggle", "ai_ptt", "ai_toggle"
+        self.current_session_type = "dictate"  # "dictate" or "ai"
         self.is_recording = False
         self.toggle_active_press = False
+        self.ai_toggle_active_press = False
         self.is_paused = False
 
-    def update_hotkeys(self, toggle_hotkey, ptt_hotkey, mode="both"):
+    def update_hotkeys(
+        self,
+        toggle_hotkey="windows+alt+h",
+        ptt_hotkey="windows+alt",
+        mode="both",
+        paste_last_hotkey="alt+v",
+        ai_ptt_hotkey="windows+ctrl",
+        ai_toggle_hotkey="windows+ctrl+h",
+        ai_hotkey="windows+ctrl+a",
+        ai_mode="both",
+        enable_ai_hotkey=True
+    ):
         self.mode_setting = mode
-        self.toggle_keys = self._normalize_combo(toggle_hotkey)
-        self.ptt_keys = self._normalize_combo(ptt_hotkey)
-        self.toggle_raw = toggle_hotkey
-        self.ptt_raw = ptt_hotkey
+        self.dictate_toggle_keys = self._normalize_combo(toggle_hotkey)
+        self.dictate_ptt_keys = self._normalize_combo(ptt_hotkey)
+        self.paste_last_keys = self._normalize_combo(paste_last_hotkey)
+        self.dictate_toggle_raw = toggle_hotkey
+        self.dictate_ptt_raw = ptt_hotkey
+        self.paste_last_raw = paste_last_hotkey
+
+        self.ai_ptt_raw = ai_ptt_hotkey
+        self.ai_toggle_raw = ai_toggle_hotkey
+        self.ai_hotkey_raw = ai_hotkey
+        self.ai_ptt_keys = self._normalize_combo(ai_ptt_hotkey)
+        self.ai_toggle_keys = self._normalize_combo(ai_toggle_hotkey)
+        self.ai_alias_keys = self._normalize_combo(ai_hotkey)
+        self.ai_mode = ai_mode
+        self.enable_ai_hotkey = enable_ai_hotkey
 
     def _normalize_combo(self, combo_str):
         if not combo_str:
@@ -286,8 +489,8 @@ class HotkeyManager:
         return mapped
 
     def handle_event(self, event):
-        # 0. Temporarily disable dictation trigger while user is recording new keys in settings
-        if self.is_paused or os.path.exists(KEY_RECORDING_LOCK):
+        # 0. Temporarily disable dictation trigger while user is recording new keys in settings or actively pasting
+        if self.is_paused or os.path.exists(KEY_RECORDING_LOCK) or getattr(system_context, "IS_PASTING", False):
             return
 
         name = event.name.lower() if event.name else ""
@@ -305,32 +508,103 @@ class HotkeyManager:
             name = "caps lock"
 
         if event.event_type == "down":
+            # Hardware-level modifier synchronization to prevent ghost keys from Windows key-up drops
+            try:
+                u32 = ctypes.windll.user32
+                if not ((u32.GetAsyncKeyState(0x5B) & 0x8000) or (u32.GetAsyncKeyState(0x5C) & 0x8000)):
+                    self.currently_pressed.discard("windows")
+                if not (u32.GetAsyncKeyState(0x12) & 0x8000):
+                    self.currently_pressed.discard("alt")
+                if not (u32.GetAsyncKeyState(0x11) & 0x8000):
+                    self.currently_pressed.discard("ctrl")
+                if not (u32.GetAsyncKeyState(0x10) & 0x8000):
+                    self.currently_pressed.discard("shift")
+            except Exception:
+                pass
+
             is_new_press = name not in self.currently_pressed
             self.currently_pressed.add(name)
 
-            # A. Dynamic Switch / Promotion: from active PTT to Hands-Free Toggle
-            # If user is holding PTT (e.g. Windows+Alt) and presses 'H' (or the remaining toggle keys):
-            if self.is_recording and self.current_session_mode == "ptt":
-                is_toggle_trigger = False
-                if self.toggle_keys and self.toggle_keys.issubset(self.currently_pressed):
-                    is_toggle_trigger = True
-                elif self.toggle_keys and (self.toggle_keys - self.ptt_keys) and (name in (self.toggle_keys - self.ptt_keys)):
-                    is_toggle_trigger = True
+            # Quick-Paste Last Dictation check (e.g. Alt+V) - Absolute Top Priority
+            if is_new_press and self.paste_last_keys and self.paste_last_keys.issubset(self.currently_pressed):
+                # Verify Windows key is not physically pressed
+                win_physically_down = False
+                try:
+                    u32 = ctypes.windll.user32
+                    win_physically_down = bool((u32.GetAsyncKeyState(0x5B) & 0x8000) or (u32.GetAsyncKeyState(0x5C) & 0x8000))
+                except Exception:
+                    win_physically_down = "windows" in self.currently_pressed
 
-                if is_toggle_trigger:
+                if not win_physically_down:
+                    self.currently_pressed.clear()
+                    if self.on_paste_last:
+                        threading.Thread(target=self.on_paste_last, daemon=True).start()
+                    return
+
+            # A. Dynamic Promotion: User was in normal dictation and pressed AI keys -> Switch to AI Execution!
+            if self.is_recording and self.current_session_type == "dictate":
+                is_ai_hit = False
+                if self.enable_ai_hotkey:
+                    if self.ai_ptt_keys and self.ai_ptt_keys.issubset(self.currently_pressed):
+                        is_ai_hit = True
+                    elif self.ai_alias_keys and self.ai_alias_keys.issubset(self.currently_pressed):
+                        is_ai_hit = True
+
+                if is_ai_hit:
+                    self.current_session_type = "ai"
+                    if self.current_session_mode == "ptt":
+                        self.current_session_mode = "ai_ptt" if self.ai_mode in ("both", "hold") else "ai_toggle"
+                    else:
+                        self.current_session_mode = "ai_toggle"
+                    self.ai_toggle_active_press = True
+                    if self.on_mode_change:
+                        threading.Thread(target=self.on_mode_change, args=(self.current_session_mode, "ai"), daemon=True).start()
+                    return
+
+            # B. Dynamic Switch: From AI PTT to AI Hands-Free Toggle (e.g. tapping 'H' while holding Win+Ctrl)
+            if self.is_recording and self.current_session_mode == "ai_ptt":
+                if (self.ai_toggle_keys and self.ai_toggle_keys.issubset(self.currently_pressed)) or name == "h":
+                    self.current_session_mode = "ai_toggle"
+                    self.ai_toggle_active_press = True
+                    if self.on_mode_change:
+                        threading.Thread(target=self.on_mode_change, args=("ai_toggle", "ai"), daemon=True).start()
+                    return
+
+            # C. Dynamic Switch: From Dictate PTT to Dictate Hands-Free Toggle (e.g. tapping 'H' while holding Win+Alt)
+            if self.is_recording and self.current_session_mode == "ptt":
+                if (self.dictate_toggle_keys and self.dictate_toggle_keys.issubset(self.currently_pressed)) or name == "h":
                     self.current_session_mode = "toggle"
                     self.toggle_active_press = True
                     if self.on_mode_change:
-                        threading.Thread(target=self.on_mode_change, args=("toggle",), daemon=True).start()
+                        threading.Thread(target=self.on_mode_change, args=("toggle", "dictate"), daemon=True).start()
                     return
 
-            # B. If already in Hands-Free Toggle mode, pressing either Toggle combo or PTT combo stops it!
+            # D. If in AI Hands-Free Toggle mode, pressing AI keys stops it!
+            if self.is_recording and self.current_session_mode == "ai_toggle":
+                if is_new_press and not self.ai_toggle_active_press:
+                    hit_stop = False
+                    if self.ai_toggle_keys and self.ai_toggle_keys.issubset(self.currently_pressed):
+                        hit_stop = True
+                    elif self.ai_ptt_keys and self.ai_ptt_keys.issubset(self.currently_pressed):
+                        hit_stop = True
+                    elif self.ai_alias_keys and self.ai_alias_keys.issubset(self.currently_pressed):
+                        hit_stop = True
+
+                    if hit_stop:
+                        self.is_recording = False
+                        self.current_session_mode = None
+                        self.ai_toggle_active_press = True
+                        if self.on_stop:
+                            threading.Thread(target=self.on_stop, args=("ai_toggle", "ai"), daemon=True).start()
+                        return
+
+            # E. If in Dictate Hands-Free Toggle mode, pressing Dictate combos stops it!
             if self.is_recording and self.current_session_mode == "toggle":
                 if is_new_press and not self.toggle_active_press:
                     hit_stop = False
-                    if self.toggle_keys and self.toggle_keys.issubset(self.currently_pressed):
+                    if self.dictate_toggle_keys and self.dictate_toggle_keys.issubset(self.currently_pressed):
                         hit_stop = True
-                    elif self.ptt_keys and self.ptt_keys.issubset(self.currently_pressed):
+                    elif self.dictate_ptt_keys and self.dictate_ptt_keys.issubset(self.currently_pressed):
                         hit_stop = True
 
                     if hit_stop:
@@ -338,44 +612,100 @@ class HotkeyManager:
                         self.current_session_mode = None
                         self.toggle_active_press = True
                         if self.on_stop:
-                            threading.Thread(target=self.on_stop, args=("toggle",), daemon=True).start()
+                            threading.Thread(target=self.on_stop, args=("toggle", "dictate"), daemon=True).start()
                         return
 
-            # C. Idle -> Start recording
+            # F. Idle -> Start recording
             if not self.is_recording:
-                # 1. Toggle check (e.g. Windows+Alt+H pressed together from idle)
+                # 1. AI Assistant Hands-Free Toggle (e.g. Win + Ctrl + H)
+                if self.enable_ai_hotkey and self.ai_mode in ("both", "toggle"):
+                    if self.ai_toggle_keys and self.ai_toggle_keys.issubset(self.currently_pressed):
+                        if is_new_press and not self.ai_toggle_active_press:
+                            self.is_recording = True
+                            self.current_session_type = "ai"
+                            self.current_session_mode = "ai_toggle"
+                            self.ai_toggle_active_press = True
+                            if self.on_start:
+                                threading.Thread(target=self.on_start, args=("ai_toggle", "ai"), daemon=True).start()
+                            return
+
+                # 2. AI Assistant Shortcut Alias (e.g. Win + Ctrl + A)
+                if self.enable_ai_hotkey and self.ai_alias_keys and self.ai_alias_keys.issubset(self.currently_pressed):
+                    if is_new_press and not self.ai_toggle_active_press:
+                        self.is_recording = True
+                        self.current_session_type = "ai"
+                        self.current_session_mode = "ai_ptt" if self.ai_mode in ("both", "hold") else "ai_toggle"
+                        self.ai_toggle_active_press = True
+                        if self.on_start:
+                            threading.Thread(target=self.on_start, args=(self.current_session_mode, "ai"), daemon=True).start()
+                        return
+
+                # 3. AI Assistant Push-to-Talk Hold (e.g. Win + Ctrl)
+                if self.enable_ai_hotkey and self.ai_mode in ("both", "hold"):
+                    if self.ai_ptt_keys and self.ai_ptt_keys.issubset(self.currently_pressed):
+                        if not any(k in self.currently_pressed for k in ("h", "a", "alt", "v")):
+                            self.ai_ptt_press_time = time.time()
+                            self.is_recording = True
+                            self.current_session_type = "ai"
+                            self.current_session_mode = "ai_ptt"
+                            if self.on_start:
+                                threading.Thread(target=self.on_start, args=("ai_ptt", "ai"), daemon=True).start()
+                            return
+
+                # 4. Dictation Hands-Free Toggle (e.g. Win + Alt + H)
                 if self.mode_setting in ("both", "toggle"):
-                    if self.toggle_keys and self.toggle_keys.issubset(self.currently_pressed):
+                    if self.dictate_toggle_keys and self.dictate_toggle_keys.issubset(self.currently_pressed):
                         if is_new_press and not self.toggle_active_press:
                             self.is_recording = True
+                            self.current_session_type = "dictate"
                             self.current_session_mode = "toggle"
                             self.toggle_active_press = True
                             if self.on_start:
-                                threading.Thread(target=self.on_start, args=("toggle",), daemon=True).start()
+                                threading.Thread(target=self.on_start, args=("toggle", "dictate"), daemon=True).start()
                             return
 
-                # 2. Push-to-Talk check (e.g. Windows+Alt held from idle)
+                # 5. Dictation Push-to-Talk Hold (e.g. Win + Alt)
                 if self.mode_setting in ("both", "push_to_talk"):
-                    if self.ptt_keys and self.ptt_keys.issubset(self.currently_pressed):
-                        self.is_recording = True
-                        self.current_session_mode = "ptt"
-                        if self.on_start:
-                            threading.Thread(target=self.on_start, args=("ptt",), daemon=True).start()
-                        return
+                    if self.dictate_ptt_keys and self.dictate_ptt_keys.issubset(self.currently_pressed):
+                        if not any(k in self.currently_pressed for k in ("h", "ctrl", "v")):
+                            self.is_recording = True
+                            self.current_session_type = "dictate"
+                            self.current_session_mode = "ptt"
+                            if self.on_start:
+                                threading.Thread(target=self.on_start, args=("ptt", "dictate"), daemon=True).start()
+                            return
 
         elif event.event_type == "up":
-            # If Push-to-Talk was recording and ANY of its combo keys is released, stop immediately!
-            if self.is_recording and self.current_session_mode == "ptt":
-                if name in self.ptt_keys:
+            # If AI Push-to-Talk was recording and ANY of its combo keys is released, stop immediately!
+            if self.is_recording and self.current_session_mode == "ai_ptt":
+                if name in self.ai_ptt_keys or (self.ai_alias_keys and name in self.ai_alias_keys):
+                    self.is_recording = False
+                    self.current_session_mode = None
+                    press_dur = time.time() - getattr(self, "ai_ptt_press_time", 0)
+                    if press_dur < 0.32:
+                        # Quick tap (< 320ms): Summon assistant and focus prompt for typing!
+                        if self.on_cancel:
+                            self.on_cancel()
+                        threading.Thread(target=notify_assistant_bridge, args=("summon", ""), daemon=True).start()
+                    else:
+                        if self.on_stop:
+                            threading.Thread(target=self.on_stop, args=("ai_ptt", "ai"), daemon=True).start()
+
+            # If Dictation Push-to-Talk was recording and ANY of its combo keys is released, stop immediately!
+            elif self.is_recording and self.current_session_mode == "ptt":
+                if name in self.dictate_ptt_keys:
                     self.is_recording = False
                     self.current_session_mode = None
                     if self.on_stop:
-                        threading.Thread(target=self.on_stop, args=("ptt",), daemon=True).start()
+                        threading.Thread(target=self.on_stop, args=("ptt", "dictate"), daemon=True).start()
 
             self.currently_pressed.discard(name)
-            if self.toggle_keys and not self.toggle_keys.issubset(self.currently_pressed):
-                if self.ptt_keys and not self.ptt_keys.issubset(self.currently_pressed):
+            if self.dictate_toggle_keys and not self.dictate_toggle_keys.issubset(self.currently_pressed):
+                if self.dictate_ptt_keys and not self.dictate_ptt_keys.issubset(self.currently_pressed):
                     self.toggle_active_press = False
+            if self.ai_toggle_keys and not self.ai_toggle_keys.issubset(self.currently_pressed):
+                if self.ai_ptt_keys and not self.ai_ptt_keys.issubset(self.currently_pressed):
+                    self.ai_toggle_active_press = False
 
 
 # ---------------------------------------------------------------------------
@@ -386,8 +716,8 @@ class DictationDaemon:
         self.cfg = db.load_config()
         self.enable_sound = self.cfg.get("enable_sound", True)
         self.enable_context_cascade = self.cfg.get("enable_context_cascade", True)
-        self.toggle_hotkey = self.cfg.get("toggle_hotkey", self.cfg.get("hotkey", "ctrl+shift+s"))
-        self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "ctrl+space")
+        self.toggle_hotkey = self.cfg.get("toggle_hotkey", self.cfg.get("hotkey", "windows+alt+h"))
+        self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "windows+alt")
         self.dictation_mode = self.cfg.get("dictation_mode", "both")
 
         self.port, self.csrf_token = discover_antigravity_server()
@@ -415,14 +745,37 @@ class DictationDaemon:
         self.session_pcm_bytes = bytearray()
         self.dsp = AudioDSP()
         self.active_app_at_start = "Desktop"
+        self.active_window_title = ""
 
         self.input_rate = 48000
         self.channels = 2
         self.block_size = 1920
         self.start_time = 0.0
         self.enable_ai_polish = self.cfg.get("enable_ai_polish", False)
-        self.ai_model = self.cfg.get("ai_model", "MODEL_PLACEHOLDER_M318")
+        self.ai_model = self.cfg.get("ai_model", "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE")
+        self.ai_preset_mode = self.cfg.get("ai_preset_mode", "flow")
         self.ai_system_prompt = self.cfg.get("ai_system_prompt", "")
+        self.paste_last_hotkey = self.cfg.get("paste_last_hotkey", "alt+v")
+        self.last_dictated_text = ""
+        self.active_system_ctx = None
+
+        # Dedicated AI Assistant Shortcut Configuration
+        self.enable_ai_hotkey = self.cfg.get("enable_ai_hotkey", True)
+        self.ai_ptt_hotkey = self.cfg.get("ai_ptt_hotkey", "windows+ctrl")
+        self.ai_toggle_hotkey = self.cfg.get("ai_toggle_hotkey", "windows+ctrl+h")
+        self.ai_hotkey = self.cfg.get("ai_hotkey", "windows+ctrl+a")
+        self.ai_hotkey_mode = self.cfg.get("ai_hotkey_mode", "both")
+        self.active_session_type = "dictate"
+
+        # Deep Contextual Awareness & Granular Limits
+        self.enable_deep_context = self.cfg.get("enable_deep_context", True)
+        self.ctx_include_window = self.cfg.get("ctx_include_window", True)
+        self.ctx_include_cursor = self.cfg.get("ctx_include_cursor", True)
+        self.ctx_include_focused_control = self.cfg.get("ctx_include_focused_control", True)
+        self.ctx_include_field_content = self.cfg.get("ctx_include_field_content", True)
+        self.ctx_include_history = self.cfg.get("ctx_include_history", True)
+        self.ctx_max_field_words = int(self.cfg.get("ctx_max_field_words", 500))
+        self.ctx_history_limit = int(self.cfg.get("ctx_history_limit", 5))
 
         self.tray_icon = None
         self.input_stream = None
@@ -439,17 +792,68 @@ class DictationDaemon:
         self.hotkey_mgr = HotkeyManager(
             toggle_hotkey=self.toggle_hotkey,
             ptt_hotkey=self.ptt_hotkey,
+            paste_last_hotkey=self.paste_last_hotkey,
             mode=self.dictation_mode,
+            ai_ptt_hotkey=self.ai_ptt_hotkey,
+            ai_toggle_hotkey=self.ai_toggle_hotkey,
+            ai_hotkey=self.ai_hotkey,
+            ai_mode=self.ai_hotkey_mode,
+            enable_ai_hotkey=self.enable_ai_hotkey,
             on_start=self.start_session,
             on_stop=self.stop_session,
-            on_mode_change=self.switch_to_hands_free_mode
+            on_mode_change=self.switch_to_hands_free_mode,
+            on_paste_last=self.trigger_paste_last,
+            on_cancel=self.cancel_session
         )
 
-    def switch_to_hands_free_mode(self, mode="toggle"):
-        play_sound("switch", self.enable_sound)
-        self.update_tray_tooltip("AntigravityFlow: Recording (HANDS-FREE)... 🎙️")
+    def trigger_paste_last(self):
+        """Immediately pastes the most recent dictation into the currently focused window."""
+        with self.session_lock:
+            if self.is_recording:
+                print("[Daemon] Canceling active recording to fulfill Quick-Paste (Alt+V)...")
+                self.cancel_session()
+
+        text = getattr(self, "last_dictated_text", "")
+        if not text:
+            # Query persistent history for the latest dictation
+            recent = db.get_history(limit=1)
+            if recent and recent[0].get("text"):
+                text = recent[0]["text"]
+                self.last_dictated_text = text
+
+        if not text:
+            print("[Daemon] No prior dictation to paste.")
+            if self.pill:
+                self.pill.root.after(0, lambda: [
+                    self.pill.show(),
+                    self.pill.set_text("No history to paste"),
+                    self.pill.root.after(1200, self.pill.hide)
+                ])
+            return
+
+        print(f"[Daemon] Quick-Pasting last dictation ({len(text.split())} words)...")
+        paste_all_at_once(text)
+        play_sound("done", self.enable_sound)
         if self.pill:
-            self.pill.root.after(0, lambda: self.pill.set_mode("toggle"))
+            self.pill.root.after(0, lambda: [
+                self.pill.show(),
+                self.pill.set_text("Re-Pasted!"),
+                self.pill.root.after(1000, self.pill.hide)
+            ])
+
+    def switch_to_hands_free_mode(self, mode="toggle", session_type=None):
+        if session_type:
+            self.active_session_type = session_type
+        play_sound("switch", self.enable_sound)
+        if self.active_session_type == "ai":
+            self.update_tray_tooltip("AntigravityFlow: AI Execution (HANDS-FREE)... ⚡🎙️")
+        else:
+            self.update_tray_tooltip("AntigravityFlow: Recording (HANDS-FREE)... 🎙️")
+        if self.pill:
+            self.pill.root.after(0, lambda: [
+                self.pill.set_session_type(self.active_session_type),
+                self.pill.set_mode("toggle")
+            ])
 
     def _cascade_poller(self):
         while True:
@@ -474,12 +878,13 @@ class DictationDaemon:
                     self._last_config_mtime = mtime
             except Exception:
                 pass
-            time.sleep(0.20)
+            time.sleep(1.0)
 
-    def start_session(self, mode="toggle"):
+    def start_session(self, mode="toggle", session_type="dictate"):
         with self.session_lock:
             if self.is_recording:
                 return
+            self.active_session_type = session_type
             self.start_time = time.time()
             self.stop_requested.clear()
             self.session_ready_event.clear()
@@ -490,7 +895,24 @@ class DictationDaemon:
             self.accumulator.reset()
             self.session_pcm_bytes = bytearray()
             self.dsp.reset()
-            self.active_app_at_start = get_foreground_app()
+            if self.enable_deep_context:
+                self.active_system_ctx = system_context.get_active_system_context(
+                    include_window=self.ctx_include_window,
+                    include_cursor=self.ctx_include_cursor,
+                    include_focused=self.ctx_include_focused_control,
+                    include_field=self.ctx_include_field_content,
+                    max_field_words=self.ctx_max_field_words
+                )
+            else:
+                self.active_system_ctx = system_context.get_active_system_context(
+                    include_window=True,
+                    include_cursor=False,
+                    include_focused=False,
+                    include_field=False,
+                    max_field_words=0
+                )
+            self.active_app_at_start = self.active_system_ctx.get("app_name", "Desktop")
+            self.active_window_title = self.active_system_ctx.get("window_title", "")
             self.is_recording = True
 
             # Clear queue
@@ -526,15 +948,21 @@ class DictationDaemon:
                 self.input_stream = None
 
             play_sound("start", self.enable_sound)
-            self.update_tray_tooltip(f"AntigravityFlow: Recording ({mode.upper()})... 🎙️")
-
-            # Show Floating Pill Widget in recording mode with proper mode layout (PTT vs Hands-Free)
-            if self.pill:
-                self.pill.root.after(0, lambda: [
-                    self.pill.set_mode(mode),
-                    self.pill.set_state("recording"),
-                    self.pill.show()
-                ])
+            if session_type == "ai":
+                self.update_tray_tooltip(f"AntigravityFlow: AI Assistant ({mode.upper()})... ⚡🎙️")
+                threading.Thread(target=notify_assistant_bridge, args=("voice-state", "", "recording"), daemon=True).start()
+                if self.pill:
+                    self.pill.root.after(0, lambda: [self.pill.set_state("idle"), self.pill.hide()])
+            else:
+                self.update_tray_tooltip(f"AntigravityFlow: Recording ({mode.upper()})... 🎙️")
+                # Show Floating Pill Widget only in dictation mode
+                if self.pill:
+                    self.pill.root.after(0, lambda: [
+                        self.pill.set_session_type("dictate"),
+                        self.pill.set_mode(mode),
+                        self.pill.set_state("recording"),
+                        self.pill.show()
+                    ])
 
             # Context discovery
             cascade_id = self.cached_cascade_id if self.enable_context_cascade else ""
@@ -550,7 +978,7 @@ class DictationDaemon:
                         "preCursorText": current_context,
                         "postCursorText": "",
                         "cascadeId": cascade_id or "",
-                        "continuous": True
+                        "continuous": False
                     }).encode("utf-8")
 
                     stream_req = urllib.request.Request(
@@ -646,16 +1074,21 @@ class DictationDaemon:
 
             threading.Thread(target=sender_worker, daemon=True).start()
 
-    def stop_session(self, mode=None):
+    def stop_session(self, mode=None, session_type=None):
         with self.session_lock:
             if not self.is_recording:
                 return
+
+            if session_type:
+                self.active_session_type = session_type
 
             # 1. Immediately switch pill visual cue to rotating processing animation!
             if self.pill:
                 self.pill.root.after(0, lambda: self.pill.set_state("processing"))
 
             play_sound("stop", self.enable_sound)
+            if self.active_session_type == "ai":
+                threading.Thread(target=notify_assistant_bridge, args=("voice-state", "", "idle"), daemon=True).start()
 
             # 2. 500ms background listening window to capture trailing words/syllables
             # Visual cue happened immediately at t=0ms, while mic continues capturing for 500ms
@@ -714,8 +1147,6 @@ class DictationDaemon:
             raw_words = len(raw_text.split()) if raw_text else 0
 
             # 9. Intelligent Zero-Loss Fallback & Discrepancy Recovery:
-            # If stream was completely empty, OR duration > 4.5s and word count is suspiciously low
-            # (indicating speech pauses caused Google Conformer to drop trailing sentences)
             needs_recovery = False
             if not raw_text and len(recorded_pcm) > 8000:
                 needs_recovery = True
@@ -741,31 +1172,76 @@ class DictationDaemon:
                 if recovered_text and recovered_words >= raw_words:
                     raw_text = recovered_text
 
-            final_text = format_transcript(raw_text, category=category) if raw_text else ""
+            final_text = raw_text.strip() if raw_text else ""
 
             if final_text:
-                if self.enable_ai_polish:
-                    try:
-                        self.update_tray_tooltip("AntigravityFlow: AI Polishing... 🤖")
-                        polished = llm_refiner.polish_with_gemini(
-                            final_text,
-                            model=self.ai_model,
-                            system_prompt=self.ai_system_prompt
-                        )
-                        if polished and polished.strip():
-                            final_text = polished.strip()
-                    except Exception as err:
-                        print(f"[Daemon] AI Polish fallback: {err}")
+                # 1. Apply Custom Vocabulary & Acronym Formatting
+                final_text = format_transcript(final_text, category)
 
-                # Save dictation & encrypted audio recording
-                db.save_dictation(
-                    text=final_text,
-                    duration=duration,
-                    app_name=self.active_app_at_start,
-                    pcm_bytes=recorded_pcm
-                )
-                # Paste entire formatted text at once at cursor location
-                paste_all_at_once(final_text)
+                # 2. Speech Macro & Snippet Expansion Engine
+                macro_expanded = db.expand_macro_text(final_text)
+                if macro_expanded != final_text:
+                    print(f"[Daemon] Expanded speech macro: '{final_text}' -> '{macro_expanded[:60]}...'")
+                    final_text = macro_expanded
+
+                is_ai_lane = (self.active_session_type == "ai")
+                active_win = (getattr(self, "active_window_title", "") or "").lower()
+                is_assistant_focus = "gemini assistant" in active_win or "antigravity" in active_win
+
+                # DUAL-LANE INTELLIGENCE:
+                # If session_type is 'ai', ALWAYS route to Floating Gemini Assistant!
+                if is_ai_lane:
+                    print(f"[Daemon] Instantaneous routing to AntigravityFlow AI Assistant: '{final_text}'")
+                    threading.Thread(target=notify_assistant_bridge, args=("query", final_text), daemon=True).start()
+                    db.save_dictation(
+                        text=final_text,
+                        duration=duration,
+                        app_name=self.active_app_at_start,
+                        pcm_bytes=recorded_pcm,
+                        window_title=getattr(self, "active_window_title", ""),
+                        session_type="ai"
+                    )
+                else:
+                    # Direct writing / coding / dictation lane: execute and paste to foreground window
+                    if self.enable_ai_polish:
+                        try:
+                            preset = "generative" if is_ai_lane else getattr(self, "ai_preset_mode", "flow")
+                            prompt = ""
+                            if not is_ai_lane and preset == "custom":
+                                prompt = self.ai_system_prompt
+
+                            tooltip_text = "AntigravityFlow: AI Executing... ⚡🤖" if is_ai_lane else "AntigravityFlow: AI Polishing... 🤖"
+                            self.update_tray_tooltip(tooltip_text)
+
+                            polished = llm_refiner.polish_with_gemini(
+                                final_text,
+                                model=self.ai_model,
+                                preset_mode=preset,
+                                system_prompt=prompt,
+                                app_name=self.active_app_at_start,
+                                window_title=getattr(self, "active_window_title", ""),
+                                system_ctx=getattr(self, "active_system_ctx", None),
+                                config=self.cfg
+                            )
+                            if polished and polished.strip():
+                                final_text = polished.strip()
+                        except Exception as err:
+                            print(f"[Daemon] AI Polish/Execution fallback: {err}")
+
+                    # Save as last dictated text for instant Alt+V replay
+                    self.last_dictated_text = final_text
+
+                    # Save dictation & encrypted audio recording with window title for categorization
+                    db.save_dictation(
+                        text=final_text,
+                        duration=duration,
+                        app_name=self.active_app_at_start,
+                        pcm_bytes=recorded_pcm,
+                        window_title=getattr(self, "active_window_title", ""),
+                        session_type=self.active_session_type
+                    )
+                    # Paste cleanly with Win+V exclusion flags (zero clipboard pollution)
+                    paste_all_at_once(final_text)
 
             # 10. Hide Floating Pill peacefully AFTER pasting is complete!
             if self.pill:
@@ -823,9 +1299,21 @@ class DictationDaemon:
         self.enable_sound = self.cfg.get("enable_sound", True)
         self.enable_context_cascade = self.cfg.get("enable_context_cascade", True)
         self.enable_ai_polish = self.cfg.get("enable_ai_polish", False)
-        self.ai_model = self.cfg.get("ai_model", "MODEL_PLACEHOLDER_M318")
+        self.ai_model = self.cfg.get("ai_model", "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE")
+        self.ai_assistant_model = self.cfg.get("ai_assistant_model", "MODEL_GOOGLE_GEMINI_2_5_FLASH")
+        self.ai_preset_mode = self.cfg.get("ai_preset_mode", "flow")
         self.ai_system_prompt = self.cfg.get("ai_system_prompt", "")
         self.start_on_login = self.cfg.get("start_on_login", True)
+
+        # Deep Contextual Awareness & Granular Limits
+        self.enable_deep_context = self.cfg.get("enable_deep_context", True)
+        self.ctx_include_window = self.cfg.get("ctx_include_window", True)
+        self.ctx_include_cursor = self.cfg.get("ctx_include_cursor", True)
+        self.ctx_include_focused_control = self.cfg.get("ctx_include_focused_control", True)
+        self.ctx_include_field_content = self.cfg.get("ctx_include_field_content", True)
+        self.ctx_include_history = self.cfg.get("ctx_include_history", True)
+        self.ctx_max_field_words = int(self.cfg.get("ctx_max_field_words", 500))
+        self.ctx_history_limit = int(self.cfg.get("ctx_history_limit", 5))
 
         # Sync Windows Startup
         set_windows_autostart(self.start_on_login)
@@ -841,13 +1329,26 @@ class DictationDaemon:
         except Exception:
             pass
 
+        self.enable_ai_hotkey = self.cfg.get("enable_ai_hotkey", True)
+        self.ai_ptt_hotkey = self.cfg.get("ai_ptt_hotkey", "windows+ctrl")
+        self.ai_toggle_hotkey = self.cfg.get("ai_toggle_hotkey", "windows+ctrl+h")
+        self.ai_hotkey = self.cfg.get("ai_hotkey", "windows+ctrl+a")
+        self.ai_hotkey_mode = self.cfg.get("ai_hotkey_mode", "both")
+
+        self.paste_last_hotkey = self.cfg.get("paste_last_hotkey", "alt+v")
         self.hotkey_mgr.update_hotkeys(
             toggle_hotkey=self.toggle_hotkey,
             ptt_hotkey=self.ptt_hotkey,
-            mode=self.dictation_mode
+            mode=self.dictation_mode,
+            paste_last_hotkey=self.paste_last_hotkey,
+            ai_ptt_hotkey=self.ai_ptt_hotkey,
+            ai_toggle_hotkey=self.ai_toggle_hotkey,
+            ai_hotkey=self.ai_hotkey,
+            ai_mode=self.ai_hotkey_mode,
+            enable_ai_hotkey=self.enable_ai_hotkey
         )
-        self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
-        print(f"[Daemon] Configuration reloaded in real time (PTT: {self.ptt_hotkey.upper()}, Toggle: {self.toggle_hotkey.upper()})")
+        self.update_tray_tooltip(f"AntigravityFlow: Idle (Dictate: {self.ptt_hotkey.upper()}, AI: {self.ai_ptt_hotkey.upper()})")
+        print(f"[Daemon] Configuration reloaded in real time (Dictate PTT: {self.ptt_hotkey.upper()}, Dictate Toggle: {self.toggle_hotkey.upper()}, AI PTT: {self.ai_ptt_hotkey.upper()}, AI Toggle: {self.ai_toggle_hotkey.upper()}, Quick-Paste: {self.paste_last_hotkey.upper()})")
 
     def update_tray_tooltip(self, text):
         if self.tray_icon:
@@ -877,6 +1378,15 @@ def prewarm_ui():
 
 def open_ui():
     """Triggers instant reveal of pre-warmed dashboard window."""
+    try:
+        data = json.dumps({"action": "show-dashboard"}).encode("utf-8")
+        req = urllib.request.Request("http://127.0.0.1:48199", data=data, headers={"content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=0.35) as res:
+            if res.status == 200:
+                return
+    except Exception:
+        pass
+
     if os.path.exists(ELECTRON_EXE):
         subprocess.Popen([ELECTRON_EXE, "."], cwd=UI_DIR)
     else:
@@ -889,7 +1399,10 @@ def main():
     daemon = DictationDaemon(pill_widget=pill)
     daemon.reload_config()
 
-    # Pre-warm Wispr Flow dashboard in background for instant opening
+    # Start local HTTP control server on 127.0.0.1:48198 for seamless Electron UI triggers
+    start_daemon_control_server(daemon, port=48198)
+
+    # Pre-warm AntigravityFlow dashboard in background for instant opening
     prewarm_ui()
 
     # Wire pill buttons
@@ -919,21 +1432,23 @@ def main():
 
     menu = pystray.Menu(
         pystray.MenuItem("🎙️ AntigravityFlow", lambda: None, enabled=False),
-        pystray.MenuItem(f"PTT: {daemon.ptt_hotkey.upper()} (Hold)", lambda: None, enabled=False),
-        pystray.MenuItem(f"Toggle: {daemon.toggle_hotkey.upper()}", lambda: None, enabled=False),
+        pystray.MenuItem(f"Dictate: Hold {daemon.ptt_hotkey.upper()} / Tap {daemon.toggle_hotkey.upper()}", lambda: None, enabled=False),
+        pystray.MenuItem(f"AntigravityFlow AI: Hold {daemon.ai_ptt_hotkey.upper()} / Tap {daemon.ai_toggle_hotkey.upper()}", lambda: None, enabled=False),
+        pystray.MenuItem(f"Quick Paste: Tap {daemon.paste_last_hotkey.upper()}", lambda: None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("✨ Wispr Flow Dashboard", on_open_ui, default=True),
+        pystray.MenuItem("✨ AntigravityFlow Dashboard", on_open_ui, default=True),
         pystray.MenuItem("🔄 Reload Config", on_reload),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("❌ Exit", on_quit)
     )
 
-    daemon.tray_icon = pystray.Icon("AntigravityFlow", create_tray_image(), f"AntigravityFlow ({daemon.ptt_hotkey.upper()})", menu)
+    daemon.tray_icon = pystray.Icon("AntigravityFlow", create_tray_image(), f"AntigravityFlow (Dictate: {daemon.ptt_hotkey.upper()}, AI: {daemon.ai_ptt_hotkey.upper()})", menu)
     daemon.tray_icon.run_detached()
 
-    print(f"\n[+] AntigravityFlow Dual-Mode Engine Active")
-    print(f"[>] Push-To-Talk: Hold [{daemon.ptt_hotkey.upper()}] to speak, release to paste.")
-    print(f"[>] Hands-Free: Tap [{daemon.toggle_hotkey.upper()}] to start/stop.")
+    print(f"\n[+] AntigravityFlow Dual-Lane Engine Active")
+    print(f"[>] Dictation: Hold [{daemon.ptt_hotkey.upper()}] to speak & paste, Tap [{daemon.toggle_hotkey.upper()}] for hands-free.")
+    print(f"[>] AntigravityFlow AI: Hold [{daemon.ai_ptt_hotkey.upper()}] to speak to AI, Tap [{daemon.ai_toggle_hotkey.upper()}] for hands-free AI.")
+    print(f"[>] Quick-Paste: Tap [{daemon.paste_last_hotkey.upper()}] to instantly paste last dictation.")
 
     pill.root.mainloop()
 

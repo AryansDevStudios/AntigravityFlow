@@ -25,11 +25,34 @@ class FloatingPill:
         self.y = (screen_h - self.height) // 2
         self.root.geometry(f"{self.width}x{self.height}+{self.x}+{self.y}")
 
+        # Apply WS_EX_NOACTIVATE (0x08000000) and WS_EX_TOOLWINDOW (0x80)
+        # Mouse clicks or drags on the pill NEVER steal focus from the user's active code editor/terminal!
+        self.target_hwnd = None
+        try:
+            self.root.update_idletasks()
+            hwnd = self.root.winfo_id()
+            import ctypes
+            user32 = ctypes.windll.user32
+            parent_hwnd = user32.GetParent(hwnd)
+            self.target_hwnd = parent_hwnd if parent_hwnd else hwnd
+            
+            GWL_EXSTYLE = -20
+            WS_EX_NOACTIVATE = 0x08000000
+            WS_EX_TOOLWINDOW = 0x00000080
+            
+            GetWindowLongPtr = getattr(user32, 'GetWindowLongPtrW', user32.GetWindowLongW)
+            SetWindowLongPtr = getattr(user32, 'SetWindowLongPtrW', user32.SetWindowLongW)
+            cur_style = GetWindowLongPtr(self.target_hwnd, GWL_EXSTYLE)
+            SetWindowLongPtr(self.target_hwnd, GWL_EXSTYLE, cur_style | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW)
+        except Exception:
+            pass
+
         self.on_cancel = on_cancel
         self.on_confirm = on_confirm
 
         self.mode = "toggle" # "toggle" (hands-free with buttons) or "ptt" (hold-to-talk, minimal)
         self.state = "idle" # "idle", "recording", "processing"
+        self.session_type = "dictate" # "dictate" (Metallic Gold) or "ai" (Electric Violet)
         self.volume_level = 0.0
         self.smoothed_vol = 0.0
         self.anim_phase = 0.0
@@ -53,7 +76,8 @@ class FloatingPill:
         self.canvas.bind('<Motion>', self._on_hover)
 
         self.photo_img = None
-        self._animate()
+        self.is_visible = False
+        self.anim_job = None
 
     def set_mode(self, mode: str):
         self.mode = mode
@@ -65,8 +89,26 @@ class FloatingPill:
             self.canvas.config(height=self.height)
             self.root.geometry(f"{self.width}x{self.height}+{self.x}+{self.y}")
 
+    def set_session_type(self, session_type: str):
+        self.session_type = session_type
+
     def set_state(self, state: str):
         self.state = state
+
+    def set_display_affinity(self, exclude: bool):
+        """Dynamically set WDA_EXCLUDEFROMCAPTURE (0x11) right before capture, and 0x00 after."""
+        try:
+            if not self.target_hwnd:
+                hwnd = self.root.winfo_id()
+                import ctypes
+                user32 = ctypes.windll.user32
+                parent = user32.GetParent(hwnd)
+                self.target_hwnd = parent if parent else hwnd
+            import ctypes
+            user32 = ctypes.windll.user32
+            user32.SetWindowDisplayAffinity(self.target_hwnd, 0x00000011 if exclude else 0x00000000)
+        except Exception:
+            pass
 
     def _on_click(self, event):
         x, y = event.x, event.y
@@ -75,15 +117,16 @@ class FloatingPill:
             if y <= 24:
                 if self.on_cancel:
                     self.on_cancel()
-                return
+                return "break"
             # Bottom 26px is Confirm ✓
             if y >= self.height - 26:
                 if self.on_confirm:
                     self.on_confirm()
-                return
+                return "break"
         # Otherwise drag to reposition
         self._drag_start_x = x
         self._drag_start_y = y
+        return "break"
 
     def _on_drag(self, event):
         dx = event.x - self._drag_start_x
@@ -91,6 +134,7 @@ class FloatingPill:
         self.x += dx
         self.y += dy
         self.root.geometry(f"+{self.x}+{self.y}")
+        return "break"
 
     def _on_hover(self, event):
         if self.mode != "toggle":
@@ -115,17 +159,21 @@ class FloatingPill:
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # 1. Outer Pill Shape (Deep Obsidian with Brushed Metallic Gold Rim)
+        # 1. Outer Pill Shape
+        # Normal Dictation: Metallic Gold Rim (180, 142, 55)
+        # AI Execution: Electric Neon Violet Rim (168, 85, 247)
         pad = 2 * S
         pill_rect = (pad, pad, W - pad, H - pad)
         radius = (W - 2 * pad) // 2
 
-        # Rounded rectangle with golden accent outline
+        is_ai = (self.session_type == "ai")
+        rim_color = (168, 85, 247, 245) if is_ai else (180, 142, 55, 235)
+
         draw.rounded_rectangle(
             pill_rect,
             radius=radius,
             fill=(14, 15, 18, 250),           # Deep Obsidian Black
-            outline=(180, 142, 55, 235),      # Metallic Gold Rim
+            outline=rim_color,
             width=max(2, int(1.4 * S))
         )
 
@@ -135,30 +183,31 @@ class FloatingPill:
         if self.mode == "toggle":
             cy = 14 * S
             csz = 3.2 * S
-            x_color = (239, 68, 68, 255) if self.hover_cancel else (165, 145, 105, 200)
+            x_color = (239, 68, 68, 255) if self.hover_cancel else ((185, 135, 245, 200) if is_ai else (165, 145, 105, 200))
             draw.line((cx - csz, cy - csz, cx + csz, cy + csz), fill=x_color, width=int(1.2 * S))
             draw.line((cx - csz, cy + csz, cx + csz, cy - csz), fill=x_color, width=int(1.2 * S))
 
         # 3. Middle Section: Either Rotating Animation (Processing) or Equalizer Bars (Recording)
         mid_y = H // 2
         if self.state == "processing":
-            # Rotating Glowing Golden Spinner indicating background transcription
+            # Rotating Glowing Spinner indicating background transcription / AI execution
             self.anim_phase += 0.35
             spin_r = 8.5 * S
             spin_box = (cx - spin_r, mid_y - spin_r, cx + spin_r, mid_y + spin_r)
             
-            # Subtle background guide ring
-            draw.ellipse(spin_box, outline=(55, 45, 22, 140), width=int(1.8 * S))
+            guide_color = (48, 20, 68, 140) if is_ai else (55, 45, 22, 140)
+            arc_color = (192, 132, 252, 255) if is_ai else (245, 180, 45, 255)
+            spark_color = (216, 180, 254, 250) if is_ai else (255, 220, 90, 245)
+
+            draw.ellipse(spin_box, outline=guide_color, width=int(1.8 * S))
             
-            # Bright spinning golden arc (110 degrees)
             start_deg = (self.anim_phase * 22.0) % 360
-            draw.arc(spin_box, start=start_deg, end=start_deg + 110, fill=(245, 180, 45, 255), width=int(2.4 * S))
+            draw.arc(spin_box, start=start_deg, end=start_deg + 110, fill=arc_color, width=int(2.4 * S))
             
-            # Pulsing center golden spark
             dot_r = (2.2 + 0.6 * math.sin(self.anim_phase * 1.5)) * S
-            draw.ellipse((cx - dot_r, mid_y - dot_r, cx + dot_r, mid_y + dot_r), fill=(255, 220, 90, 245))
+            draw.ellipse((cx - dot_r, mid_y - dot_r, cx + dot_r, mid_y + dot_r), fill=spark_color)
         else:
-            # Dynamic Sine-Wave Golden Equalizer Bars
+            # Dynamic Sine-Wave Equalizer Bars (Gold for Dictate, Neon Violet for AI)
             self.smoothed_vol += (self.volume_level - self.smoothed_vol) * 0.25
             self.anim_phase += 0.20
 
@@ -175,18 +224,27 @@ class FloatingPill:
                 bx1 = (W - bar_w) // 2
                 bx2 = bx1 + bar_w
 
-                gold_r = min(255, int(220 + sine_val * 30))
-                gold_g = min(255, int(170 + sine_val * 25))
-                gold_b = max(10, int(45 + sine_val * 15))
-                bar_color = (gold_r, gold_g, gold_b, 245)
+                if is_ai:
+                    bar_r = min(255, int(185 + sine_val * 40))
+                    bar_g = min(255, int(115 + sine_val * 35))
+                    bar_b = 255
+                    bar_color = (bar_r, bar_g, bar_b, 245)
+                else:
+                    gold_r = min(255, int(220 + sine_val * 30))
+                    gold_g = min(255, int(170 + sine_val * 25))
+                    gold_b = max(10, int(45 + sine_val * 15))
+                    bar_color = (gold_r, gold_g, gold_b, 245)
 
                 draw.line((bx1, by, bx2, by), fill=bar_color, width=int(1.8 * S))
 
-        # 4. Bottom: Radiant Gold '✓' Checkmark Emblem (ONLY in Hands-Free Toggle Mode)
+        # 4. Bottom: Checkmark Emblem (ONLY in Hands-Free Toggle Mode)
         if self.mode == "toggle":
             btn_y = H - 14 * S
             btn_r = 7.0 * S
-            btn_bg = (245, 158, 11, 255) if not self.hover_confirm else (251, 191, 36, 255)
+            if is_ai:
+                btn_bg = (147, 51, 234, 255) if not self.hover_confirm else (168, 85, 247, 255)
+            else:
+                btn_bg = (245, 158, 11, 255) if not self.hover_confirm else (251, 191, 36, 255)
             draw.ellipse((cx - btn_r, btn_y - btn_r, cx + btn_r, btn_y + btn_r), fill=btn_bg)
 
             # Crisp Obsidian Checkmark inside emblem
@@ -196,29 +254,58 @@ class FloatingPill:
             p3 = (cx + 3.2 * S, btn_y - 2.3 * S)
             draw.line([p1, p2, p3], fill=chk_color, width=int(1.3 * S), joint="curve")
 
-        # High quality Lanczos downsampling for ultra-smooth edges
-        smooth_img = img.resize((self.width, self.height), Image.Resampling.LANCZOS)
+        # Fast bilinear downsampling for smooth anti-aliased edges with 0% CPU
+        smooth_img = img.resize((self.width, self.height), Image.Resampling.BILINEAR)
         
         # Replace alpha background with transparency key color
         final_img = Image.new("RGB", (self.width, self.height), (0, 0, 1)) # #000001
         final_img.paste(smooth_img, (0, 0), smooth_img)
         return final_img
 
-    def _animate(self):
+    def safe_after(self, delay_ms, callback):
         try:
+            if self.root and self.root.winfo_exists():
+                return self.root.after(delay_ms, callback)
+        except Exception:
+            return None
+
+    def _animate(self):
+        if not self.is_visible:
+            return
+        try:
+            if not self.root or not self.root.winfo_exists():
+                return
             rendered = self._render_pill()
             self.photo_img = ImageTk.PhotoImage(rendered)
             self.canvas.delete("all")
             self.canvas.create_image(0, 0, anchor="nw", image=self.photo_img)
+            self.anim_job = self.safe_after(45, self._animate)
         except Exception:
             pass
-        self.root.after(35, self._animate)
 
     def show(self):
-        self.root.deiconify()
+        try:
+            if self.root and self.root.winfo_exists():
+                self.root.deiconify()
+                if not self.is_visible:
+                    self.is_visible = True
+                    self._animate()
+        except Exception:
+            pass
 
     def hide(self):
-        self.root.withdraw()
+        try:
+            self.is_visible = False
+            if self.anim_job and self.root and self.root.winfo_exists():
+                try:
+                    self.root.after_cancel(self.anim_job)
+                except Exception:
+                    pass
+                self.anim_job = None
+            if self.root and self.root.winfo_exists():
+                self.root.withdraw()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     pill = FloatingPill()
