@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>AntigravityFlow AI</title>
+  <!-- KaTeX for LaTeX Math & Chemistry -->
+  <link rel="stylesheet" href="node_modules/katex/dist/katex.min.css">
+  <script src="node_modules/katex/dist/katex.min.js"></script>
+  <script src="node_modules/katex/dist/contrib/auto-render.min.js"></script>
+  <!-- Marked for Markdown Parsing -->
+  <script src="node_modules/marked/lib/marked.umd.js"></script>
+  <!-- Local Tailwind for 100% Offline Resilience -->
+  <script src="tailwind.min.js"></script>
+  <style>
+    :root {
+      --card-bg: rgba(22, 23, 26, 0.88);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --header-bg: rgba(18, 19, 22, 0.75);
+      --text-main: #EDEDEE;
+      --text-muted: #9E9EA4;
+      --bubble-asst: rgba(26, 27, 31, 0.75);
+      --bubble-asst-border: rgba(255, 255, 255, 0.07);
+      --bubble-user: rgba(38, 37, 43, 0.80);
+      --bubble-user-border: rgba(245, 158, 11, 0.35);
+      --input-bg: rgba(18, 19, 22, 0.85);
+      --input-border: rgba(255, 255, 255, 0.10);
+      --ctrl-bg: rgba(32, 33, 38, 0.85);
+      --ctrl-hover: rgba(45, 47, 54, 0.95);
+      --ctrl-border: rgba(255, 255, 255, 0.08);
+      --code-bg: rgba(16, 17, 19, 0.96);
+      --code-border: rgba(255, 255, 255, 0.08);
+      --accent-warm: #f59e0b;
+      --accent-warm-soft: rgba(245, 158, 11, 0.15);
+    }
+
+    html.light {
+      --card-bg: rgba(250, 249, 246, 0.92);
+      --card-border: rgba(0, 0, 0, 0.10);
+      --header-bg: rgba(242, 240, 235, 0.85);
+      --text-main: #1f2023;
+      --text-muted: #6b6d76;
+      --bubble-asst: rgba(245, 243, 238, 0.85);
+      --bubble-asst-border: rgba(0, 0, 0, 0.08);
+      --bubble-user: rgba(238, 234, 224, 0.90);
+      --bubble-user-border: rgba(217, 119, 6, 0.30);
+      --input-bg: #ffffff;
+      --input-border: rgba(0, 0, 0, 0.15);
+      --ctrl-bg: #f3f0e8;
+      --ctrl-hover: #e8e3d8;
+      --ctrl-border: rgba(0, 0, 0, 0.10);
+      --code-bg: #212226;
+      --code-border: rgba(0, 0, 0, 0.15);
+      --accent-warm: #d97706;
+      --accent-warm-soft: rgba(217, 119, 6, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: transparent;
+      margin: 0;
+      padding: 3px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .drag-region {
+      -webkit-app-region: drag;
+    }
+    .no-drag {
+      -webkit-app-region: no-drag;
+    }
+
+    /* Universal Sleek Custom Scrollbars (Eliminates Win32 Grey Arrow Scrollbars) */
+    *::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+    html.light *::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.18);
+    }
+    html.light *::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.32);
+    }
+    pre::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Minimalist Warm Studio Frosted Glass Card */
+    .assistant-card {
+      position: relative;
+      background: var(--card-bg);
+      color: var(--text-main);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 1px var(--card-border);
+      border: 1px solid var(--card-border);
+      contain: paint;
+      isolation: isolate;
+      backdrop-filter: blur(28px) saturate(110%);
+      -webkit-backdrop-filter: blur(28px) saturate(110%);
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .assistant-card.listening {
+      border-color: rgba(245, 158, 11, 0.65);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.25);
+    }
+
+    @media (max-width: 380px) {
+      .app-branding-text { display: none !important; }
+      #assistant-model { max-width: 95px !important; }
+    }
+    @media (max-width: 290px) {
+      #assistant-model { max-width: 75px !important; font-size: 8px !important; }
+      #btn-toggle-policy { display: none !important; }
+    }
+    @media (max-width: 240px) {
+      .branding-icon { display: none !important; }
+      #assistant-model { max-width: 60px !important; }
+      #btn-clear-chat { display: none !important; }
+      #btn-prompt-mic, #btn-snap-screen, #btn-send-assistant {
+        width: 1.35rem !important;
+        height: 1.35rem !important;
+      }
+    }
+    @media (max-height: 250px) {
+      .welcome-icon { display: none !important; }
+      #chat-empty-state { padding-top: 2px !important; padding-bottom: 2px !important; }
+    }
+
+    /* Top Drag Handle Notch */
+    .notch-drag-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(158, 158, 164, 0.35);
+      border-radius: 999px;
+      margin: 0 auto;
+      transition: all 0.2s;
+    }
+    .notch-drag-handle:hover {
+      background: rgba(158, 158, 164, 0.6);
+      width: 48px;
+    }
+
+    /* Sound Equalizer Bars (Warm Amber / Gold Wave) */
+    @keyframes soundBarWave {
+      0%, 100% { transform: scaleY(0.25); }
+      50% { transform: scaleY(1.0); }
+    }
+    .sound-bar {
+      width: 3px;
+      height: 18px;
+      transform-origin: bottom;
+      transform: scaleY(0.25);
+      background: #f59e0b;
+      border-radius: 999px;
+      will-change: transform;
+      animation: soundBarWave 0.85s ease-in-out infinite;
+      animation-play-state: paused;
+    }
+    #voice-indicator-bar:not(.hidden) .sound-bar {
+      animation-play-state: running;
+    }
+    .sound-bar:nth-child(2) { animation-delay: 0.15s; background: #fbbf24; }
+    .sound-bar:nth-child(3) { animation-delay: 0.3s; background: #d97706; }
+    .sound-bar:nth-child(4) { animation-delay: 0.45s; background: #fde68a; }
+    .sound-bar:nth-child(5) { animation-delay: 0.6s; background: #f59e0b; }
+
+    /* Editorial Typography & Spacing */
+    .prose-assistant {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.84rem;
+      line-height: 1.65;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+    .prose-assistant p {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .prose-assistant p:first-child {
+      margin-top: 0;
+    }
+    .prose-assistant p:last-child {
+      margin-bottom: 0;
+    }
+    .prose-assistant h1, .prose-assistant h2, .prose-assistant h3, .prose-assistant h4 {
+      color: #fafafa;
+      font-weight: 700;
+      margin-top: 0.85rem;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.01em;
+    }
+    .prose-assistant h1 { font-size: 1.12rem; }
+    .prose-assistant h2 { font-size: 1.02rem; }
+    .prose-assistant h3 { font-size: 0.92rem; }
+    .prose-assistant ul, .prose-assistant ol {
+      margin-top: 0.45rem;
+      margin-bottom: 0.45rem;
+      padding-left: 1.35rem;
+    }
+    .prose-assistant li {
+      margin-top: 0.2rem;
+      margin-bottom: 0.2rem;
+    }
+    .prose-assistant blockquote {
+      border-left: 3px solid rgba(245, 158, 11, 0.5);
+      padding: 0.3rem 0 0.3rem 0.85rem;
+      margin: 0.65rem 0;
+      color: var(--text-muted);
+      font-style: italic;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 0 6px 6px 0;
+    }
+    .prose-assistant hr {
+      border: none;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 0.85rem 0;
+    }
+    .prose-assistant strong {
+      color: #fafafa;
+      font-weight: 600;
+    }
+    .prose-assistant a {
+      color: #fbbf24;
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(251, 191, 36, 0.4);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .prose-assistant a:hover {
+      color: #fde68a;
+      border-bottom-color: #fde68a;
+    }
+
+    /* Option 3 Warm Studio Code Block Styling & Soft Wrap (NO Horizontal Scrollbars) */
+    .prose-assistant pre {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      padding: 0.75rem 0.85rem !important;
+      margin: 0 !important;
+      font-family: "JetBrains Mono", Consolas, Monaco, "Courier New", monospace !important;
+      font-size: 0.82rem !important;
+      line-height: 1.55 !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow-x: hidden !important;
+    }
+    .prose-assistant code {
+      font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fbbf24;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.25rem;
+      font-size: 0.83em;
+    }
+    .prose-assistant pre code {
+      background: transparent !important;
+      color: inherit !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      font-size: inherit !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+    }
+
+    /* KaTeX Math Styling: Exactly +15% scaling, crystal-clear readability */
+    .katex {
+      font-size: 1.15em !important;
+      text-rendering: auto;
+    }
+    .katex-display {
+      font-size: 1.15em !important;
+      margin: 0.75rem 0 !important;
+      padding: 0.35rem 0.5rem !important;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .katex-display > .katex {
+      white-space: normal;
+    }
+
+    /* Resize Handle */
+    .resize-handle {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 16px;
+      height: 16px;
+      cursor: nwse-resize;
+      z-index: 50;
+      opacity: 0.3;
+      transition: opacity 0.2s;
+    }
+    .resize-handle:hover {
+      opacity: 0.85;
+    }
+    .resize-handle svg {
+      width: 100%;
+      height: 100%;
+      color: #9e9ea4;
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-end">
+
+  <!-- Main Floating Card -->
+  <div id="gemini-card" class="assistant-card flex flex-col h-full w-full overflow-hidden transition-all duration-300">
+    
+    <!-- Top Drag & Controls Header (Single Row, Ultra-Compact) -->
+    <div class="drag-region px-2 py-1 border-b flex items-center justify-between gap-1 select-none shrink-0" style="background: var(--header-bg); border-color: var(--card-border);">
+      
+      <!-- Left: Branding -->
+      <div class="flex items-center gap-1.5 shrink-0 overflow-hidden min-w-0">
+        <div class="branding-icon w-4 h-4 rounded-md bg-gradient-to-tr from-amber-600 to-amber-700 flex items-center justify-center text-[9px] text-amber-100 font-bold shrink-0">
+          ✦
+        </div>
+        <span class="app-branding-text text-[11px] font-bold tracking-tight truncate" style="color: var(--text-main);">AntigravityFlow AI</span>
+      </div>
+
+      <!-- Right: Model & Controls (Strictly Single Row) -->
+      <div class="no-drag flex items-center gap-1 shrink-0 flex-nowrap">
+        
+        <!-- AI Model Selector -->
+        <select id="assistant-model" class="border font-mono text-[9px] font-medium rounded-lg px-1.5 py-0.5 focus:outline-none cursor-pointer transition shadow-sm max-w-[105px] truncate" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="Select AI intelligence model">
+          <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH">Gemini 2.5 Flash</option>
+          <option value="MODEL_PLACEHOLDER_M50">Gemini 3.1 Flash</option>
+          <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+        </select>
+
+        <!-- Thinking Effort -->
+        <select id="assistant-thinking-level" class="hidden border text-amber-300 font-mono text-[8px] font-semibold rounded-lg px-1 py-0.5 focus:outline-none cursor-pointer transition shadow-sm" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="Select thinking effort">
+          <option value="high">High</option>
+          <option value="medium">Med</option>
+          <option value="low">Low</option>
+        </select>
+
+        <!-- Policy Button -->
+        <button id="btn-toggle-policy" class="w-5 h-5 flex items-center justify-center rounded-lg border transition text-[9px] cursor-pointer shadow-sm shrink-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="System Policy & Instructions (⚙️)">
+          ⚙️
+        </button>
+
+        <!-- Clear Conversation History -->
+        <button id="btn-clear-chat" class="w-5 h-5 flex items-center justify-center rounded-lg border transition text-[9px] cursor-pointer shadow-sm shrink-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="Clear Conversation (🧹)">
+          🧹
+        </button>
+
+        <!-- Close / Hide Window -->
+        <button id="btn-close-assistant" class="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition text-xs font-semibold cursor-pointer shrink-0" title="Close (Escape)">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsible Policy Panel -->
+    <div id="policy-panel" class="hidden px-4 py-3 border-b select-none space-y-2.5 transition-all text-xs" style="background: var(--header-bg); border-color: var(--card-border);">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold flex items-center gap-1" style="color: var(--text-main);"><span class="text-amber-400">✦</span> System Policy</span>
+          <span id="active-policy-badge" class="text-[9px] font-mono font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">GENERAL</span>
+        </div>
+        <button id="btn-close-policy" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer transition">✕</button>
+      </div>
+
+      <!-- Preset Pills -->
+      <div class="grid grid-cols-4 gap-1.5 text-[10px]">
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-left transition cursor-pointer" data-mode="general" id="preset-btn-general">
+          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🌿</span> General</div>
+          <div class="text-[8px] text-slate-400 mt-0.5">Automation &amp; Math</div>
+        </button>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="developer" id="preset-btn-developer">
+          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>⚡</span> DevOps</div>
+          <div class="text-[8px] text-slate-400 mt-0.5">Code &amp; Shell First</div>
+        </button>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="concise" id="preset-btn-concise">
+          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🎯</span> Direct</div>
+          <div class="text-[8px] text-slate-400 mt-0.5">Zero Preamble</div>
+        </button>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="custom" id="preset-btn-custom">
+          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🛠️</span> Custom</div>
+          <div class="text-[8px] text-slate-400 mt-0.5">User Rules</div>
+        </button>
+      </div>
+
+      <!-- Policy Prompt Textarea -->
+      <textarea id="policy-system-prompt" rows="4" class="w-full border rounded-xl p-2.5 font-mono text-[10px] leading-relaxed resize-none custom-scroll focus:outline-none" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main);" placeholder="System instructions for the AI assistant..."></textarea>
+
+      <div class="flex items-center justify-between text-[10px]">
+        <button id="btn-reset-policy" type="button" class="text-slate-400 hover:text-amber-400 underline cursor-pointer">↺ Reset to Preset Default</button>
+        <button id="btn-save-policy" type="button" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer">Save &amp; Apply</button>
+      </div>
+    </div>
+
+    <!-- Scrollable Chat Stream -->
+    <div id="chat-stream" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-2 text-xs" style="color: var(--text-main);">
+      
+      <!-- Welcome Empty State (Minimalist & Compact) -->
+      <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85">
+        <div class="welcome-icon w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xs text-amber-300">
+          ✦
+        </div>
+        <div class="text-[11px] font-semibold tracking-tight" style="color: var(--text-main);">AntigravityFlow AI</div>
+        <div class="text-[9px]" style="color: var(--text-muted);">
+          Hold <kbd class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">Win+Ctrl</kbd> to speak or type below
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Screenshot Preview Tray (when attached) -->
+    <div id="screenshot-tray" class="hidden px-2 py-1.5 border-t flex items-center justify-between" style="background: var(--header-bg); border-color: var(--card-border);">
+      <div class="flex items-center gap-2">
+        <img id="screenshot-thumb" class="w-10 h-6 object-cover rounded-md border border-amber-500/40 shadow-sm" src="" alt="Screen">
+        <span class="text-[9px] text-amber-300 font-medium flex items-center gap-1">
+          <span>📷 Native 1080p Screen Attached</span>
+          <span id="screenshot-res" class="text-slate-400 font-mono text-[8px]"></span>
+        </span>
+      </div>
+      <button id="btn-remove-screenshot" class="text-slate-400 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded transition" title="Remove screenshot">✕</button>
+    </div>
+
+    <!-- Active Voice Equalizer Bar (Transforms during live recording) -->
+    <div id="voice-indicator-bar" class="hidden px-3 py-1.5 border-t flex items-center justify-between select-none" style="background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.25);">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span class="text-[11px] font-semibold text-amber-300">Listening to voice... release to submit</span>
+      </div>
+      <div class="flex items-center gap-1 h-4">
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+        <div class="sound-bar"></div>
+      </div>
+    </div>
+
+    <!-- Live TTS Speaking Status Pill & Barge-in Controls -->
+    <div id="tts-speaking-pill" class="hidden px-3 py-1 border-t items-center justify-between text-[10px] select-none" style="background: rgba(245, 158, 11, 0.12); border-color: var(--card-border);">
+      <div class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="tts-speaking-text" class="text-amber-300 font-medium text-[11px]">Speaking...</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-tts-pause" type="button" class="hover:text-white px-1.5 py-0.5 rounded font-mono text-[9px] cursor-pointer" style="background: var(--ctrl-bg);">⏸ Pause</button>
+        <button id="btn-tts-stop" type="button" class="hover:text-rose-400 px-1.5 py-0.5 rounded font-mono text-[9px] cursor-pointer" style="background: var(--ctrl-bg);">⏹ Stop (Esc)</button>
+      </div>
+    </div>
+
+    <!-- Bottom Input Area (Sleek & Ultra-Compact) -->
+    <div class="px-2 py-1 border-t flex items-end gap-1 shrink-0" style="background: var(--header-bg); border-color: var(--card-border);">
+      
+      <!-- Mic Button -->
+      <button id="btn-prompt-mic" type="button" class="w-6 h-6 mb-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center transition shadow-sm cursor-pointer shrink-0" title="Hold Win+Ctrl or click to dictate">
+        <span class="text-[10px]">🎙️</span>
+      </button>
+
+      <!-- Screen Snapshot Button -->
+      <button id="btn-snap-screen" type="button" class="w-6 h-6 mb-0.5 rounded-lg border flex items-center justify-center transition shadow-sm cursor-pointer shrink-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="Capture screen for vision">
+        <span class="text-[10px]">📷</span>
+      </button>
+
+      <!-- Prompt Input (Auto-growing textarea with Shift+Enter newlines) -->
+      <div class="flex-1 min-w-0 relative flex items-center">
+        <textarea id="assistant-input" rows="1" placeholder="Ask AI (Shift+Enter for newline)..." class="w-full border rounded-lg px-2 py-1 text-[11px] leading-snug focus:outline-none focus:border-amber-500/50 transition font-medium resize-none overflow-y-auto max-h-24 custom-scroll" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main); height: 26px;"></textarea>
+      </div>
+
+      <!-- Send Button -->
+      <button id="btn-send-assistant" type="button" class="w-6 h-6 mb-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-sm transition cursor-pointer shrink-0" title="Submit message (Enter)">
+        <span class="text-[10px] font-bold leading-none">➤</span>
+      </button>
+    </div>
+
+    <!-- Corner Resize Handle -->
+    <div class="resize-handle no-drag" title="Drag to resize window">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="16" x2="16" y2="22"></line>
+        <line x1="22" y1="10" x2="10" y2="22"></line>
+      </svg>
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    const conversationHistory = [];
+    let currentScreenshot = null;
+    let isProcessing = false;
+    let activeMode = 'general';
+    let activeSystemInstruction = '';
+    let currentThemeSetting = 'auto';
+
+    // System Prompts Presets
+    const ASST_PRESETS = {
+      general: `You are AntigravityFlow AI for Windows.
+You are an elite, sub-second, highly intelligent AI assistant designed to pair-program, write, analyze, and control Windows workflows.
+
+FORMATTING & CAPABILITIES:
+1. LATEX MATHEMATICS & CHEMISTRY: Always use standard KaTeX/LaTeX formatting ($...$ and $$...$$).
+2. MARKDOWN & CODE INTEGRITY: Structure responses with clean Markdown headers, bullet points, and code blocks.
+3. AUTONOMOUS TOOLS: When inspecting the system, searching files, counting items, or checking processes, execute commands directly.`,
+
+      developer: `You are AntigravityFlow AI (DevOps & Code-Centric Mode).
+Provide direct, concise, production-ready code with minimal explanation. Output executable PowerShell or Python snippets.`,
+
+      concise: `You are AntigravityFlow AI (Direct Mode).
+Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, equations, and facts cleanly.`,
+
+      custom: `You are AntigravityFlow AI. Follow custom user guidelines faithfully.`
+    };
+
+    // DOM Elements
+    const geminiCard = document.getElementById('gemini-card');
+    const chatStream = document.getElementById('chat-stream');
+    const emptyState = document.getElementById('chat-empty-state');
+    const inputField = document.getElementById('assistant-input');
+    const btnSend = document.getElementById('btn-send-assistant');
+    const btnPromptMic = document.getElementById('btn-prompt-mic');
+    const btnSnap = document.getElementById('btn-snap-screen');
+    const screenshotTray = document.getElementById('screenshot-tray');
+    const screenshotThumb = document.getElementById('screenshot-thumb');
+    const screenshotRes = document.getElementById('screenshot-res');
+    const btnRemoveScreenshot = document.getElementById('btn-remove-screenshot');
+    const voiceIndicator = document.getElementById('voice-indicator-bar');
+    const modelSelect = document.getElementById('assistant-model');
+    const thinkingLevelSelect = document.getElementById('assistant-thinking-level');
+    const btnTogglePolicy = document.getElementById('btn-toggle-policy');
+    const policyPanel = document.getElementById('policy-panel');
+    const btnClosePolicy = document.getElementById('btn-close-policy');
+    const activePolicyBadge = document.getElementById('active-policy-badge');
+    const policyPromptText = document.getElementById('policy-system-prompt');
+    const btnResetPolicy = document.getElementById('btn-reset-policy');
+    const btnSavePolicy = document.getElementById('btn-save-policy');
+    const btnClear = document.getElementById('btn-clear-chat');
+    const btnClose = document.getElementById('btn-close-assistant');
+    const ttsSpeakingPill = document.getElementById('tts-speaking-pill');
+    const ttsSpeakingText = document.getElementById('tts-speaking-text');
+    const btnTtsPause = document.getElementById('btn-tts-pause');
+    const btnTtsStop = document.getElementById('btn-tts-stop');
+
+    // =========================================================================
+    // Edge TTS Online Speech Engine with Streaming Pipeline Queue
+    // =========================================================================
+    class EdgeTTSQueue {
+      constructor() {
+        this.queue = [];
+        this.bufferedText = '';
+        this.isPlaying = false;
+        this.isPaused = false;
+        this.audioPlayer = new Audio();
+        this.enabled = true;
+        this.selectedVoice = 'en-IN-NeerjaNeural';
+        this.rate = '+0%';
+        this.prefetchPromise = null;
+        this.currentAbortController = null;
+
+        this.audioPlayer.addEventListener('ended', () => {
+          this.playNext();
+        });
+
+        this.audioPlayer.addEventListener('error', () => {
+          this.playNext();
+        });
+      }
+
+      updatePillUI(isSpeaking, isPaused = false) {
+        if (!ttsSpeakingPill) return;
+        if (isSpeaking) {
+          ttsSpeakingPill.classList.remove('hidden');
+          ttsSpeakingPill.classList.add('flex');
+          if (btnTtsPause) btnTtsPause.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+          if (ttsSpeakingText) {
+            ttsSpeakingText.textContent = isPaused ? 'Speech Paused' : 'Speaking...';
+          }
+        } else {
+          ttsSpeakingPill.classList.add('hidden');
+          ttsSpeakingPill.classList.remove('flex');
+          if (btnTtsPause) btnTtsPause.textContent = '⏸ Pause';
+        }
+      }
+
+      cleanChunk(text) {
+        if (!text) return '';
+        return text
+          .replace(/```[\s\S]*?```/g, ' ')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+          .replace(/\$([^\$]+)\$/g, '$1')
+          .replace(/\\\[[\s\S]*?\\\]/g, ' ')
+          .replace(/\\\([^\)]*?\\\)/g, ' ')
+          .replace(/https?:\/\/\S+/g, ' ')
+          .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+          .replace(/^[#>\s*+-]+/gm, ' ')
+          .replace(/(\*\*|__)(.*?)\1/g, '$2')
+          .replace(/(\*|_)(.*?)\1/g, '$2')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      feedToken(token) {
+        if (!this.enabled) return;
+        this.bufferedText += token;
+        const sentenceMatch = this.bufferedText.match(/^([\s\S]+?[.!?\n])(\s+[\s\S]*)$/);
+        if (sentenceMatch) {
+          const sentence = sentenceMatch[1].trim();
+          this.bufferedText = sentenceMatch[2];
+          const cleaned = this.cleanChunk(sentence);
+          if (cleaned && cleaned.length >= 2 && /[a-zA-Z0-9]/.test(cleaned)) {
+            this.enqueue(cleaned);
+          }
+        }
+      }
+
+      flush() {
+        if (!this.enabled) return;
+        if (this.bufferedText.trim()) {
+          const cleaned = this.cleanChunk(this.bufferedText.trim());
+          if (cleaned && cleaned.length >= 2 && /[a-zA-Z0-9]/.test(cleaned)) {
+            this.enqueue(cleaned);
+          }
+        }
+        this.bufferedText = '';
+      }
+
+      enqueue(sentence) {
+        this.queue.push(sentence);
+        if (!this.isPlaying && !this.isPaused) {
+          this.playNext();
+        }
+      }
+
+      async playNext() {
+        if (this.queue.length === 0) {
+          this.isPlaying = false;
+          this.updatePillUI(false);
+          return;
+        }
+
+        this.isPlaying = true;
+        this.updatePillUI(true, false);
+        const sentence = this.queue.shift();
+
+        try {
+          if (window.api && window.api.synthesizeSpeech) {
+            const res = await window.api.synthesizeSpeech({
+              text: sentence,
+              voice: this.selectedVoice,
+              rate: this.rate
+            });
+
+            if (res && res.success && res.audio_b64) {
+              this.audioPlayer.src = `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}`;
+              await this.audioPlayer.play();
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Edge TTS playback error:', e);
+        }
+
+        // Advance to next chunk if error
+        this.playNext();
+      }
+
+      pause() {
+        if (this.isPlaying && !this.isPaused) {
+          this.audioPlayer.pause();
+          this.isPaused = true;
+          this.updatePillUI(true, true);
+        }
+      }
+
+      resume() {
+        if (this.isPaused) {
+          this.audioPlayer.play();
+          this.isPaused = false;
+          this.updatePillUI(true, false);
+        }
+      }
+
+      cancel() {
+        this.queue = [];
+        this.bufferedText = '';
+        this.isPlaying = false;
+        this.isPaused = false;
+        try {
+          this.audioPlayer.pause();
+          this.audioPlayer.currentTime = 0;
+          this.audioPlayer.src = '';
+        } catch (_) {}
+        this.updatePillUI(false);
+      }
+
+      speakFullText(text) {
+        this.cancel();
+        if (!text) return;
+        const cleaned = this.cleanChunk(text);
+        if (!cleaned) return;
+
+        // Split into sentences
+        const sentences = cleaned.match(/[^.!?\n]+[.!?\n]+/g) || [cleaned];
+        for (const s of sentences) {
+          const st = s.trim();
+          if (st.length >= 2 && /[a-zA-Z0-9]/.test(st)) {
+            this.enqueue(st);
+          }
+        }
+      }
+    }
+
+    const ttsQueue = new EdgeTTSQueue();
+
+    // Wire TTS Controls
+    btnTtsPause.addEventListener('click', () => {
+      if (ttsQueue.isPaused) ttsQueue.resume();
+      else ttsQueue.pause();
+    });
+
+    btnTtsStop.addEventListener('click', () => {
+      ttsQueue.cancel();
+    });
+
+    // =========================================================================
+    // Auto-Grow Window Size
+    // =========================================================================
+    async function autoGrowWindow() {
+      if (!window.api || !window.api.getAssistantBounds || !window.api.resizeAssistant) return;
+      try {
+        const bounds = await window.api.getAssistantBounds();
+        // If user explicitly resized window compact (< 320px), respect user's choice and do not force expand!
+        if (bounds.width < 320 || bounds.height < 300) return;
+        const contentHeight = geminiCard.scrollHeight;
+        if (contentHeight > bounds.height && bounds.height < 760) {
+          const targetHeight = Math.min(Math.max(contentHeight + 20, bounds.height + 60), 760);
+          await window.api.resizeAssistant({ width: bounds.width, height: targetHeight });
+        }
+      } catch (e) {
+        console.error('Auto-grow error:', e);
+      }
+    }
+
+    // =========================================================================
+    // Markdown, LaTeX & Code Blocks
+    // =========================================================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderMath(container) {
+      if (!window.renderMathInElement) return;
+      try {
+        window.renderMathInElement(container, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (_) {}
+    }
+
+    function highlightCode(rawCode, lang) {
+      if (!rawCode) return '';
+      // Safe single-pass regex tokenizer for keywords, strings, booleans, numbers, functions, comments
+      const tokenRegex = /(\/\/.*$|#.*$|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:def|class|return|import|from|as|if|elif|else|for|while|try|except|finally|with|raise|yield|lambda|pass|break|continue|async|await|function|const|let|var|new|this|throw|catch|typeof|instanceof|switch|case|default|export|extends|Select-Object|Get-Process|Start-Process|Stop-Process|Where-Object|Set-Item|Get-Item|select|from|where|insert|delete|update)\b)|(\b(?:true|false|True|False|None|null|nil|undefined)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_]\w*(?=\s*\())/gm;
+
+      let result = '';
+      let lastIndex = 0;
+      let match;
+
+      while ((match = tokenRegex.exec(rawCode)) !== null) {
+        result += escapeHtml(rawCode.slice(lastIndex, match.index));
+
+        if (match[1]) {
+          // Comment -> muted slate (#71717a)
+          result += `<span style="color: #71717a; font-style: italic;">${escapeHtml(match[1])}</span>`;
+        } else if (match[2]) {
+          // String -> sage green (#86efac)
+          result += `<span style="color: #86efac;">${escapeHtml(match[2])}</span>`;
+        } else if (match[3]) {
+          // Keyword -> warm amber (#fbbf24)
+          result += `<span style="color: #fbbf24; font-weight: 600;">${escapeHtml(match[3])}</span>`;
+        } else if (match[4]) {
+          // Boolean / null -> lavender (#c4b5fd)
+          result += `<span style="color: #c4b5fd; font-weight: 500;">${escapeHtml(match[4])}</span>`;
+        } else if (match[5]) {
+          // Number -> soft peach (#fbcfe8)
+          result += `<span style="color: #fbcfe8;">${escapeHtml(match[5])}</span>`;
+        } else if (match[6]) {
+          // Function call -> sky blue (#7dd3fc)
+          result += `<span style="color: #7dd3fc;">${escapeHtml(match[6])}</span>`;
+        }
+
+        lastIndex = tokenRegex.lastIndex;
+      }
+
+      result += escapeHtml(rawCode.slice(lastIndex));
+      return result;
+    }
+
+    function enhanceCodeBlocks(container) {
+      container.querySelectorAll('pre').forEach(pre => {
+        if (pre.dataset.enhanced) return;
+        pre.dataset.enhanced = 'true';
+
+        const codeEl = pre.querySelector('code');
+        const rawCode = (codeEl ? codeEl.innerText : pre.innerText).trim();
+
+        // Extract language from class (e.g. language-python -> python)
+        let lang = 'code';
+        if (codeEl && codeEl.className) {
+          const match = codeEl.className.match(/language-([a-zA-Z0-9_-]+)/);
+          if (match) lang = match[1].toLowerCase();
+        }
+
+        // Apply pastel syntax highlighting
+        if (codeEl) {
+          codeEl.innerHTML = highlightCode(rawCode, lang);
+        } else {
+          pre.innerHTML = `<code>${highlightCode(rawCode, lang)}</code>`;
+        }
+
+        // Option 3 Code Card Wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = "code-block-wrapper my-2 rounded-xl overflow-hidden border border-white/[0.08] shadow-md";
+        wrapper.style.background = "var(--code-bg)";
+
+        const header = document.createElement('div');
+        header.className = "flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] select-none text-[10px]";
+        header.style.background = "rgba(255, 255, 255, 0.03)";
+
+        const isShell = ['powershell', 'ps1', 'bash', 'sh', 'cmd', 'shell', 'terminal'].includes(lang);
+
+        header.innerHTML = `
+          <div class="flex items-center gap-1.5 font-mono">
+            <span class="w-2 h-2 rounded-full bg-amber-400/80"></span>
+            <span class="text-amber-300 font-semibold uppercase tracking-wider text-[9px]">${escapeHtml(lang)}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button class="btn-copy-code px-2 py-0.5 rounded-md border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition font-mono text-[9px] cursor-pointer flex items-center gap-1">
+              <span>📋 Copy</span>
+            </button>
+            ${isShell ? `
+              <button class="btn-run-code px-2 py-0.5 rounded-md border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10 transition font-mono text-[9px] flex items-center gap-1 cursor-pointer">
+                <span>▶ Run</span>
+              </button>
+            ` : ''}
+          </div>
+        `;
+
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(header);
+        wrapper.appendChild(pre);
+
+        // Copy button action
+        header.querySelector('.btn-copy-code')?.addEventListener('click', () => {
+          navigator.clipboard.writeText(rawCode);
+          const b = header.querySelector('.btn-copy-code');
+          b.innerHTML = `<span>✓ Copied!</span>`;
+          setTimeout(() => b.innerHTML = `<span>📋 Copy</span>`, 1500);
+        });
+
+        // Run button action
+        header.querySelector('.btn-run-code')?.addEventListener('click', async () => {
+          const b = header.querySelector('.btn-run-code');
+          const origHtml = b.innerHTML;
+          b.innerHTML = `<span class="animate-spin">⏳</span> Running...`;
+          
+          let cleanCmd = rawCode;
+          if (cleanCmd.startsWith('$ ') || cleanCmd.startsWith('> ')) {
+            cleanCmd = cleanCmd.substring(2);
+          }
+          
+          if (window.api && window.api.executeSystemCommand) {
+            const res = await window.api.executeSystemCommand(cleanCmd);
+            b.innerHTML = res.success ? `<span>✓ Done</span>` : `<span>⚠️ Failed</span>`;
+            setTimeout(() => b.innerHTML = origHtml, 2000);
+            
+            const outputText = res.stdout || res.stderr || '(Finished with no output)';
+            appendAssistantMessage(`\`\`\`powershell\n# Executed: ${cleanCmd}\n${outputText}\n\`\`\`\n*(Execution time: ${res.duration}s • Exit Code: ${res.exit_code})*`);
+          }
+        });
+      });
+    }
+
+    function isScreenQuery(text) {
+      if (!text) return false;
+      const t = text.toLowerCase();
+      const screenTriggers = [
+        "on my screen", "on the screen", "on screen", "this screen", "my screen",
+        "what is happening", "what's happening", "what is on", "what's on",
+        "solve this question", "solve the question", "solve this problem", "solve the problem",
+        "solve question", "solve problem", "look at my screen", "look at the screen",
+        "look at screen", "read my screen", "read screen", "check my screen", "check screen",
+        "see my screen", "solve code on screen", "question on my screen", "problem on my screen"
+      ];
+      return screenTriggers.some(k => t.includes(k));
+    }
+
+    function appendUserMessage(text, screenshot = null) {
+      if (emptyState) emptyState.classList.add('hidden');
+
+      const bubble = document.createElement('div');
+      bubble.className = "group relative flex flex-col items-end space-y-1 w-full";
+
+      let imgHtml = '';
+      if (screenshot && screenshot.data_url) {
+        imgHtml = `
+          <div class="mb-1.5 flex items-center gap-2 p-1.5 rounded-xl border border-amber-500/30 bg-amber-950/20">
+            <img src="${screenshot.data_url}" class="w-16 h-10 object-cover rounded-lg border border-amber-500/40">
+            <div class="text-[9px] font-mono text-amber-200">
+              <div>Native 1080p Screen</div>
+              <div class="text-slate-400">${screenshot.width}x${screenshot.height}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      bubble.innerHTML = `
+        <div class="max-w-[85%] rounded-2xl rounded-tr-sm px-3.5 py-2.5 shadow-sm text-xs leading-relaxed relative" style="background: var(--bubble-user); border: 1px solid var(--bubble-user-border); color: var(--text-main);">
+          ${imgHtml}
+          <div class="font-medium whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
+        </div>
+        <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-1">
+          <button class="btn-copy-user-msg text-[9px] px-2 py-0.5 rounded-md border font-mono text-slate-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="Copy message">
+            <span>📋 Copy</span>
+          </button>
+        </div>
+      `;
+
+      const copyBtn = bubble.querySelector('.btn-copy-user-msg');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(text);
+          copyBtn.innerHTML = "<span>✓ Copied!</span>";
+          setTimeout(() => {
+            copyBtn.innerHTML = "<span>📋 Copy</span>";
+          }, 1500);
+        });
+      }
+
+      chatStream.appendChild(bubble);
+      chatStream.scrollTop = chatStream.scrollHeight;
+      autoGrowWindow();
+    }
+
+    function createStreamingAssistantBubble() {
+      if (emptyState) emptyState.classList.add('hidden');
+
+      const bubble = document.createElement('div');
+      bubble.className = "group relative flex flex-col items-start space-y-1.5 w-full";
+      const cardId = "asst-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+
+      bubble.innerHTML = `
+        <div class="flex items-center justify-between w-full text-[10px] text-slate-400 pl-1">
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-amber-400">AntigravityFlow AI</span>
+            <span>•</span>
+            <span class="bubble-badge font-mono text-[9px] text-amber-400/80 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+              <span>THINKING</span>
+            </span>
+          </div>
+          <div class="bubble-actions flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button class="btn-listen-bubble text-slate-400 hover:text-amber-300 transition text-[10px] cursor-pointer" data-target="${cardId}">
+              🔊 Listen
+            </button>
+            <button class="btn-copy-bubble text-slate-400 hover:text-amber-300 transition text-[10px] cursor-pointer" data-target="${cardId}">
+              📋 Copy
+            </button>
+            <button class="btn-paste-active text-emerald-400 hover:text-emerald-300 font-semibold transition text-[10px] flex items-center gap-1 cursor-pointer" data-target="${cardId}" title="Paste text directly into your previous active window">
+              <span>⚡ Paste</span>
+            </button>
+          </div>
+        </div>
+        <div id="${cardId}" class="prose-assistant rounded-2xl rounded-tl-sm p-3.5 w-full text-xs leading-relaxed shadow-sm" style="background: var(--bubble-asst); border: 1px solid var(--bubble-asst-border); color: var(--text-main);">
+          <div class="stream-thinking"></div>
+          <div class="stream-intel"></div>
+          <div class="stream-text-container min-h-[22px]">
+            <div class="thinking-loader flex items-center gap-2 text-amber-400 text-xs py-0.5">
+              <div class="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+              <span class="font-medium animate-pulse">Thinking...</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      chatStream.appendChild(bubble);
+      chatStream.scrollTop = chatStream.scrollHeight;
+      autoGrowWindow();
+
+      const textContainerEl = bubble.querySelector('.stream-text-container');
+      const badgeEl = bubble.querySelector('.bubble-badge');
+      const actionsEl = bubble.querySelector('.bubble-actions');
+      const intelEl = bubble.querySelector('.stream-intel');
+      const thinkingEl = bubble.querySelector('.stream-thinking');
+
+      let currentRawText = "";
+      let streamTimer = null;
+
+      function wireButtons(rawTextToCopy) {
+        actionsEl.classList.remove('opacity-0');
+        actionsEl.classList.add('opacity-100');
+
+        const btnListen = bubble.querySelector('.btn-listen-bubble');
+        if (btnListen) {
+          btnListen.addEventListener('click', () => {
+            ttsQueue.speakFullText(rawTextToCopy);
+          });
+        }
+
+        const btnCopy = bubble.querySelector('.btn-copy-bubble');
+        if (btnCopy) {
+          btnCopy.addEventListener('click', () => {
+            navigator.clipboard.writeText(rawTextToCopy);
+            btnCopy.textContent = "✓ Copied!";
+            setTimeout(() => btnCopy.textContent = "📋 Copy", 1500);
+          });
+        }
+
+        const btnPaste = bubble.querySelector('.btn-paste-active');
+        if (btnPaste) {
+          btnPaste.addEventListener('click', async () => {
+            if (window.api && window.api.pasteToActiveWindow) {
+              await window.api.pasteToActiveWindow(rawTextToCopy);
+              btnPaste.innerHTML = "<span>✓ Pasted!</span>";
+              setTimeout(() => btnPaste.innerHTML = "<span>⚡ Paste</span>", 1500);
+            }
+          });
+        }
+      }
+
+      return {
+        cardId,
+        bubble,
+        setThinking: (thinkingText) => {
+          if (!thinkingText || !thinkingText.trim()) return;
+          const cleanThinking = thinkingText.trim();
+          thinkingEl.innerHTML = `
+            <div class="mb-2 p-2 rounded-xl border border-amber-500/25 text-[10px]" style="background: var(--code-bg);">
+              <details class="cursor-pointer group">
+                <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-0.5">
+                  <span class="flex items-center gap-1.5">
+                    <span class="text-amber-400">🧠</span> Thinking Process
+                  </span>
+                  <span class="text-[9px] font-mono text-amber-400 group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div class="mt-2 text-slate-300 font-mono text-[9px] whitespace-pre-wrap leading-relaxed border-t border-white/[0.06] pt-2 max-h-48 overflow-y-auto custom-scroll">
+                  ${escapeHtml(cleanThinking)}
+                </div>
+              </details>
+            </div>
+          `;
+          autoGrowWindow();
+        },
+        setIntel: (screenIntel, steps = []) => {
+          let html = '';
+          if (screenIntel && (screenIntel.app_name || screenIntel.window_title)) {
+            html += `
+              <div class="mb-2 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between text-[9px] font-mono text-amber-300" style="background: rgba(245, 158, 11, 0.1);">
+                <span class="flex items-center gap-1.5 font-medium truncate">
+                  <span>🖥️</span>
+                  <span class="truncate">Screen: <b>${escapeHtml(screenIntel.app_name || 'Desktop')}</b> ${screenIntel.window_title ? `— ${escapeHtml(screenIntel.window_title)}` : ''}</span>
+                </span>
+                <span class="text-slate-400 shrink-0 ml-2">Native 1080p</span>
+              </div>
+            `;
+          }
+          if (steps && steps.length > 0) {
+            html += `
+              <div class="mb-2 p-2 rounded-xl border border-amber-500/25 text-[10px]" style="background: var(--code-bg);">
+                <details class="cursor-pointer group">
+                  <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-0.5">
+                    <span class="flex items-center gap-1.5">
+                      <span class="text-amber-400">⚡</span> Executed ${steps.length} autonomous ${steps.length > 1 ? 'steps' : 'step'}
+                    </span>
+                    <span class="text-[9px] font-mono text-amber-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <div class="mt-2 space-y-1.5 pt-2 border-t border-white/[0.06] font-mono text-[9px]">
+                    ${steps.map((s, idx) => `
+                      <div class="p-1.5 rounded-lg border border-white/[0.04] bg-black/30">
+                        <div class="text-amber-300 font-semibold">[Step ${s.step || idx+1}] ${escapeHtml(s.command || s.tool || '')}</div>
+                        ${s.stdout ? `<pre class="mt-1 p-1 rounded text-slate-300 overflow-x-auto text-[9px] max-h-28 custom-scroll">${escapeHtml(s.stdout)}</pre>` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                </details>
+              </div>
+            `;
+          }
+          intelEl.innerHTML = html;
+        },
+        streamText: (rawText, citations = [], steps = [], screenIntel = null, autoSpeak = false) => {
+          return new Promise((resolve) => {
+            currentRawText = rawText;
+            badgeEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span><span>STREAMING</span>`;
+
+            const tokens = rawText.match(/\S+\s*/g) || [rawText];
+            let tokenIndex = 0;
+            let displayedText = "";
+
+            textContainerEl.innerHTML = `
+              <span class="streamed-tokens font-sans"></span><span class="streaming-cursor inline-block w-1.5 h-3.5 bg-amber-400 animate-pulse ml-0.5 rounded-sm align-middle"></span>
+            `;
+
+            const tokensEl = textContainerEl.querySelector('.streamed-tokens');
+
+            function finalizeDisplay() {
+              if (streamTimer) clearInterval(streamTimer);
+              if (autoSpeak) ttsQueue.flush();
+              const parsedHtml = window.marked ? window.marked.parse(rawText) : rawText;
+
+              let citationsHtml = '';
+              if (citations && citations.length > 0) {
+                citationsHtml = `
+                  <div class="pt-2 border-t border-white/[0.06] mt-2 space-y-1">
+                    <span class="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Web Sources:</span>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      ${citations.map((c, i) => `
+                        <a href="${c.url}" target="_blank" class="px-2 py-0.5 rounded-md border text-amber-300 font-mono text-[9px] transition flex items-center gap-1 no-underline" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="${c.title}">
+                          <span>[${i+1}]</span>
+                          <span class="truncate max-w-[140px]">${c.title}</span>
+                        </a>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }
+
+              textContainerEl.innerHTML = parsedHtml + citationsHtml;
+              badgeEl.innerHTML = `<span>AI_RESPONSE</span>`;
+
+              renderMath(textContainerEl);
+              enhanceCodeBlocks(textContainerEl);
+              wireButtons(rawText);
+
+              chatStream.scrollTop = chatStream.scrollHeight;
+              autoGrowWindow();
+              resolve();
+            }
+
+            streamTimer = setInterval(() => {
+              if (tokenIndex < tokens.length) {
+                const batch = tokens.slice(tokenIndex, tokenIndex + 2).join('');
+                displayedText += batch;
+                tokensEl.textContent = displayedText;
+                tokenIndex += 2;
+                chatStream.scrollTop = chatStream.scrollHeight;
+                if (autoSpeak) ttsQueue.feedToken(batch);
+              } else {
+                finalizeDisplay();
+              }
+            }, 14);
+          });
+        },
+        error: (errMsg) => {
+          if (streamTimer) clearInterval(streamTimer);
+          ttsQueue.cancel();
+          badgeEl.innerHTML = `<span class="text-rose-400">ERROR</span>`;
+          textContainerEl.innerHTML = `
+            <div class="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
+              ⚠️ ${escapeHtml(errMsg)}
+            </div>
+          `;
+          wireButtons(`Error: ${errMsg}`);
+          chatStream.scrollTop = chatStream.scrollHeight;
+          autoGrowWindow();
+        }
+      };
+    }
+
+    function appendAssistantMessage(rawText) {
+      const streamer = createStreamingAssistantBubble();
+      streamer.streamText(rawText, [], [], null, false);
+    }
+
+    // Submit Query Pipeline (Manual or Voice)
+    async function submitQuery(queryText = null, options = {}) {
+      ttsQueue.cancel();
+      const rawText = (queryText || inputField.value).trim();
+      if (!rawText || isProcessing) return;
+
+      const isVoice = options.isVoice === true;
+      isProcessing = true;
+      inputField.value = "";
+      inputField.style.height = "26px";
+
+      let activeScreenshot = currentScreenshot;
+      currentScreenshot = null;
+      if (screenshotTray) screenshotTray.classList.add('hidden');
+
+      // Frame 0 visual feedback: instant user bubble & thinking indicator
+      appendUserMessage(rawText, activeScreenshot);
+      const streamer = createStreamingAssistantBubble();
+
+      conversationHistory.push({ role: 'user', content: rawText });
+
+      // Parallel native 1080p capture if screen question detected
+      if (!activeScreenshot && isScreenQuery(rawText)) {
+        if (window.api && window.api.captureScreenshot) {
+          try {
+            const autoSnap = await window.api.captureScreenshot();
+            if (autoSnap && autoSnap.success) {
+              activeScreenshot = autoSnap;
+            }
+          } catch (_) {}
+        }
+      }
+
+      // Resolve model
+      let targetModelId = modelSelect.value;
+      if (targetModelId === 'gemini-3.8-flash') {
+        const effort = thinkingLevelSelect.value || 'high';
+        targetModelId = effort === 'high' ? 'MODEL_PLACEHOLDER_M318' : (effort === 'medium' ? 'MODEL_PLACEHOLDER_M319' : 'MODEL_PLACEHOLDER_M320');
+      }
+
+      try {
+        if (window.api && window.api.queryAssistant) {
+          const res = await window.api.queryAssistant({
+            prompt: rawText,
+            history: conversationHistory.slice(-8),
+            model: targetModelId,
+            screenshot_info: activeScreenshot,
+            enable_web_search: false,
+            system_instruction: activeSystemInstruction || undefined
+          });
+
+          if (res.success && res.response) {
+            conversationHistory.push({ role: 'assistant', content: res.response });
+            if (res.thinking) {
+              streamer.setThinking(res.thinking);
+            }
+            if (res.screen_intel || (res.steps && res.steps.length > 0)) {
+              streamer.setIntel(
+                res.screen_intel || (res.screen_analysis_active ? { app_name: 'Desktop' } : null),
+                res.steps || []
+              );
+            }
+            // Auto-speak ONLY if the query was spoken via voice
+            await streamer.streamText(res.response, res.citations || [], res.steps || [], res.screen_intel, isVoice);
+          } else {
+            streamer.error(res.error || 'Failed to get response.');
+          }
+        } else {
+          streamer.error('Assistant API bridge not connected.');
+        }
+      } catch (err) {
+        streamer.error(err.message);
+      } finally {
+        isProcessing = false;
+        inputField.focus();
+      }
+    }
+
+    // Screenshot Capture (Native 1080p)
+    async function takeScreenshot() {
+      if (window.api && window.api.captureScreenshot) {
+        const res = await window.api.captureScreenshot();
+        if (res.success && res.data_url) {
+          currentScreenshot = res;
+          screenshotThumb.src = res.data_url;
+          screenshotRes.textContent = `${res.width}x${res.height}`;
+          screenshotTray.classList.remove('hidden');
+          inputField.placeholder = "Ask something about your screen...";
+          inputField.focus();
+          autoGrowWindow();
+        }
+      }
+    }
+
+    btnSnap.addEventListener('click', takeScreenshot);
+
+    btnRemoveScreenshot.addEventListener('click', () => {
+      currentScreenshot = null;
+      screenshotTray.classList.add('hidden');
+      inputField.placeholder = "Ask AI or hold Win+Ctrl...";
+    });
+
+    btnSend.addEventListener('click', () => submitQuery(null, { isVoice: false }));
+
+    function adjustInputHeight() {
+      if (!inputField) return;
+      inputField.style.height = 'auto';
+      const newH = Math.min(Math.max(inputField.scrollHeight, 26), 96);
+      inputField.style.height = newH + 'px';
+      scrollToBottom();
+    }
+
+    // Instant Barge-In on Typing & Auto-grow textarea
+    inputField.addEventListener('input', () => {
+      if (ttsQueue.isPlaying || ttsQueue.isPaused) {
+        ttsQueue.cancel();
+      }
+      adjustInputHeight();
+    });
+
+    inputField.addEventListener('keydown', (e) => {
+      if (ttsQueue.isPlaying || ttsQueue.isPaused) {
+        ttsQueue.cancel();
+      }
+      if (e.key === 'Enter') {
+        if (!e.shiftKey) {
+          e.preventDefault();
+          submitQuery(null, { isVoice: false });
+          inputField.style.height = '26px';
+        } else {
+          // Shift+Enter creates a newline; adjust height smoothly
+          setTimeout(adjustInputHeight, 10);
+        }
+      }
+    });
+
+    // Close on Escape (cancels speech on first, hides on second)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (ttsQueue.isPlaying || ttsQueue.isPaused) {
+          ttsQueue.cancel();
+          return;
+        }
+        if (window.api && window.api.closeAssistant) {
+          window.api.closeAssistant();
+        }
+      }
+    });
+
+    btnClose.addEventListener('click', () => {
+      if (window.api && window.api.closeAssistant) {
+        window.api.closeAssistant();
+      }
+    });
+
+    btnClear.addEventListener('click', () => {
+      conversationHistory.length = 0;
+      ttsQueue.cancel();
+      chatStream.innerHTML = `
+        <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85">
+          <div class="welcome-icon w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xs text-amber-300">
+            ✦
+          </div>
+          <div class="text-[11px] font-semibold tracking-tight" style="color: var(--text-main);">AntigravityFlow AI</div>
+          <div class="text-[9px]" style="color: var(--text-muted);">
+            Hold <kbd class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">Win+Ctrl</kbd> to speak or type below
+          </div>
+        </div>
+      `;
+    });
+
+    // Mic button triggers voice session
+    btnPromptMic.addEventListener('click', async () => {
+      if (window.api && window.api.triggerDictation) {
+        await window.api.triggerDictation({ action: 'toggle' });
+      }
+    });
+
+    // Spoken query from daemon
+    if (window.api && window.api.onAssistantVoiceQuery) {
+      window.api.onAssistantVoiceQuery((text) => {
+        if (text && text.trim()) {
+          inputField.value = text.trim();
+          submitQuery(text.trim(), { isVoice: true });
+        }
+      });
+    }
+
+    // Voice recording indicator
+    if (window.api && window.api.onAssistantVoiceState) {
+      window.api.onAssistantVoiceState((state) => {
+        if (state === 'recording') {
+          ttsQueue.cancel();
+          voiceIndicator.classList.remove('hidden');
+          geminiCard.classList.add('listening');
+          btnPromptMic.classList.add('ring-2', 'ring-amber-400');
+        } else {
+          voiceIndicator.classList.add('hidden');
+          geminiCard.classList.remove('listening');
+          btnPromptMic.classList.remove('ring-2', 'ring-amber-400');
+        }
+      });
+    }
+
+    // Focus prompt listener (quick tap <300ms of Win+Ctrl)
+    if (window.api && window.api.onAssistantFocusPrompt) {
+      window.api.onAssistantFocusPrompt(() => {
+        setTimeout(() => {
+          inputField.focus();
+        }, 50);
+      });
+    }
+
+    // Theme Synchronization
+    async function syncTheme() {
+      try {
+        let theme = 'auto';
+        if (window.api && window.api.getConfig) {
+          const cfg = await window.api.getConfig();
+          if (cfg && cfg.theme) theme = cfg.theme;
+        }
+        currentThemeSetting = theme;
+
+        const applyTheme = (isDark) => {
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+        };
+
+        if (theme === 'dark') {
+          applyTheme(true);
+        } else if (theme === 'light') {
+          applyTheme(false);
+        } else {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          applyTheme(prefersDark);
+        }
+      } catch (_) {}
+    }
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (currentThemeSetting === 'auto') {
+        document.documentElement.classList.toggle('dark', e.matches);
+        document.documentElement.classList.toggle('light', !e.matches);
+      }
+    });
+
+    // Dynamic Models Catalog & Persistent Memory
+    function updateThinkingLevelVisibility() {
+      const val = modelSelect.value;
+      if (val === 'gemini-3.8-flash' || val === 'MODEL_PLACEHOLDER_M35' || val === 'MODEL_PLACEHOLDER_M26' || val === 'MODEL_OPENAI_GPT_OSS_120B_MEDIUM') {
+        thinkingLevelSelect.classList.remove('hidden');
+      } else {
+        thinkingLevelSelect.classList.add('hidden');
+      }
+    }
+
+    async function loadAvailableModels() {
+      try {
+        if (!window.api || !window.api.getAvailableModels) return;
+        const res = await window.api.getAvailableModels();
+        if (!res || !res.success) return;
+
+        modelSelect.innerHTML = '';
+
+        const grpPrimary = document.createElement('optgroup');
+        grpPrimary.label = "🌟 Recommended Models";
+
+        const opt25 = document.createElement('option');
+        opt25.value = "MODEL_GOOGLE_GEMINI_2_5_FLASH";
+        opt25.textContent = "Gemini 2.5 Flash (⚡ ~600ms)";
+        grpPrimary.appendChild(opt25);
+
+        const opt31 = document.createElement('option');
+        opt31.value = "MODEL_PLACEHOLDER_M50";
+        opt31.textContent = "Gemini 3.1 Flash (🧠 Reasoning)";
+        grpPrimary.appendChild(opt31);
+
+        const opt38 = document.createElement('option');
+        opt38.value = "gemini-3.8-flash";
+        opt38.textContent = "Gemini 3.8 Flash (🔬 Thinking)";
+        grpPrimary.appendChild(opt38);
+
+        modelSelect.appendChild(grpPrimary);
+
+        const grpAdv = document.createElement('optgroup');
+        grpAdv.label = `✨ Advanced Models (${res.totalCount || 22})`;
+
+        (res.allModels || []).forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.modelId || m.key;
+          const thinkBadge = m.supportsThinking ? " [Thinking]" : "";
+          opt.textContent = `${m.label}${thinkBadge}`;
+          grpAdv.appendChild(opt);
+        });
+
+        modelSelect.appendChild(grpAdv);
+
+        const cfg = await window.api.getConfig();
+        if (cfg) {
+          if (cfg.ai_assistant_model) {
+            if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(cfg.ai_assistant_model)) {
+              modelSelect.value = 'gemini-3.8-flash';
+              if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M318') thinkingLevelSelect.value = 'high';
+              else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M319') thinkingLevelSelect.value = 'medium';
+              else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M320') thinkingLevelSelect.value = 'low';
+            } else {
+              modelSelect.value = cfg.ai_assistant_model;
+            }
+          }
+          if (cfg.ai_assistant_thinking_level) {
+            thinkingLevelSelect.value = cfg.ai_assistant_thinking_level;
+          }
+          if (cfg.tts_voice) {
+            ttsQueue.selectedVoice = cfg.tts_voice;
+          }
+          if (cfg.tts_enabled !== undefined) {
+            ttsQueue.enabled = Boolean(cfg.tts_enabled);
+          }
+          if (cfg.tts_rate) {
+            ttsQueue.rate = cfg.tts_rate;
+          }
+        }
+        updateThinkingLevelVisibility();
+      } catch (e) {
+        console.error('Error loading models:', e);
+      }
+    }
+
+    modelSelect.addEventListener('change', async () => {
+      updateThinkingLevelVisibility();
+      let modelToSave = modelSelect.value;
+      if (modelToSave === 'gemini-3.8-flash') {
+        const effort = thinkingLevelSelect.value || 'high';
+        modelToSave = effort === 'high' ? 'MODEL_PLACEHOLDER_M318' : (effort === 'medium' ? 'MODEL_PLACEHOLDER_M319' : 'MODEL_PLACEHOLDER_M320');
+      }
+      if (window.api && window.api.saveConfig) {
+        await window.api.saveConfig({
+          ai_assistant_model: modelToSave,
+          ai_assistant_thinking_level: thinkingLevelSelect.value
+        });
+      }
+    });
+
+    thinkingLevelSelect.addEventListener('change', async () => {
+      if (modelSelect.value === 'gemini-3.8-flash') {
+        const effort = thinkingLevelSelect.value || 'high';
+        const modelToSave = effort === 'high' ? 'MODEL_PLACEHOLDER_M318' : (effort === 'medium' ? 'MODEL_PLACEHOLDER_M319' : 'MODEL_PLACEHOLDER_M320');
+        if (window.api && window.api.saveConfig) {
+          await window.api.saveConfig({
+            ai_assistant_model: modelToSave,
+            ai_assistant_thinking_level: effort
+          });
+        }
+      }
+    });
+
+    // System Instructions & Policy Panel
+    btnTogglePolicy.addEventListener('click', () => {
+      policyPanel.classList.toggle('hidden');
+      autoGrowWindow();
+    });
+
+    btnClosePolicy.addEventListener('click', () => {
+      policyPanel.classList.add('hidden');
+    });
+
+    function selectPresetMode(mode) {
+      activeMode = mode;
+      document.querySelectorAll('.btn-asst-preset').forEach(b => {
+        b.classList.remove('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
+        b.classList.add('border-white/10');
+      });
+      const activeBtn = document.getElementById(`preset-btn-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.add('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
+        activeBtn.classList.remove('border-white/10');
+      }
+      activePolicyBadge.textContent = mode.toUpperCase();
+      policyPromptText.value = ASST_PRESETS[mode] || ASST_PRESETS.general;
+      activeSystemInstruction = policyPromptText.value;
+    }
+
+    document.querySelectorAll('.btn-asst-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectPresetMode(btn.dataset.mode);
+      });
+    });
+
+    btnResetPolicy.addEventListener('click', () => {
+      policyPromptText.value = ASST_PRESETS[activeMode] || ASST_PRESETS.general;
+      activeSystemInstruction = policyPromptText.value;
+    });
+
+    btnSavePolicy.addEventListener('click', async () => {
+      activeSystemInstruction = policyPromptText.value.trim();
+      if (window.api && window.api.saveConfig) {
+        await window.api.saveConfig({
+          ai_assistant_mode: activeMode,
+          ai_assistant_system_prompt: activeSystemInstruction
+        });
+      }
+      policyPanel.classList.add('hidden');
+    });
+
+    async function loadPolicySettings() {
+      try {
+        if (!window.api || !window.api.getConfig) return;
+        const cfg = await window.api.getConfig();
+        if (cfg) {
+          activeMode = cfg.ai_assistant_mode || 'general';
+          if (cfg.ai_assistant_system_prompt) {
+            activeSystemInstruction = cfg.ai_assistant_system_prompt;
+            policyPromptText.value = activeSystemInstruction;
+          } else {
+            activeSystemInstruction = ASST_PRESETS[activeMode] || ASST_PRESETS.general;
+            policyPromptText.value = activeSystemInstruction;
+          }
+          selectPresetMode(activeMode);
+        }
+      } catch (e) {
+        console.error('Error loading policy:', e);
+      }
+    }
+
+    syncTheme();
+    loadAvailableModels();
+    loadPolicySettings();
+  </script>
+</body>
+</html>

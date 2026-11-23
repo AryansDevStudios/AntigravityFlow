@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wispr Flow — Desktop</title>
+  <title>AntigravityFlow</title>
   <link rel="icon" type="image/png" href="icon.png">
   <script src="tailwind.min.js"></script>
   <style>
@@ -86,8 +86,8 @@
           <img src="icon.png" class="w-7 h-7 rounded-full border border-amber-500/40 shadow-lg object-contain" alt="Flow">
         </div>
 
-        <!-- Dictations List View -->
-        <button id="nav-dictations" class="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition" title="Dictations">
+        <!-- 1. Dictations List View -->
+        <button id="nav-dictations" class="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition shadow-md shadow-emerald-500/10 cursor-pointer" title="Today's Dictations">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" rx="1"></rect>
             <rect x="14" y="3" width="7" height="7" rx="1"></rect>
@@ -96,8 +96,8 @@
           </svg>
         </button>
 
-        <!-- Insights & Analytics View -->
-        <button id="nav-insights" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition" title="Insights & Analytics">
+        <!-- 2. Insights & Analytics View -->
+        <button id="nav-insights" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition cursor-pointer" title="Insights &amp; Quota Summary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10"></line>
             <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -105,15 +105,35 @@
           </svg>
         </button>
 
-        <!-- Custom Vocabulary Quick Access -->
-        <button id="nav-vocab" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition font-bold text-xs" title="Custom Vocabulary & Acronyms">
-          <span class="font-mono text-[11px] tracking-tight text-slate-300">Aa</span>
+        <!-- 3. Custom Vocabulary & Acronyms -->
+        <button id="nav-vocab" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition font-bold text-xs cursor-pointer" title="Custom Vocabulary &amp; Acronyms">
+          <span class="font-mono text-[11px] tracking-tight">Aa</span>
+        </button>
+
+        <!-- 4. Speech Macros & Dynamic Snippets -->
+        <button id="nav-macros" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-300 hover:bg-[#161820] transition cursor-pointer" title="Speech Macros &amp; Dynamic Snippets">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </button>
+
+        <!-- 5. AI Policy & Intelligence -->
+        <button id="nav-ai" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition cursor-pointer" title="AI Policy &amp; Intelligence">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9.5C4.8 8.8 4 7.5 4 6a4 4 0 0 1 4-4h4z"></path>
+            <path d="M12 18v4m-4-2h8m-8-7h8"></path>
+          </svg>
+        </button>
+
+        <!-- Floating AntigravityFlow AI Assistant Launcher -->
+        <button id="btn-launch-assistant" class="w-9 h-9 rounded-xl flex items-center justify-center text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition shadow-lg shadow-purple-500/10 cursor-pointer" title="✨ Open AntigravityFlow AI (Win+Ctrl+A)">
+          <span class="text-sm">✦</span>
         </button>
       </div>
 
-      <!-- Bottom Settings Group -->
-      <div class="flex flex-col items-center">
-        <button id="nav-settings" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition" title="Settings">
+      <!-- Bottom Settings Group: 5. General Settings -->
+      <div class="flex flex-col items-center space-y-2">
+        <button id="nav-general" class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition cursor-pointer" title="General Preferences &amp; System Controls">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -133,18 +153,42 @@
         <!-- Header & Live Dictation Hotkey Indicator -->
         <div class="flex items-center justify-between pb-1">
           <div>
-            <h1 id="user-greeting" class="text-2xl font-bold text-white tracking-tight">Welcome back, Copy</h1>
+            <h1 id="user-greeting" class="text-2xl font-bold text-white tracking-tight">Welcome back</h1>
             <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
               <span>Hold</span>
-              <kbd id="header-ptt-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-amber-400 font-semibold shadow-inner">Ctrl + Space</kbd>
-              <span>for Push-to-Talk or tap</span>
-              <kbd id="header-toggle-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-emerald-400 font-semibold shadow-inner">Ctrl + Shift + S</kbd>
+              <kbd id="header-ptt-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-amber-400 font-semibold shadow-inner">Windows + Alt</kbd>
+              <span>for Push-to-Talk, tap</span>
+              <kbd id="header-toggle-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-[#2b2e3b] font-mono text-[11px] text-emerald-400 font-semibold shadow-inner">Windows + Alt + H</kbd>
               <span>for hands-free</span>
+              <span id="header-ai-container" class="inline-flex items-center gap-1.5">
+                <span class="text-slate-500">• or press</span>
+                <kbd id="header-ai-badge" class="px-2 py-0.5 rounded-md bg-[#191b22] border border-purple-500/40 font-mono text-[11px] text-purple-300 font-semibold shadow-inner">Windows + Ctrl</kbd>
+                <span class="text-purple-300/90 font-medium">for AntigravityFlow AI</span>
+              </span>
             </p>
           </div>
-          <div class="flex items-center space-x-2 bg-[#14151b] border border-[#20232c] px-3.5 py-1.5 rounded-full text-xs shadow-sm select-none">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-slate-300 font-medium">Engine Active</span>
+          <div class="flex items-center space-x-2.5">
+            <!-- Quota Quick Pill -->
+            <button id="quick-quota-pill" class="flex items-center space-x-2 bg-[#14151b] hover:bg-[#1a1d26] border border-[#242735] hover:border-emerald-500/40 px-3 py-1.5 rounded-full text-xs shadow-sm transition group cursor-pointer" title="Click to view live Quota &amp; Account Details in Insights">
+              <span class="text-amber-400 font-bold text-[11px] group-hover:scale-110 transition-transform">⚡</span>
+              <span id="quick-quota-plan" class="text-emerald-400 font-semibold font-mono text-[10px] tracking-wide">ACCOUNT</span>
+              <span class="text-slate-500 font-bold text-[10px]">|</span>
+              <span id="quick-quota-pct" class="text-slate-200 font-mono font-semibold text-[11px]">Active</span>
+              <span id="quick-quota-reset" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">Ready</span>
+            </button>
+
+            <!-- AntigravityFlow AI Quick Launch Pill -->
+            <button id="btn-quick-assistant" class="flex items-center space-x-1.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 px-3 py-1.5 rounded-full text-xs shadow-sm transition group cursor-pointer" title="Launch AntigravityFlow AI Assistant (Win+Ctrl+A)">
+              <span class="text-purple-400 font-bold text-[11px] group-hover:scale-110 transition-transform">✨</span>
+              <span class="text-purple-300 font-semibold font-mono text-[10px] tracking-wide">AI ASSISTANT</span>
+              <kbd class="px-1.5 py-0.2 rounded bg-purple-900/60 border border-purple-400/40 font-mono text-[9px] text-purple-200">Win+Ctrl+A</kbd>
+            </button>
+
+            <!-- Engine Active Badge -->
+            <div class="flex items-center space-x-2 bg-[#14151b] border border-[#20232c] px-3.5 py-1.5 rounded-full text-xs shadow-sm select-none">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+              <span class="text-slate-300 font-medium">Engine Active</span>
+            </div>
           </div>
         </div>
 
@@ -220,21 +264,199 @@
       <!-- ============================================================= -->
       <!-- SCREEN 2: INSIGHTS                                            -->
       <!-- ============================================================= -->
-      <section id="view-insights" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+      <section id="view-insights" class="absolute inset-0 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
         
         <!-- Header -->
         <div class="flex items-center justify-between pb-2 border-b border-[#1b1d25]">
           <div>
             <h1 class="text-xl font-bold text-white tracking-tight">Insights & Analytics</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Real-time statistics calculated from your encrypted dictations</p>
+            <p class="text-xs text-slate-400 mt-0.5">Real-time statistics calculated from your encrypted dictations and Antigravity telemetry</p>
           </div>
         </div>
 
+        <!-- Live AI Quota & Allowance Card -->
+        <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 space-y-5 shadow-lg relative overflow-hidden min-w-0">
+          
+          <!-- Card Header: User Identity & Auto-Detected Plan -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1f222d]">
+            <div class="flex items-center space-x-3.5">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl shadow-sm">
+                ⚡
+              </div>
+              <div>
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <span id="quota-user-name" class="text-base font-bold text-white tracking-tight">
+                    Loading User...
+                  </span>
+                  <span id="quota-plan-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 uppercase tracking-wide">
+                    PRO PLAN
+                  </span>
+                  <button id="quota-email-badge" type="button" class="group inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md bg-[#161822] hover:bg-[#1e202c] border border-[#262838] transition cursor-pointer select-none" title="Click to show/hide email (Streamer Privacy Mode)">
+                    <span id="quota-user-email" class="text-xs text-slate-400 group-hover:text-slate-200 font-mono tracking-tight"></span>
+                    <svg id="quota-email-eye" class="w-3 h-3 text-slate-500 group-hover:text-slate-300 transition-colors shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  Real-time quota percentage & refresh windows auto-detected from Antigravity Language Server
+                </p>
+              </div>
+            </div>
+
+            <!-- Refresh Button -->
+            <div class="flex items-center space-x-2">
+              <button id="btn-refresh-quota" class="flex items-center space-x-1.5 px-3 py-1.5 bg-[#191b22] hover:bg-[#20232c] border border-[#272b37] text-slate-300 hover:text-white rounded-xl text-xs font-medium transition shadow-sm" title="Refresh Live Quota">
+                <svg id="refresh-quota-spinner" class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M23 4v6h-6M1 20v-6h6M20.49 15a9 9 0 1 1-2.12-9.36L23 10M3.51 9a9 9 0 0 1 2.12-9.36L1 4"></path>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Quota Telemetry (Weekly & 5-Hour Rolling Limits) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
+            
+            <!-- Gauge 1: Gemini Weekly Limit Remaining -->
+            <div class="bg-[#181a22] border border-[#242733] rounded-xl p-4 space-y-3 relative min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-emerald-400 font-bold">📅</span>
+                  <span class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Gemini Weekly Allowance</span>
+                </div>
+                <span id="quota-weekly-badge" class="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  --% REMAINING
+                </span>
+              </div>
+
+              <!-- Main metric: Percentage & Reset Window -->
+              <div class="flex items-baseline justify-between pt-1">
+                <div>
+                  <div class="flex items-baseline space-x-1.5">
+                    <span id="quota-weekly-pct" class="text-3xl font-extrabold text-white font-mono">--%</span>
+                    <span class="text-xs text-slate-400 font-medium">remaining</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
+                    <span>🕒 Refreshes:</span>
+                    <span id="quota-weekly-reset" class="text-emerald-400 font-semibold font-mono">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Visual Progress Bar -->
+              <div class="w-full bg-[#101217] rounded-full h-3 overflow-hidden flex border border-[#1f222c]">
+                <div id="bar-quota-weekly" class="bg-gradient-to-r from-teal-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+              </div>
+
+              <div id="quota-weekly-desc" class="text-[11px] text-slate-500 font-mono leading-tight">
+                Loading weekly quota status...
+              </div>
+            </div>
+
+            <!-- Gauge 2: Gemini 5-Hour Cycle Remaining -->
+            <div class="bg-[#181a22] border border-[#242733] rounded-xl p-4 space-y-3 relative min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-1.5">
+                  <span class="text-cyan-400 font-bold">⏱️</span>
+                  <span class="text-xs font-semibold text-slate-200 uppercase tracking-wider">5-Hour Cycle Remaining</span>
+                </div>
+                <span id="quota-5h-badge" class="text-[11px] font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                  --% REMAINING
+                </span>
+              </div>
+
+              <!-- Main metric: Percentage & Reset Window -->
+              <div class="flex items-baseline justify-between pt-1">
+                <div>
+                  <div class="flex items-baseline space-x-1.5">
+                    <span id="quota-5h-pct" class="text-3xl font-extrabold text-white font-mono">--%</span>
+                    <span class="text-xs text-slate-400 font-medium">remaining</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
+                    <span>🕒 Cycle resets:</span>
+                    <span id="quota-5h-reset" class="text-cyan-400 font-semibold font-mono">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Visual Progress Bar -->
+              <div class="w-full bg-[#101217] rounded-full h-3 overflow-hidden flex border border-[#1f222c]">
+                <div id="bar-quota-5h" class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+              </div>
+
+              <div id="quota-5h-desc" class="text-[11px] text-slate-500 font-mono leading-tight">
+                Loading 5-hour smoothing cycle status...
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Secondary Models Quota & Credits Sub-Panel -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1 border-t border-[#1f222d] text-xs min-w-0">
+            
+            <!-- Third-Party Weekly Limit -->
+            <div class="p-3.5 rounded-xl bg-[#121319] border border-[#1e202a] space-y-2 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                  <span>🧠 Claude & GPT Weekly</span>
+                </span>
+                <span id="quota-3p-weekly-reset" class="text-[10px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded">--</span>
+              </div>
+              <div class="flex items-baseline space-x-1 font-mono">
+                <span id="quota-3p-weekly-pct" class="text-lg font-bold text-white">--%</span>
+                <span class="text-[11px] text-slate-400">remaining</span>
+              </div>
+              <div class="w-full bg-[#101217] rounded-full h-2 overflow-hidden flex border border-[#1f222c]">
+                <div id="bar-quota-3p-weekly" class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <!-- Third-Party 5-Hour Limit -->
+            <div class="p-3.5 rounded-xl bg-[#121319] border border-[#1e202a] space-y-2 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                  <span>⚡ Claude & GPT 5-Hour</span>
+                </span>
+                <span id="quota-3p-5h-reset" class="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">--</span>
+              </div>
+              <div class="flex items-baseline space-x-1 font-mono">
+                <span id="quota-3p-5h-pct" class="text-lg font-bold text-white">--%</span>
+                <span class="text-[11px] text-slate-400">remaining</span>
+              </div>
+              <div class="w-full bg-[#101217] rounded-full h-2 overflow-hidden flex border border-[#1f222c]">
+                <div id="bar-quota-3p-5h" class="bg-gradient-to-r from-indigo-500 to-blue-400 h-full rounded-full transition-all duration-500" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <!-- Available Prompt & Flow Credits -->
+            <div class="p-3.5 rounded-xl bg-[#121319] border border-[#1e202a] space-y-2 min-w-0 sm:col-span-2 lg:col-span-1">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200 text-xs">💎 Account Credits</span>
+                <span id="quota-tier-info" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">ACTIVE</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 pt-0.5 font-mono">
+                <div>
+                  <div class="text-[10px] text-slate-500 uppercase">Prompt</div>
+                  <div id="quota-credits-prompt" class="text-base font-bold text-emerald-400">--</div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-slate-500 uppercase">Flow</div>
+                  <div id="quota-credits-flow" class="text-base font-bold text-cyan-400">--</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
         <!-- Top 3 Stat Cards Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
           
           <!-- Card 1: Words Per Minute + Semi-circular Gauge -->
-          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md min-w-0">
             <div>
               <div id="insight-wpm-num" class="text-3xl font-bold text-white">0</div>
               <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1 flex items-center gap-1">
@@ -244,7 +466,7 @@
 
             <!-- Gauge Graphic (SVG arc) -->
             <div class="relative flex flex-col items-center justify-center pt-4">
-              <svg class="w-36 h-20" viewBox="0 0 100 50">
+              <svg class="w-36 h-20 max-w-full" viewBox="0 0 100 50">
                 <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1d222a" stroke-width="8" stroke-linecap="round"></path>
                 <path id="gauge-arc" d="M 10 50 A 40 40 0 0 1 82 24" fill="none" stroke="#0d9488" stroke-width="8" stroke-linecap="round"></path>
               </svg>
@@ -256,7 +478,7 @@
           </div>
 
           <!-- Card 2: Fixes Made by Flow -->
-          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md min-w-0">
             <div>
               <div id="insight-fixes-num" class="text-3xl font-bold text-white">0</div>
               <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1 flex items-center gap-1">
@@ -277,7 +499,7 @@
           </div>
 
           <!-- Card 3: Total Words Dictated -->
-          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 flex flex-col justify-between shadow-md">
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md min-w-0 sm:col-span-2 lg:col-span-1">
             <div>
               <div id="insight-total-words" class="text-3xl font-bold text-white">0</div>
               <div class="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mt-1">
@@ -297,10 +519,10 @@
         </div>
 
         <!-- Bottom 2 Large Cards Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
           
           <!-- Card 4: Desktop Usage Breakdown -->
-          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 space-y-4 shadow-md">
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 space-y-4 shadow-md min-w-0">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-semibold text-white">Desktop usage</h3>
               <span id="stat-apps-used" class="text-[11px] font-medium text-slate-400 uppercase">TOTAL APPS USED | 0</span>
@@ -317,10 +539,8 @@
                   </div>
                   <span id="stat-ai-prompts-label" class="text-slate-400 font-mono text-[11px]">0 AI PROMPTS</span>
                 </div>
-                <div class="w-full bg-[#1e202a] rounded-full h-3 overflow-hidden flex">
-                  <div id="bar-ai-prompts" class="bg-[#0d9488] h-full rounded-full transition-all duration-500 text-[9px] font-bold text-white flex items-center justify-center" style="width: 0%;">
-                    0%
-                  </div>
+                <div class="w-full bg-[#1e202a] rounded-full h-2.5 overflow-hidden flex">
+                  <div id="bar-ai-prompts" class="bg-[#0d9488] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                 </div>
               </div>
 
@@ -398,14 +618,14 @@
           </div>
 
           <!-- Card 5: Streak & Activity Grid -->
-          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-6 space-y-4 shadow-md flex flex-col justify-between">
+          <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-4 sm:p-6 space-y-4 shadow-md flex flex-col justify-between min-w-0 overflow-hidden">
             <div class="flex items-center justify-between">
               <h3 id="insight-streak-header" class="text-base font-semibold text-white">0 day streak</h3>
               <span id="insight-longest-streak" class="text-[11px] font-medium text-slate-400 uppercase">LONGEST STREAK | 0 DAYS</span>
             </div>
 
             <!-- Heatmap Contribution Matrix -->
-            <div class="space-y-2 overflow-x-auto custom-scroll pb-2">
+            <div class="space-y-2 overflow-x-auto custom-scroll pb-2 min-w-0 max-w-full">
               <div class="flex text-[10px] text-slate-400 space-x-8 pl-7">
                 <span>Aug</span>
                 <span>Sep</span>
@@ -452,284 +672,793 @@
       </section>
 
       <!-- ============================================================= -->
-      <!-- MODAL: SETTINGS & CONFIGURATION                              -->
+      <!-- VIEW 3: CUSTOM VOCABULARY & ACRONYMS                          -->
       <!-- ============================================================= -->
-      <div id="modal-settings" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#14151b] border border-[#262934] rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
-          
-          <!-- Modal Topbar -->
-          <div class="flex items-center justify-between pb-3 border-b border-[#20232c]">
-            <div class="flex items-center space-x-1">
-              <button id="modal-tab-general" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1e212b] border border-[#2d3140] transition">
-                ⚙️ General
-              </button>
-              <button id="modal-tab-ai" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition">
-                🤖 AI Polish (Gemini)
-              </button>
-              <button id="modal-tab-vocab" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition">
-                📖 Custom Vocabulary & Acronyms
-              </button>
-            </div>
-            <button id="btn-close-settings" class="text-slate-400 hover:text-white p-1 text-base">
-              ✕
+      <section id="view-vocab" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#1f222d]">
+          <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-emerald-400 font-mono">Aa</span>
+              <span>Custom Vocabulary &amp; Acronyms</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+              Teach Flow technical acronyms, proper names, and developer jargon. Flow automatically expands phonetic spoken terms into exact casing.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="vocab-total-count" class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+              0 Rules
+            </span>
+            <button id="btn-save-vocab" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+              Save Vocabulary
             </button>
           </div>
+        </div>
 
-          <!-- TAB 1: GENERAL PREFERENCES -->
-          <div id="tab-pane-general" class="space-y-4 text-xs overflow-y-auto custom-scroll pr-1">
-            <!-- User Display Name -->
+        <!-- Add New Mapping Card -->
+        <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-3">
+          <div class="text-xs font-semibold text-slate-300">Add New Spoken Mapping</div>
+          <div class="flex items-center space-x-3">
+            <input id="input-vocab-spoken" type="text" placeholder="Spoken phrase (e.g. k eight s, post gres, deep mind)" 
+              class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-mono">
+            <span class="text-slate-500 font-bold text-base">→</span>
+            <input id="input-vocab-target" type="text" placeholder="Replacement (e.g. K8s, PostgreSQL, DeepMind)" 
+              class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-medium">
+            <button id="btn-add-vocab" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2.5 rounded-xl transition text-xs whitespace-nowrap shadow-md shadow-emerald-600/20 cursor-pointer">
+              + Add Rule
+            </button>
+          </div>
+        </div>
+
+        <!-- Search & Status Filter -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="relative flex-1">
+            <input id="input-vocab-search" type="text" placeholder="Filter active vocabulary rules..." 
+              class="w-full bg-[#14151b] border border-[#20232c] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+          <span id="vocab-status-msg" class="text-xs text-emerald-400 font-medium hidden">
+            ✓ Vocabulary successfully saved
+          </span>
+        </div>
+
+        <!-- Mappings List Table -->
+        <div id="vocab-list" class="flex-1 min-h-[300px] overflow-y-auto custom-scroll space-y-2 border border-[#1e2029] rounded-2xl p-4 bg-[#101115]">
+          <!-- Populated dynamically -->
+        </div>
+
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 4: SPEECH MACROS & DYNAMIC SNIPPETS                      -->
+      <!-- ============================================================= -->
+      <section id="view-macros" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#1f222d]">
+          <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-amber-400">⚡</span>
+              <span>Speech Macros &amp; Snippet Expansion Engine</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+              Speak trigger phrases like <span class="text-amber-300 font-mono">"macro standup"</span> or <span class="text-amber-300 font-mono">"macro email"</span> to automatically expand multi-line templates with dynamic variables.
+            </p>
+          </div>
+          <button id="btn-add-macro-modal" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs transition shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer">
+            <span>+</span>
+            <span>New Macro</span>
+          </button>
+        </div>
+
+        <!-- Dynamic Variables Legend Card -->
+        <div class="p-4 rounded-2xl bg-[#14161f] border border-[#212534] flex flex-col space-y-2 text-xs">
+          <div class="flex items-center gap-2 font-semibold text-slate-200">
+            <span class="text-amber-400">💡</span>
+            <span>Dynamic Template Variables:</span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap text-[11px] font-mono">
+            <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-amber-500/30 text-amber-300" title="Today's date e.g. 2026-11-23">{date}</span>
+            <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-amber-500/30 text-amber-300" title="Current time e.g. 14:30">{time}</span>
+            <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-amber-500/30 text-amber-300" title="Current date & time">{datetime}</span>
+            <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-cyan-500/30 text-cyan-300" title="Inserts current clipboard text">{clipboard}</span>
+            <span class="px-2 py-0.5 rounded-lg bg-black/40 border border-emerald-500/30 text-emerald-300" title="Places caret cursor here">{cursor}</span>
+          </div>
+        </div>
+
+        <!-- Add / Edit Macro Form Card (collapsible) -->
+        <div id="macro-editor-card" class="hidden p-4 rounded-2xl bg-[#12141c] border border-amber-500/30 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="macro-editor-title" class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>Create Speech Macro</span>
+            </h3>
+            <button id="btn-cancel-macro-edit" class="text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
+          </div>
+          <input type="hidden" id="edit-macro-id" value="">
+          <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">User Greeting Name</label>
-              <input id="cfg-user-name" type="text" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+              <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Trigger Spoken Phrase</label>
+              <input id="macro-trigger-input" type="text" placeholder="e.g. macro standup, macro meeting" class="w-full bg-[#181a24] border border-[#272b3b] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Category</label>
+              <input id="macro-category-input" type="text" placeholder="e.g. Standup, Email, Code" class="w-full bg-[#181a24] border border-[#272b3b] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Description</label>
+              <input id="macro-desc-input" type="text" placeholder="e.g. Daily engineering standup summary" class="w-full bg-[#181a24] border border-[#272b3b] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[10px] text-slate-400 font-semibold uppercase">Expansion Snippet</label>
+              <div class="flex items-center gap-1 text-[10px]">
+                <button type="button" class="btn-insert-var text-amber-300 hover:text-white px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 cursor-pointer" data-var="{date}">+{date}</button>
+                <button type="button" class="btn-insert-var text-amber-300 hover:text-white px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 cursor-pointer" data-var="{time}">+{time}</button>
+                <button type="button" class="btn-insert-var text-cyan-300 hover:text-white px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/25 cursor-pointer" data-var="{clipboard}">+{clipboard}</button>
+                <button type="button" class="btn-insert-var text-emerald-300 hover:text-white px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 cursor-pointer" data-var="{cursor}">+{cursor}</button>
+              </div>
+            </div>
+            <textarea id="macro-expansion-input" rows="4" placeholder="Multi-line template text to paste when triggered..." class="w-full bg-[#181a24] border border-[#272b3b] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono leading-relaxed resize-none custom-scroll"></textarea>
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button id="btn-save-macro" class="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs transition shadow-md shadow-amber-500/20 cursor-pointer">
+              Save Macro
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Macro Test Sandbox -->
+        <div class="p-3.5 rounded-2xl bg-[#10121a] border border-[#1d202c] flex items-center gap-3">
+          <span class="text-xs font-semibold text-slate-300 shrink-0">🧪 Test Expansion:</span>
+          <input id="macro-test-input" type="text" placeholder="Type a test phrase like 'macro standup' or 'check this macro email' and press Enter..." class="flex-1 bg-[#151822] border border-[#232737] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono">
+          <button id="btn-test-expand" class="px-3 py-1.5 bg-[#1a1d28] hover:bg-[#232737] border border-white/10 text-amber-300 rounded-xl text-xs font-semibold transition cursor-pointer">Expand</button>
+        </div>
+        <div id="macro-test-result" class="hidden p-3 rounded-xl bg-black/50 border border-amber-500/20 text-xs font-mono text-slate-200 whitespace-pre-wrap"></div>
+
+        <!-- Macros Table Container -->
+        <div class="flex-1 min-h-[300px] overflow-y-auto custom-scroll space-y-2 border border-[#1e2029] rounded-2xl p-4 bg-[#101115]">
+          <div class="flex items-center justify-between pb-2 border-b border-white/[0.06] text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+            <span>Trigger Phrase &amp; Category</span>
+            <span>Expansion Snippet Preview</span>
+            <span>Actions</span>
+          </div>
+          <div id="macros-list-container" class="space-y-2">
+            <!-- Populated dynamically via loadMacros() -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 5: AI POLICY & INTELLIGENCE                              -->
+      <!-- ============================================================= -->
+      <section id="view-ai" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#1f222d]">
+          <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-purple-400">🤖</span>
+              <span>AI Policy &amp; Intelligence Engine</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+              Select intelligence models, customize system prompts, configure zero-clipboard contextual injection, and fine-tune grammar polish.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="ai-status-msg" class="text-xs text-emerald-400 font-medium hidden">
+              ✓ AI settings saved
+            </span>
+            <button id="btn-save-ai" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+              Save AI Policy
+            </button>
+          </div>
+        </div>
+
+        <!-- Server Status Card -->
+        <div class="bg-[#14151b] p-4 rounded-2xl border border-[#20232c] flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-lg">
+              ⚡
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-white flex items-center gap-2">
+                <span>Local Google Antigravity Refiner Service</span>
+                <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">127.0.0.1:57071 • ONLINE</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                Connected via local authenticated session. Sub-second zero-cost refinement running directly on your system.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="text-xs text-slate-300 font-semibold cursor-pointer" for="cfg-ai-enabled">Enable AI Post-Processing</label>
+            <input id="cfg-ai-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Model Selector & Modes Deck -->
+        <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="text-xs font-semibold text-slate-200">Active Gemini Model Choice</label>
+              <div class="text-[11px] text-slate-400">Fast models deliver answers in under a second; larger models provide deep reasoning.</div>
+            </div>
+            <select id="cfg-ai-model" class="bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-500 cursor-pointer">
+              <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE" selected>Gemini 2.5 Flash Lite (Fastest ~720ms - Default)</option>
+              <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH">Gemini 2.5 Flash (⚡ ~600ms)</option>
+              <option value="MODEL_PLACEHOLDER_M50">Gemini 3.1 Flash (🧠 Reasoning ~800ms)</option>
+              <option value="gemini-3.8-flash">Gemini 3.8 Flash (🔬 Thinking)</option>
+            </select>
+          </div>
+
+          <!-- Intelligence Modes -->
+          <div class="space-y-2 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-semibold text-slate-300">Intelligence Mode</label>
+              <span class="text-[11px] text-slate-500">Choose processing pipeline:</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Mode 1: Authentic Flow (Default) -->
+              <button type="button" class="btn-ai-mode flex flex-col p-4 rounded-xl border text-left transition cursor-pointer relative" data-mode="flow" id="card-mode-flow">
+                <div class="flex items-center justify-between w-full mb-1.5">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>🌿</span> Authentic Flow
+                  </span>
+                  <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">DEFAULT</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                  Golden Middle Ground. Retains natural cadence and voice; cleans slips, stutters, and verbal filler. Context-aware, smart brackets, indentation, and emojis.
+                </p>
+              </button>
+
+              <!-- Mode 2: Generative & Coding -->
+              <button type="button" class="btn-ai-mode flex flex-col p-4 rounded-xl border text-left transition cursor-pointer relative" data-mode="generative" id="card-mode-generative">
+                <div class="flex items-center justify-between w-full mb-1.5">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>⚡</span> Generative &amp; Coding
+                  </span>
+                  <span class="text-[9px] font-medium text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">TASKS</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                  Direct execution. Say "write an essay on...", "write a bash script", or "create a React component", and it generates the finished artifact with zero preamble chatter.
+                </p>
+              </button>
+
+              <!-- Mode 3: Custom Instructions -->
+              <button type="button" class="btn-ai-mode flex flex-col p-4 rounded-xl border text-left transition cursor-pointer relative" data-mode="custom" id="card-mode-custom">
+                <div class="flex items-center justify-between w-full mb-1.5">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>🛠️</span> Custom Rules
+                  </span>
+                  <span class="text-[9px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">CUSTOM</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                  Personal instructions. Write your own custom system prompt or domain-specific transformation rules below.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Prompt Editor -->
+          <div class="space-y-1.5 pt-2">
+            <div class="flex items-center justify-between">
+              <span id="active-mode-label" class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <span class="text-slate-400">System Prompt:</span>
+                <span id="active-mode-name" class="text-emerald-400 font-semibold">🌿 Authentic Flow</span>
+              </span>
+              <button type="button" id="btn-reset-prompt" class="text-[11px] text-slate-400 hover:text-emerald-400 transition underline flex items-center gap-1 cursor-pointer">
+                <span>↺ Reset to Mode Default</span>
+              </button>
+            </div>
+            <textarea id="cfg-ai-prompt" rows="7" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl p-3.5 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono text-xs leading-relaxed resize-none"></textarea>
+          </div>
+        </div>
+
+        <!-- AntigravityFlow AI Policy & Intelligence Deck -->
+        <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-4 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-[#20232c]">
+            <div class="space-y-0.5">
+              <div class="text-sm text-slate-200 font-semibold flex items-center gap-2">
+                <span>✦</span>
+                <span>AntigravityFlow AI Policy &amp; Model</span>
+                <span class="text-[9px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">AUTONOMOUS MULTI-STEP</span>
+              </div>
+              <div class="text-slate-400 text-xs">
+                Configure intelligence model, reasoning budget (High/Med/Low), and system instructions for the floating AntigravityFlow AI window.
+              </div>
+            </div>
+          </div>
+
+          <!-- Model & Reasoning Effort Selection -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Assistant Intelligence Model</label>
+              <select id="cfg-asst-model" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-purple-300 font-mono text-xs focus:outline-none focus:border-purple-500 cursor-pointer">
+                <optgroup label="🌟 Recommended Models">
+                  <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH" selected>Gemini 2.5 Flash (⚡ ~600ms)</option>
+                  <option value="MODEL_PLACEHOLDER_M50">Gemini 3.1 Flash (🧠 Reasoning)</option>
+                  <option value="gemini-3.8-flash">Gemini 3.8 Flash (🔬 Thinking)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div id="cfg-asst-thinking-box" class="space-y-1.5">
+              <label class="text-xs font-semibold text-slate-300">Reasoning / Thinking Effort</label>
+              <select id="cfg-asst-thinking-level" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-cyan-300 font-mono text-xs focus:outline-none focus:border-cyan-500 cursor-pointer">
+                <option value="high">High Effort (Deep Reasoning)</option>
+                <option value="medium">Medium Effort (Balanced)</option>
+                <option value="low">Low Effort (Fast Response)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Assistant Policy Presets -->
+          <div class="space-y-2 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-semibold text-slate-300">Assistant System Instructions Preset</label>
+              <span class="text-[11px] text-slate-500">Select execution policy:</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+              <!-- Preset 1: General Assistant -->
+              <button type="button" class="btn-asst-mode flex flex-col p-3 rounded-xl border border-purple-500/40 bg-purple-500/10 text-left transition cursor-pointer" data-mode="general" id="card-asst-general">
+                <div class="flex items-center justify-between w-full mb-1">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1">🌿 General</span>
+                  <span class="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded">DEFAULT</span>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-snug">
+                  Balanced workflows, LaTeX math/chem, code blocks, and multi-step PowerShell automation.
+                </p>
+              </button>
+
+              <!-- Preset 2: DevOps & Coding -->
+              <button type="button" class="btn-asst-mode flex flex-col p-3 rounded-xl border border-white/10 bg-[#181a22] text-left transition cursor-pointer" data-mode="developer" id="card-asst-developer">
+                <div class="flex items-center justify-between w-full mb-1">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1">⚡ DevOps</span>
+                  <span class="text-[8px] font-medium text-cyan-400 bg-cyan-500/10 px-1 py-0.2 rounded">CODE-FIRST</span>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-snug">
+                  Terminal &amp; PowerShell mastery, direct system inspection, error diagnostics, and zero filler.
+                </p>
+              </button>
+
+              <!-- Preset 3: Zero-Chatter -->
+              <button type="button" class="btn-asst-mode flex flex-col p-3 rounded-xl border border-white/10 bg-[#181a22] text-left transition cursor-pointer" data-mode="concise" id="card-asst-concise">
+                <div class="flex items-center justify-between w-full mb-1">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1">🎯 Direct</span>
+                  <span class="text-[8px] font-medium text-amber-400 bg-amber-500/10 px-1 py-0.2 rounded">PITHY</span>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-snug">
+                  Minimum tokens, maximum signal. Executes tools autonomously and returns direct answers.
+                </p>
+              </button>
+
+              <!-- Preset 4: Custom Rules -->
+              <button type="button" class="btn-asst-mode flex flex-col p-3 rounded-xl border border-white/10 bg-[#181a22] text-left transition cursor-pointer" data-mode="custom" id="card-asst-custom">
+                <div class="flex items-center justify-between w-full mb-1">
+                  <span class="text-xs font-semibold text-white flex items-center gap-1">🛠️ Custom</span>
+                  <span class="text-[8px] font-medium text-purple-400 bg-purple-500/10 px-1 py-0.2 rounded">CUSTOM</span>
+                </div>
+                <p class="text-[10px] text-slate-400 leading-snug">
+                  Personal rules and tailored instructions for pair-programming and system tasks.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Assistant Prompt Textarea -->
+          <div class="space-y-1.5 pt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <span class="text-slate-400">Assistant System Instructions:</span>
+                <span id="active-asst-mode-name" class="text-purple-400 font-semibold">🌿 General Assistant</span>
+              </span>
+              <button type="button" id="btn-reset-asst-prompt" class="text-[11px] text-slate-400 hover:text-purple-400 transition underline flex items-center gap-1 cursor-pointer">
+                <span>↺ Reset to Mode Default</span>
+              </button>
+            </div>
+            <textarea id="cfg-asst-prompt" rows="6" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl p-3.5 text-slate-200 focus:outline-none focus:border-purple-500 font-mono text-xs leading-relaxed resize-none"></textarea>
+          </div>
+        </div>
+
+        <!-- Deep Contextual Intelligence Card -->
+        <div class="bg-[#14151b] border border-[#20232c] rounded-2xl p-5 space-y-4 shadow-sm">
+          <div class="flex items-center justify-between pb-3 border-b border-[#20232c]">
+            <div class="space-y-0.5 pr-2">
+              <div class="text-sm text-slate-200 font-semibold flex items-center gap-2">
+                <span>🧠</span>
+                <span>Deep Contextual Intelligence</span>
+                <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">LIVE UIA SENSORS</span>
+              </div>
+              <div class="text-slate-400 text-xs leading-relaxed">
+                Zero-clipboard contextual extraction: feeds active app, cursor position, focused control, and field contents directly to the AI model.
+              </div>
+            </div>
+            <input id="cfg-ctx-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+          </div>
+
+          <!-- Sensors Sub-Toggles -->
+          <div id="ctx-options-panel" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] hover:border-slate-700 cursor-pointer transition">
+                <input id="cfg-ctx-window" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+                <div>
+                  <div class="text-slate-200 font-medium">Window &amp; Application</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Active app process &amp; foreground window title</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] hover:border-slate-700 cursor-pointer transition">
+                <input id="cfg-ctx-cursor" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+                <div>
+                  <div class="text-slate-200 font-medium">Mouse Pointer Coordinates</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Cursor screen coordinates &amp; element under pointer</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] hover:border-slate-700 cursor-pointer transition">
+                <input id="cfg-ctx-focused" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+                <div>
+                  <div class="text-slate-200 font-medium">Focused UI Control</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Input element type (e.g. Edit, Document, ComboBox)</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] hover:border-slate-700 cursor-pointer transition">
+                <input id="cfg-ctx-field" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+                <div>
+                  <div class="text-slate-200 font-medium">Active Text Field Reader</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">In-memory trailing text already typed around cursor</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] hover:border-slate-700 cursor-pointer transition md:col-span-2">
+                <input id="cfg-ctx-history" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+                <div>
+                  <div class="text-slate-200 font-medium">Session Memory (Version of the Past)</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Supplies recent dictation history blocks so the AI maintains continuous narrative thread</div>
+                </div>
+              </label>
             </div>
 
-            <!-- Dictation Modality -->
+            <!-- Sliders for Limits -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#20232c]">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <label for="cfg-ctx-field-words" class="text-slate-300 font-medium">In-Memory Text Field Word Limit</label>
+                  <span id="badge-ctx-field-words" class="text-[10px] font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">Trailing 500 words</span>
+                </div>
+                <input id="cfg-ctx-field-words" type="range" min="100" max="2000" step="50" value="500" 
+                  class="w-full accent-emerald-500 bg-[#181a22] rounded-lg h-1.5 cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>100 words (Fastest)</span>
+                  <span>500 (Balanced)</span>
+                  <span>2,000 words (Deep)</span>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <label for="cfg-ctx-history-limit" class="text-slate-300 font-medium">Session History Memory Depth</label>
+                  <span id="badge-ctx-history-limit" class="text-[10px] font-mono font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">Last 5 dictations</span>
+                </div>
+                <input id="cfg-ctx-history-limit" type="range" min="1" max="10" step="1" value="5" 
+                  class="w-full accent-cyan-500 bg-[#181a22] rounded-lg h-1.5 cursor-pointer">
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>1 dictation</span>
+                  <span>5 dictations</span>
+                  <span>10 dictations</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 5: GENERAL PREFERENCES & SYSTEM CONTROLS                 -->
+      <!-- ============================================================= -->
+      <section id="view-general" class="absolute inset-0 p-8 overflow-y-auto custom-scroll hidden flex-col space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#1f222d]">
+          <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-amber-400">⚙️</span>
+              <span>General Preferences &amp; System Controls</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+              Configure system shortcuts, dictation modality, unrestricted PowerShell/CMD execution, and screen vision understanding.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="general-status-msg" class="text-xs text-emerald-400 font-medium hidden">
+              ✓ Settings saved
+            </span>
+            <button id="btn-save-settings" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+              Save Settings
+            </button>
+          </div>
+        </div>
+
+        <!-- Hotkeys Card -->
+        <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-4">
+          <div class="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+            <span>⌨️</span> Hotkey Shortcuts &amp; Trigger Modes
+          </div>
+
+          <!-- User Display Name & Dictation Modality -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-slate-300 font-semibold mb-1">Active Dictation Modality</label>
-              <select id="cfg-dictation-mode" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-emerald-500">
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">User Greeting Name</label>
+              <input id="cfg-user-name" type="text" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block text-slate-300 font-semibold mb-1 text-xs">Active Dictation Modality</label>
+              <select id="cfg-dictation-mode" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer">
                 <option value="both">Both Modes Active (Hold to Push-to-Talk OR Tap to Toggle)</option>
                 <option value="push_to_talk">Push-to-Talk Only (Hold key while speaking)</option>
                 <option value="toggle">Hands-Free Toggle Only (Tap to start, tap to stop)</option>
               </select>
             </div>
+          </div>
 
-            <!-- Push-to-Talk Hotkey -->
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <label class="text-slate-300 font-semibold flex items-center gap-1.5">
-                  <span>🎙️ Push-to-Talk Shortcut</span>
-                  <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 font-medium">Hold to speak, release to paste</span>
-                </label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input id="cfg-ptt-hotkey" type="text" readonly class="flex-1 bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold focus:outline-none focus:border-emerald-500" value="ctrl+space">
-                <button id="btn-record-ptt" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap">
-                  <span>⌨️ Record Key</span>
-                </button>
-              </div>
-              <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
-                <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
-                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'windows+alt')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt</button>
-                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Space</button>
-                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Alt+Space</button>
-                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'caps lock')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Caps Lock</button>
-                <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">F8</button>
-              </div>
+          <!-- Push-to-Talk Shortcut -->
+          <div class="space-y-1.5 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <span>🎙️ Push-to-Talk Shortcut</span>
+                <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 font-medium">Hold to speak, release to paste</span>
+              </label>
             </div>
-
-            <!-- Hands-Free Toggle Hotkey -->
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <label class="text-slate-300 font-semibold flex items-center gap-1.5">
-                  <span>⚡ Hands-Free Toggle Shortcut</span>
-                  <span class="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20 font-medium">Tap to start, tap to stop</span>
-                </label>
-              </div>
-              <div class="flex items-center gap-2">
-                <input id="cfg-toggle-hotkey" type="text" readonly class="flex-1 bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold focus:outline-none focus:border-emerald-500" value="ctrl+shift+s">
-                <button id="btn-record-toggle" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap">
-                  <span>⌨️ Record Key</span>
-                </button>
-              </div>
-              <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
-                <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+alt+h')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt+H</button>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+shift+s')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-emerald-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Shift+S</button>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+alt')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Win+Alt</button>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Ctrl+Space</button>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">Alt+Space</button>
-                <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition">F8</button>
-              </div>
-            </div>
-
-            <!-- Soft Sound Cues -->
-            <div class="flex items-center justify-between pt-1">
-              <div>
-                <div class="text-slate-200 font-medium">Soft Acoustic Chimes</div>
-                <div class="text-slate-400 text-[11px]">Play discreet audio tones when recording starts, ends, or switches to hands-free.</div>
-              </div>
-              <input id="cfg-sound" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
-            </div>
-
-            <!-- Start on Windows Login -->
-            <div class="flex items-center justify-between pt-1">
-              <div>
-                <div class="text-slate-200 font-medium">Start on Windows Login</div>
-                <div class="text-slate-400 text-[11px]">Automatically launch silently in the background when your PC boots or restarts.</div>
-              </div>
-              <input id="cfg-start-login" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
-            </div>
-
-            <!-- Active Cascade & Workspace Context Biasing -->
-            <div class="flex items-center justify-between pt-1">
-              <div>
-                <div class="text-slate-200 font-medium">Cascade & Workspace Context Biasing</div>
-                <div class="text-slate-400 text-[11px]">Peeks active Antigravity session trajectory to boost recognition of code symbols and project identifiers.</div>
-              </div>
-              <input id="cfg-cascade-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
-            </div>
-
-            <!-- System Status -->
-            <div class="bg-[#181a22] rounded-xl p-3 space-y-1.5 border border-[#222530] text-[11px]">
-              <div class="flex justify-between">
-                <span class="text-slate-400">Audio Storage:</span>
-                <span class="text-emerald-400 font-medium">Encrypted Vault (AES-256)</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-slate-400">Dictation Engine:</span>
-                <span class="text-slate-300 font-medium">Google Antigravity</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-slate-400">Input Mode:</span>
-                <span class="text-slate-300 font-medium">Single-Shot Block Paste</span>
-              </div>
-            </div>
-
-            <!-- Clear All History -->
-            <div class="pt-1">
-              <button id="btn-clear-history" class="w-full text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 py-2 rounded-xl transition">
-                Clear All Dictations & Audio Vault
+            <div class="flex items-center gap-2">
+              <input id="cfg-ptt-hotkey" type="text" readonly class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold text-xs focus:outline-none focus:border-emerald-500" value="windows+ctrl">
+              <button id="btn-record-ptt" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <span>⌨️ Record Key</span>
               </button>
             </div>
-
-            <div class="flex justify-end pt-2 border-t border-[#20232c]">
-              <button id="btn-save-settings" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
-                Save Settings
-              </button>
+            <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+              <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'windows+ctrl')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Ctrl (Default)</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'windows+alt')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Alt</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Ctrl+Space</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Alt+Space</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'caps lock')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Caps Lock</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ptt-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">F8</button>
             </div>
           </div>
 
-          <!-- TAB 2: AI POLISH (GEMINI) -->
-          <div id="tab-pane-ai" class="hidden flex-col space-y-4 text-xs overflow-y-auto custom-scroll pr-1 flex-1">
-            
-            <!-- Description & Local Antigravity Server Status -->
-            <div class="bg-[#181a22] p-3 rounded-xl border border-[#242733] space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <span>⚡</span>
-                  <span>Local Google Antigravity Refiner</span>
-                </span>
-                <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                  127.0.0.1:57071
-                </span>
+          <!-- Hands-Free Toggle Shortcut -->
+          <div class="space-y-1.5 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <span>⚡ Hands-Free Toggle Shortcut</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20 font-medium">Tap to start, tap to stop</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="cfg-toggle-hotkey" type="text" readonly class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold text-xs focus:outline-none focus:border-emerald-500" value="windows+ctrl+h">
+              <button id="btn-record-toggle" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <span>⌨️ Record Key</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+              <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+ctrl+h')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-emerald-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Ctrl+H (Default)</button>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'windows+alt+h')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Alt+H</button>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+shift+s')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Ctrl+Shift+S</button>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'ctrl+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Ctrl+Space</button>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'alt+space')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Alt+Space</button>
+              <button type="button" onclick="setPresetHotkey('cfg-toggle-hotkey', 'f8')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">F8</button>
+            </div>
+          </div>
+
+          <!-- Quick-Paste Last Dictation Shortcut -->
+          <div class="space-y-1.5 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <span>📋 Quick-Paste Last Dictation Shortcut</span>
+                <span class="text-[10px] text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded-full border border-cyan-400/20 font-medium">Missed text box? Press to paste</span>
+              </label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="cfg-paste-last-hotkey" type="text" readonly class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono font-semibold text-xs focus:outline-none focus:border-emerald-500" value="alt+v">
+              <button id="btn-record-paste-last" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <span>⌨️ Record Key</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+              <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+              <button type="button" onclick="setPresetHotkey('cfg-paste-last-hotkey', 'alt+v')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-amber-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Alt+V (Default)</button>
+              <button type="button" onclick="setPresetHotkey('cfg-paste-last-hotkey', 'ctrl+alt+v')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Ctrl+Alt+V</button>
+              <button type="button" onclick="setPresetHotkey('cfg-paste-last-hotkey', 'f9')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">F9</button>
+            </div>
+          </div>
+
+          <!-- Dedicated AI Execution / Assistant Shortcut -->
+          <div class="space-y-1.5 pt-2 border-t border-[#1f222d]">
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <span class="text-purple-400">⚡ AI Assistant &amp; Execution Shortcut</span>
+                <span class="text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 font-medium">Floating window &amp; direct execution</span>
+              </label>
+              <input id="cfg-ai-hotkey-enabled" type="checkbox" class="w-4 h-4 accent-purple-500 rounded cursor-pointer">
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="cfg-ai-hotkey" type="text" readonly class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-purple-300 font-mono font-semibold text-xs focus:outline-none focus:border-purple-500" value="windows+ctrl+a">
+              <button id="btn-record-ai-hotkey" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <span>⌨️ Record Key</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-1.5 pt-0.5 flex-wrap">
+              <span class="text-[10px] text-slate-500 font-medium">Quick Pick:</span>
+              <button type="button" onclick="setPresetHotkey('cfg-ai-hotkey', 'windows+ctrl')" class="px-2 py-0.5 bg-[#1f1d2b] hover:bg-[#2b263e] text-purple-300 border border-purple-500/30 rounded-md font-mono text-[10px] transition cursor-pointer">Win+Ctrl (Default)</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ai-hotkey', 'windows+ctrl+h')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Ctrl+H (Hands-Free)</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ai-hotkey', 'windows+ctrl+a')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Ctrl+A</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ai-hotkey', 'windows+shift+a')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">Win+Shift+A</button>
+              <button type="button" onclick="setPresetHotkey('cfg-ai-hotkey', 'f10')" class="px-2 py-0.5 bg-[#1a1d26] hover:bg-[#252936] text-slate-300 border border-[#2f3445] rounded-md font-mono text-[10px] transition cursor-pointer">F10</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- System & Assistant Capabilities Card -->
+        <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-4">
+          <div class="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+            <span>🛡️</span> System Automation &amp; Capabilities
+          </div>
+
+          <!-- Unrestricted System Commands Toggle -->
+          <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#181a22] border border-[#242733]">
+            <div>
+              <div class="text-xs font-semibold text-white flex items-center gap-2">
+                <span>💻</span>
+                <span>Allow AI to Run Unrestricted PowerShell / CMD System Commands</span>
+                <span class="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">UNRESTRICTED</span>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed">
-                Clean up grammatical slips, remove stuttering, filler words, or apply custom formatting instructions using your authenticated local Antigravity session.
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                Enables Assistant to execute commands, open applications, check system diagnostics, and control Windows processes when prompted.
               </p>
             </div>
+            <input id="cfg-enable-system-commands" type="checkbox" class="w-4 h-4 accent-cyan-500 rounded cursor-pointer" checked>
+          </div>
 
-            <!-- Toggle Switch -->
-            <div class="flex items-center justify-between p-3 rounded-xl bg-[#161820] border border-[#222530]">
-              <div>
-                <div class="text-slate-200 font-semibold">Enable AI Post-Processing</div>
-                <div class="text-slate-400 text-[11px]">
-                  When OFF: Instant single-shot paste (&lt; 10ms). When ON: Gemini polishes text before paste (~250ms).
+          <!-- Screen Vision Understanding Toggle -->
+          <div class="flex items-center justify-between p-3.5 rounded-xl bg-[#181a22] border border-[#242733]">
+            <div>
+              <div class="text-xs font-semibold text-white flex items-center gap-2">
+                <span>📷</span>
+                <span>Screen Vision Screenshot Analysis</span>
+                <span class="text-[9px] font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">MULTIMODAL</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">
+                Allows clicking the camera icon or saying "take a screenshot" to capture display context and debug UI errors.
+              </p>
+            </div>
+            <input id="cfg-enable-screen-vision" type="checkbox" class="w-4 h-4 accent-purple-500 rounded cursor-pointer" checked>
+          </div>
+
+          <!-- Microsoft Edge Online Natural Voice & Speech Engine (TTS) Card -->
+          <div class="p-4 rounded-xl border border-amber-500/20 bg-amber-950/10 space-y-3.5">
+            <div class="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
+              <span class="flex items-center gap-2"><span class="text-amber-400">🗣️</span> Microsoft Edge Online Natural Voice &amp; Speech Engine</span>
+              <span class="text-[9px] font-mono text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded">NEURAL TTS</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Voice Model Selection -->
+              <div class="space-y-1.5">
+                <label class="block text-slate-300 font-semibold text-xs">Neural Voice Character &amp; Regional Model</label>
+                <div class="flex items-center gap-2">
+                  <select id="cfg-tts-voice" class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer">
+                    <option value="en-IN-NeerjaNeural">🇮🇳 Neerja (English - India, Natural Female)</option>
+                    <option value="en-IN-PrabhatNeural">🇮🇳 Prabhat (English - India, Natural Male)</option>
+                    <option value="en-US-JennyNeural">🇺🇸 Jenny (English - US, Natural Female)</option>
+                    <option value="en-US-GuyNeural">🇺🇸 Guy (English - US, Natural Male)</option>
+                    <option value="en-US-AriaNeural">🇺🇸 Aria (English - US, Expressive Female)</option>
+                    <option value="en-US-ChristopherNeural">🇺🇸 Christopher (English - US, Deep Male)</option>
+                    <option value="en-GB-SoniaNeural">🇬🇧 Sonia (English - UK, British Female)</option>
+                    <option value="en-GB-RyanNeural">🇬🇧 Ryan (English - UK, British Male)</option>
+                  </select>
+                  <button id="btn-play-voice-demo-settings" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-amber-300 text-xs font-semibold rounded-xl border border-amber-500/30 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-sm">
+                    <span>▶ Play Demo</span>
+                  </button>
                 </div>
               </div>
-              <input id="cfg-ai-enabled" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
-            </div>
 
-            <!-- Model Selector -->
-            <div>
-              <label class="block text-slate-300 font-semibold mb-1">Gemini Model Choice</label>
-              <select id="cfg-ai-model" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-emerald-500">
-                <option value="MODEL_PLACEHOLDER_M318">Gemini 3.8 Flash (Low Reasoning - Ultra Fast, ~200ms)</option>
-                <option value="MODEL_PLACEHOLDER_M318_HIGH">Gemini 3.8 Flash (High Reasoning - Deep Cleanup, ~500ms)</option>
-              </select>
-            </div>
-
-            <!-- System Prompt & Presets -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block text-slate-300 font-semibold">System Prompt / Instructions</label>
-                <span class="text-[10px] text-slate-500">Click a preset to insert:</span>
+              <!-- Speech Rate Slider -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <label for="cfg-tts-rate" class="text-slate-300 font-semibold">Speech Rate</label>
+                  <span id="badge-tts-rate" class="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">+0%</span>
+                </div>
+                <input id="cfg-tts-rate" type="text" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500" value="+0%" placeholder="+0% (e.g. +10%, -5%)">
+                <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>-20% (Slow)</span>
+                  <span>+0% (Natural)</span>
+                  <span>+25% (Rapid)</span>
+                </div>
               </div>
-
-              <!-- Quick Preset Pills -->
-              <div class="flex flex-wrap gap-1.5">
-                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="clean">
-                  ✨ Clean & Natural
-                </button>
-                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="executive">
-                  👔 Executive & Polished
-                </button>
-                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="bullets">
-                  📋 Bullet Points
-                </button>
-                <button type="button" class="btn-prompt-preset bg-[#1a1d26] hover:bg-[#232734] border border-[#2c3040] text-[11px] text-slate-300 px-2.5 py-1 rounded-lg transition" data-preset="code">
-                  💻 Code & Terminal
-                </button>
-              </div>
-
-              <textarea id="cfg-ai-prompt" rows="5" class="w-full bg-[#191b22] border border-[#2b2e3b] rounded-xl p-3 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono text-[11px] leading-relaxed resize-none"></textarea>
             </div>
 
-            <!-- Save & Status -->
-            <div class="flex items-center justify-between pt-2 border-t border-[#20232c]">
-              <span id="ai-status-msg" class="text-[11px] text-emerald-400 font-medium hidden">
-                ✓ AI settings successfully saved
-              </span>
-              <button id="btn-save-ai" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
-                Save AI Settings
-              </button>
-            </div>
+            <!-- Toggles -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1 border-t border-[#1f222d]">
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+                <input id="cfg-tts-enabled" type="checkbox" class="w-4 h-4 accent-amber-500 rounded mt-0.5 cursor-pointer" checked>
+                <div>
+                  <div class="text-slate-200 font-medium">Enable Real-Time Voice Speech Output</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Synthesizes AI responses via Microsoft Edge Neural Natural voices</div>
+                </div>
+              </label>
 
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+                <input id="cfg-tts-auto-speak-voice" type="checkbox" class="w-4 h-4 accent-amber-500 rounded mt-0.5 cursor-pointer" checked>
+                <div>
+                  <div class="text-slate-200 font-medium">Auto-Speak on Voice Dictation</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Spoken queries are answered aloud; typed queries remain silent unless requested</div>
+                </div>
+              </label>
+            </div>
           </div>
 
-          <!-- TAB 3: CUSTOM VOCABULARY & ACRONYMS -->
-          <div id="tab-pane-vocab" class="hidden flex-col space-y-3.5 text-xs overflow-hidden flex-1">
-            <div class="flex items-center justify-between">
+          <!-- Appearance & Screen Experience Card -->
+          <div class="p-4 rounded-xl border border-[#242733] bg-[#181a22] space-y-3">
+            <div class="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
+              <span class="flex items-center gap-2"><span>🎨</span> Appearance &amp; Screen Vision Experience</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div>
-                <p class="text-[11px] text-slate-400">
-                  Teach Flow technical acronyms, proper names, or developer jargon.
-                </p>
+                <label class="block text-slate-300 font-semibold mb-1">Color Theme Mode</label>
+                <select id="cfg-theme" class="w-full bg-[#14151b] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs font-medium focus:outline-none focus:border-amber-500 cursor-pointer">
+                  <option value="auto">System Auto (Follows Windows Light/Dark Theme)</option>
+                  <option value="dark">Warm Studio / Paper Dark (Low Blue Light Frosted Glass)</option>
+                  <option value="light">Crisp Light (Clean Paper)</option>
+                </select>
               </div>
-              <span id="vocab-total-count" class="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                0 Rules
-              </span>
-            </div>
 
-            <!-- Add new mapping form -->
-            <div class="bg-[#181a22] p-3 rounded-xl border border-[#242733] space-y-2">
-              <div class="text-[11px] font-semibold text-slate-300">Add New Mapping</div>
-              <div class="flex items-center space-x-2">
-                <input id="input-vocab-spoken" type="text" placeholder="Spoken phrase (e.g. k eight s)" 
-                  class="flex-1 bg-[#121318] border border-[#2d303d] rounded-lg px-2.5 py-1.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-mono">
-                <span class="text-slate-500 font-bold">→</span>
-                <input id="input-vocab-target" type="text" placeholder="Replacement (e.g. K8s)" 
-                  class="flex-1 bg-[#121318] border border-[#2d303d] rounded-lg px-2.5 py-1.5 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 font-medium">
-                <button id="btn-add-vocab" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1.5 rounded-lg transition text-xs whitespace-nowrap">
-                  + Add
-                </button>
+              <div class="flex items-center justify-between p-3 rounded-xl bg-[#14151b] border border-[#242733]">
+                <div>
+                  <div class="text-slate-200 font-medium">Native 1080p Screenshot Capture</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">1:1 pixel-perfect bitmap for code, punctuation, and math without downscale blur</div>
+                </div>
+                <input id="cfg-screen-native-res" type="checkbox" class="w-4 h-4 accent-amber-500 rounded cursor-pointer" checked>
               </div>
-            </div>
-
-            <!-- Search filter -->
-            <div class="relative">
-              <input id="input-vocab-search" type="text" placeholder="Filter active vocabulary..." 
-                class="w-full bg-[#161820] border border-[#262935] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-slate-500">
-            </div>
-
-            <!-- Scrollable Mappings List -->
-            <div id="vocab-list" class="max-h-[220px] overflow-y-auto custom-scroll space-y-1.5 pr-1 border border-[#1e2029] rounded-xl p-2 bg-[#101115]">
-              <!-- Populated dynamically -->
-            </div>
-
-            <!-- Footer Save & Status -->
-            <div class="flex items-center justify-between pt-2 border-t border-[#20232c]">
-              <span id="vocab-status-msg" class="text-[11px] text-emerald-400 font-medium hidden">
-                ✓ Vocabulary successfully saved
-              </span>
-              <button id="btn-save-vocab" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-5 py-2 rounded-xl transition shadow-lg shadow-emerald-600/20">
-                Save Vocabulary
-              </button>
             </div>
           </div>
 
-        </div>
-      </div>
+          <!-- Audio & Startup Toggles -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+              <input id="cfg-sound" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+              <div>
+                <div class="text-slate-200 font-medium">Soft Acoustic Chimes</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Discreet audio tones on start, stop, or mode switch</div>
+              </div>
+            </label>
 
-    </main>
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+              <input id="cfg-start-login" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
+              <div>
+                <div class="text-slate-200 font-medium">Start on Windows Login</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Launch silently in tray when Windows boots</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Clear All History -->
+          <div class="pt-2 border-t border-[#1f222d] flex justify-between items-center">
+            <span class="text-xs text-slate-400">Permanently erase all stored transcripts and audio files:</span>
+            <button id="btn-clear-history" class="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl transition text-xs font-semibold cursor-pointer">
+              Clear All Dictations &amp; Audio Vault
+            </button>
+          </div>
+        </div>
+
+      </section></main>
   </div>
 
   <!-- Audio Player Instance (In-memory playback) -->
@@ -737,94 +1466,265 @@
 
   <script>
     let allHistory = [];
-    let currentConfig = { user_name: 'Copy', hotkey: 'ctrl+shift+s', enable_sound: true };
+    let currentConfig = { user_name: '', hotkey: 'windows+alt+h', push_to_talk_hotkey: 'windows+alt', ai_ptt_hotkey: 'windows+ctrl', enable_sound: true };
     let currentVocabulary = {};
     let currentPlayingId = null;
 
     const audioPlayer = document.getElementById('global-audio-player');
 
-    // Navigation Tabs
-    const navDictations = document.getElementById('nav-dictations');
-    const navInsights = document.getElementById('nav-insights');
-    const navSettings = document.getElementById('nav-settings');
-    const viewDictations = document.getElementById('view-dictations');
-    const viewInsights = document.getElementById('view-insights');
-    const modalSettings = document.getElementById('modal-settings');
-
-    function showDictations() {
-      navDictations.className = "w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition";
-      navInsights.className = "w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition";
-      viewDictations.classList.remove('hidden');
-      viewInsights.classList.add('hidden');
-      loadData();
-    }
-
-    function showInsights() {
-      navInsights.className = "w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition";
-      navDictations.className = "w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition";
-      viewInsights.classList.remove('hidden');
-      viewDictations.classList.add('hidden');
-      renderInsightsMetrics();
-    }
-
-    navDictations.addEventListener('click', showDictations);
-    navInsights.addEventListener('click', showInsights);
-
-    // Modal Tabs & View Logic
-    const modalTabGeneral = document.getElementById('modal-tab-general');
-    const modalTabAi = document.getElementById('modal-tab-ai');
-    const modalTabVocab = document.getElementById('modal-tab-vocab');
-    const tabPaneGeneral = document.getElementById('tab-pane-general');
-    const tabPaneAi = document.getElementById('tab-pane-ai');
-    const tabPaneVocab = document.getElementById('tab-pane-vocab');
-
-    const AI_PRESETS = {
-      clean: "You are an expert voice dictation assistant. Clean up grammatical slips, remove stuttering, filler words (um, uh, repeats), and fix punctuation. Preserve the exact meaning, technical terms, and speaker tone. Return ONLY the final polished text with no surrounding quotes, markdown fences, preamble, or commentary.",
-      executive: "You are an executive editor. Rewrite the spoken dictation into polished, concise, high-impact business communication. Remove rambling, maintain a confident and professional tone, and ensure impeccable grammar. Return ONLY the polished text with no commentary or quotes.",
-      bullets: "You are a structured note-taking assistant. Convert the spoken dictation into clean, well-organized markdown bullet points. Group related points logically, bold key concepts, and eliminate filler speech. Return ONLY the bulleted list with no preamble.",
-      code: "You are a developer assistant. Format code snippets, terminal commands, function names, and technical terminology accurately in markdown. Fix syntax mistakes and return clean, ready-to-run code or markdown without conversational commentary."
+    // Navigation Views Manager (5 Dedicated Tabs + Floating Assistant)
+    const views = {
+      dictations: {
+        nav: document.getElementById('nav-dictations'),
+        el: document.getElementById('view-dictations'),
+        onLoad: () => loadData()
+      },
+      insights: {
+        nav: document.getElementById('nav-insights'),
+        el: document.getElementById('view-insights'),
+        onLoad: () => { renderInsightsMetrics(); loadQuotaSummary(); }
+      },
+      vocab: {
+        nav: document.getElementById('nav-vocab'),
+        el: document.getElementById('view-vocab'),
+        onLoad: () => loadVocabulary()
+      },
+      macros: {
+        nav: document.getElementById('nav-macros'),
+        el: document.getElementById('view-macros'),
+        onLoad: () => loadMacros()
+      },
+      ai: {
+        nav: document.getElementById('nav-ai'),
+        el: document.getElementById('view-ai'),
+        onLoad: () => populateConfigUI(currentConfig)
+      },
+      general: {
+        nav: document.getElementById('nav-general'),
+        el: document.getElementById('view-general'),
+        onLoad: () => populateConfigUI(currentConfig)
+      }
     };
 
-    function switchModalTab(tab) {
-      const activeClass = "px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1e212b] border border-[#2d3140] transition";
-      const inactiveClass = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-[#1a1c24] transition";
+    let activeViewName = 'dictations';
 
-      // Reset tabs
-      modalTabGeneral.className = inactiveClass;
-      modalTabAi.className = inactiveClass;
-      modalTabVocab.className = inactiveClass;
+    function switchView(viewName) {
+      if (!views[viewName]) viewName = 'dictations';
+      activeViewName = viewName;
 
-      // Hide panes
-      tabPaneGeneral.classList.add('hidden');
-      tabPaneAi.classList.add('hidden');
-      tabPaneAi.classList.remove('flex');
-      tabPaneVocab.classList.add('hidden');
-      tabPaneVocab.classList.remove('flex');
+      const activeClass = "w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 bg-[#191b22] border border-[#242733] transition shadow-md shadow-emerald-500/10 cursor-pointer";
+      const inactiveClass = "w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-[#161820] transition cursor-pointer";
 
-      if (tab === 'general') {
-        modalTabGeneral.className = activeClass;
-        tabPaneGeneral.classList.remove('hidden');
-      } else if (tab === 'ai') {
-        modalTabAi.className = activeClass;
-        tabPaneAi.classList.remove('hidden');
-        tabPaneAi.classList.add('flex');
-      } else if (tab === 'vocab') {
-        modalTabVocab.className = activeClass;
-        tabPaneVocab.classList.remove('hidden');
-        tabPaneVocab.classList.add('flex');
-        loadVocabulary();
+      Object.entries(views).forEach(([name, v]) => {
+        if (!v.el) return;
+        if (name === viewName) {
+          v.el.classList.remove('hidden');
+          v.el.classList.add('flex');
+          if (v.nav) v.nav.className = activeClass;
+          if (v.onLoad) v.onLoad();
+        } else {
+          v.el.classList.add('hidden');
+          v.el.classList.remove('flex');
+          if (v.nav) v.nav.className = inactiveClass;
+        }
+      });
+    }
+
+    if (views.dictations.nav) views.dictations.nav.addEventListener('click', () => switchView('dictations'));
+    if (views.insights.nav) views.insights.nav.addEventListener('click', () => switchView('insights'));
+    if (views.vocab.nav) views.vocab.nav.addEventListener('click', () => switchView('vocab'));
+    if (views.macros && views.macros.nav) views.macros.nav.addEventListener('click', () => switchView('macros'));
+    if (views.ai.nav) views.ai.nav.addEventListener('click', () => switchView('ai'));
+    if (views.general.nav) views.general.nav.addEventListener('click', () => switchView('general'));
+
+    const btnLaunchAssistant = document.getElementById('btn-launch-assistant');
+    if (btnLaunchAssistant) {
+      btnLaunchAssistant.addEventListener('click', () => {
+        if (window.api && window.api.openAssistant) window.api.openAssistant();
+      });
+    }
+
+    const btnQuickAssistant = document.getElementById('btn-quick-assistant');
+    if (btnQuickAssistant) {
+      btnQuickAssistant.addEventListener('click', () => {
+        if (window.api && window.api.openAssistant) window.api.openAssistant();
+      });
+    }
+
+    const AI_PRESETS = {
+      flow: `You are the core intelligence of AntigravityFlow, an elite, context-aware speech-to-text refinement engine.
+Your mission is to find the perfect 'Golden Middle Ground': keep the output faithful to the speaker's natural voice, cadence, and vocabulary, while gently elevating it into clean, beautifully formatted text. Never rewrite speech into stiff, alien, or overly corporate jargon that doesn't sound like the user.
+
+CORE REFINEMENT RULES:
+1. THE GOLDEN MIDDLE GROUND (Authentic Fidelity):
+   - Preserve the speaker's original phrasing, word choice, intent, and personality.
+   - Do NOT aggressively rewrite natural conversational sentences into rigid corporate prose. If the speaker uses casual words like 'cool', 'yeah', 'check this out', or 'let's do that', keep them intact.
+   - Only improve what needs improving: eliminate acoustic glitches, involuntary stutters ('I-I', 'th-the'), accidental word repetitions ('the the', 'we we'), and trailing verbal filler ('um', 'uh', 'you know', 'like, uh').
+
+2. FORMATTING, BRACKETS & STRUCTURE:
+   - Properly format code snippets, function names, and identifiers (e.g., camelCase, snake_case, PascalCase) matching the surrounding programming language context.
+   - Accurately format bracketed expressions, parentheses, curly braces, and JSON blocks with correct closure and natural indentation.
+   - Format numbers, currencies, percentages, and mathematical equations naturally (e.g., '$4.5M', '24 / 3 = 8', '192.168.1.1').
+
+3. INTENTIONAL STYLISTIC DIRECTIVES:
+   - If the user explicitly asks for a stylistic shift in speech (e.g., 'rewrite this formally', 'make this polite', 'make this concise'), honor the directive seamlessly.
+   - If the user speaks an emoji request (e.g., 'add a thumbs up emoji', 'insert smiling face'), render the corresponding Unicode emoji (👍, 😊). Do NOT add unsolicited random emojis unless explicitly dictated or clearly intended in informal chat.
+
+4. CONTEXTUAL & MULTI-TURN AWARENESS:
+   - When recent dictation context or application context is provided, use it to disambiguate jargon, project symbols, variable names, and pronouns.
+   - Match the tone of the active application (e.g., developer terminology in code editors, clean conversational tone in chat/messaging).
+
+5. STRICT PRODUCTION CONSTRAINTS:
+   - Return ONLY the final refined text.
+   - NEVER add preambles, greetings, or conversational meta-commentary (e.g., do NOT say 'Here is the refined text:', 'Sure!', or 'Cleaned version:').
+   - NEVER enclose the entire response in quotation marks or markdown blocks unless the entire dictated input was explicitly code or a quoted block.`,
+
+      generative: `You are AntigravityFlow Generative & Coding Execution Engine.
+Your mission is to directly EXECUTE instructions, generate code, write essays, and produce practical content in response to spoken commands. When the user dictates a command or task (e.g., 'write an essay on...', 'write a bash script to...', 'create a React component with Tailwind', 'draft an email accepting the proposal'), you DO NOT merely transcribe the command—you FULFILL and PRODUCE the requested artifact directly.
+
+CORE EXECUTION RULES:
+1. DIRECT PRACTICAL FULFILLMENT:
+   - If the speech contains a prompt, request, or instruction (e.g., 'write an essay on X', 'generate a python script for Y', 'draft a polite decline email to Z'), immediately output the finished, high-quality essay, script, or draft.
+   - If the speech is direct text or notes without an explicit generative command, clean, structure, and format it into clean production prose.
+
+2. DEVELOPER & CODE INTEGRITY:
+   - Write robust, idiomatic, production-ready code with correct syntax, indentation, and error handling.
+   - Adhere strictly to the requested programming language (Python, TypeScript, Go, Rust, Bash, SQL, etc.).
+   - Include clear, minimal comments where helpful, avoiding verbose chatter.
+   - Format commands as directly runnable terminal one-liners when requested.
+
+3. ESSAYS, EMAILS & EXPANDED PROSE:
+   - Essays: structured with compelling introductions, reasoned body paragraphs, and conclusive takeaways.
+   - Business Emails: clear subject lines (if needed), professional greetings, structured body, and clean sign-offs.
+   - Technical Docs & Specs: clean Markdown formatting with tables, bulleted lists, and bold headers.
+
+4. CONTEXT INTEGRATION:
+   - Leverage provided recent conversation history, window titles, or code context to infer missing parameters, variable names, or target frameworks.
+
+5. STRICT ZERO-CHATTER CONSTRAINTS:
+   - Return ONLY the completed work (code, essay, document, or command).
+   - NEVER include conversational filler (e.g., NO 'Here is your script:', NO 'Certainly!', NO 'Let me know if you need changes').
+   - Output raw, direct, ready-to-paste text without wrapping the entire output in conversational fences.`,
+
+      custom: `You are a personalized voice dictation assistant. Refine and format the dictated text according to user-defined rules. Preserve accuracy, clean up disfluencies, and return ONLY the final output with no conversational commentary or outer quotes.`
+    };
+
+    function setActiveAiMode(mode, updatePrompt = false) {
+      const validMode = (mode === 'generative' || mode === 'custom') ? mode : 'flow';
+      currentConfig.ai_preset_mode = validMode;
+
+      // Update Quick select dropdown on General tab if present
+      const quickModeSelect = document.getElementById('cfg-ai-mode-quick');
+      if (quickModeSelect && quickModeSelect.value !== validMode) {
+        quickModeSelect.value = validMode;
+      }
+
+      // Update mode cards visual styling
+      document.querySelectorAll('.btn-ai-mode').forEach(card => {
+        const cardMode = card.dataset.mode;
+        if (cardMode === validMode) {
+          card.className = "btn-ai-mode flex flex-col p-3 rounded-xl border text-left transition cursor-pointer relative border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/40";
+        } else {
+          card.className = "btn-ai-mode flex flex-col p-3 rounded-xl border border-[#262936] bg-[#161820] hover:bg-[#1a1d27] text-left transition cursor-pointer relative";
+        }
+      });
+
+      // Update label
+      const modeLabel = document.getElementById('active-mode-name');
+      if (modeLabel) {
+        if (validMode === 'flow') modeLabel.textContent = '🌿 Authentic Flow (Default)';
+        else if (validMode === 'generative') modeLabel.textContent = '⚡ Generative & Coding';
+        else modeLabel.textContent = '🛠️ Custom Instructions';
+      }
+
+      // If requested, update prompt textarea
+      if (updatePrompt) {
+        const promptArea = document.getElementById('cfg-ai-prompt');
+        if (promptArea) {
+          const savedPresets = currentConfig.ai_flow_presets || {};
+          if (validMode === 'custom') {
+            promptArea.value = currentConfig.ai_custom_prompt || savedPresets.custom || AI_PRESETS.custom;
+          } else {
+            promptArea.value = savedPresets[validMode] || AI_PRESETS[validMode] || AI_PRESETS.flow;
+          }
+        }
       }
     }
 
-    modalTabGeneral.addEventListener('click', () => switchModalTab('general'));
-    modalTabAi.addEventListener('click', () => switchModalTab('ai'));
-    modalTabVocab.addEventListener('click', () => switchModalTab('vocab'));
+    const ASST_PRESETS = {
+      general: `You are AntigravityFlow AI for Windows.
+You are an elite, sub-second, highly intelligent AI assistant designed to pair-program, write, analyze, and control Windows workflows.
+
+FORMATTING & CAPABILITIES:
+1. LATEX MATHEMATICS & CHEMISTRY: Always use standard KaTeX/LaTeX formatting ($...$ and $$...$$).
+2. MARKDOWN & CODE INTEGRITY: Structure responses with clean Markdown headers, bullet points, and code blocks.
+3. AUTONOMOUS POWERSHELL & SYSTEM EXECUTION (MULTI-STEP): When the user asks a question that requires inspecting the system, searching files, counting items, or checking processes, output:
+\`\`\`execute_powershell
+<command>
+\`\`\`
+Once tool output is provided, synthesize a clear, helpful, and formatted answer.
+4. CONCISE & PUNCHY: Deliver high-signal answers with zero fluff.`,
+
+      developer: `You are AntigravityFlow AI (DevOps & Engineering) for Windows.
+Your mission is code-first execution, automation, and terminal mastery.
+1. CODE & TERMINAL FIRST: When user asks to inspect directories, count files, or query processes, output \`\`\`execute_powershell\n<command>\n\`\`\`.
+2. When synthesizing results, provide technical metrics, exit codes, and clean code blocks.
+3. Write production-ready, typed, idiomatic code with error handling. Zero fluff.`,
+
+      concise: `You are AntigravityFlow AI (Direct Zero-Chatter) for Windows.
+Your objective is minimum tokens, maximum signal, and direct execution.
+- If inspecting system/files is required, output \`\`\`execute_powershell\n<cmd>\n\`\`\`.
+- Once tool output is provided, give the exact answer directly in 1-2 concise sentences or a crisp table.
+- Zero conversational preambles, greetings, or postscript chatter.`,
+
+      custom: `You are AntigravityFlow AI for Windows. Follow user instructions with precision.`
+    };
+
+    function setActiveAsstMode(mode, updatePrompt = false) {
+      const validMode = ['developer', 'concise', 'custom'].includes(mode) ? mode : 'general';
+      currentConfig.ai_assistant_mode = validMode;
+
+      document.querySelectorAll('.btn-asst-mode').forEach(card => {
+        const cardMode = card.dataset.mode;
+        if (cardMode === validMode) {
+          card.className = "btn-asst-mode flex flex-col p-3 rounded-xl border text-left transition cursor-pointer relative border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/40";
+        } else {
+          card.className = "btn-asst-mode flex flex-col p-3 rounded-xl border border-[#262936] bg-[#161820] hover:bg-[#1a1d27] text-left transition cursor-pointer relative";
+        }
+      });
+
+      const label = document.getElementById('active-asst-mode-name');
+      if (label) {
+        if (validMode === 'general') label.textContent = '🌿 General Assistant (Default)';
+        else if (validMode === 'developer') label.textContent = '⚡ DevOps & Coding';
+        else if (validMode === 'concise') label.textContent = '🎯 Zero-Chatter Direct';
+        else label.textContent = '🛠️ Custom Instructions';
+      }
+
+      if (updatePrompt) {
+        const promptArea = document.getElementById('cfg-asst-prompt');
+        if (promptArea) {
+          const savedPresets = currentConfig.ai_assistant_presets || {};
+          if (validMode === 'custom') {
+            promptArea.value = currentConfig.ai_assistant_custom_prompt || savedPresets.custom || ASST_PRESETS.custom;
+          } else {
+            promptArea.value = savedPresets[validMode] || ASST_PRESETS[validMode];
+          }
+        }
+      }
+    }
 
     function updateHeaderBadges(cfg) {
       const pttBadge = document.getElementById('header-ptt-badge');
       const toggleBadge = document.getElementById('header-toggle-badge');
-      if (pttBadge) pttBadge.textContent = (cfg.push_to_talk_hotkey || 'ctrl+space').toUpperCase();
-      if (toggleBadge) toggleBadge.textContent = (cfg.toggle_hotkey || cfg.hotkey || 'ctrl+shift+s').toUpperCase();
+      const aiBadge = document.getElementById('header-ai-badge');
+      const aiBadgeContainer = document.getElementById('header-ai-container');
+      if (pttBadge) pttBadge.textContent = (cfg.push_to_talk_hotkey || 'windows+alt').toUpperCase();
+      if (toggleBadge) toggleBadge.textContent = (cfg.toggle_hotkey || cfg.hotkey || 'windows+alt+h').toUpperCase();
+      if (aiBadge) aiBadge.textContent = (cfg.ai_ptt_hotkey || cfg.ai_hotkey || 'windows+ctrl').toUpperCase();
+      if (aiBadgeContainer) {
+        aiBadgeContainer.style.display = (cfg.enable_ai_hotkey !== false) ? 'inline-flex' : 'none';
+      }
     }
 
     function setPresetHotkey(inputId, combo) {
@@ -972,91 +1872,573 @@
 
     setupKeyRecorder('btn-record-ptt', 'cfg-ptt-hotkey');
     setupKeyRecorder('btn-record-toggle', 'cfg-toggle-hotkey');
+    setupKeyRecorder('btn-record-paste-last', 'cfg-paste-last-hotkey');
+    setupKeyRecorder('btn-record-ai-hotkey', 'cfg-ai-hotkey');
 
-    function openSettingsModal(defaultTab = 'general') {
-      document.getElementById('cfg-user-name').value = currentConfig.user_name || 'Copy';
-      document.getElementById('cfg-dictation-mode').value = currentConfig.dictation_mode || 'both';
-      document.getElementById('cfg-ptt-hotkey').value = currentConfig.push_to_talk_hotkey || 'windows+alt';
-      document.getElementById('cfg-toggle-hotkey').value = currentConfig.toggle_hotkey || currentConfig.hotkey || 'windows+alt+h';
-      document.getElementById('cfg-sound').checked = currentConfig.enable_sound !== false;
-      document.getElementById('cfg-start-login').checked = currentConfig.start_on_login !== false;
-      document.getElementById('cfg-cascade-enabled').checked = currentConfig.enable_context_cascade !== false;
+    function populateConfigUI(cfg) {
+      if (!cfg) cfg = currentConfig;
       
-      document.getElementById('cfg-ai-enabled').checked = currentConfig.enable_ai_polish === true;
-      document.getElementById('cfg-ai-model').value = currentConfig.ai_model || 'MODEL_PLACEHOLDER_M318';
-      document.getElementById('cfg-ai-prompt').value = currentConfig.ai_system_prompt || AI_PRESETS.clean;
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+      const setCheck = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = val;
+      };
 
-      switchModalTab(defaultTab);
-      modalSettings.classList.remove('hidden');
+      setVal('cfg-user-name', cfg.user_name || 'Copy');
+      setVal('cfg-dictation-mode', cfg.dictation_mode || 'both');
+      setVal('cfg-ptt-hotkey', cfg.push_to_talk_hotkey || 'windows+alt');
+      setVal('cfg-toggle-hotkey', cfg.toggle_hotkey || cfg.hotkey || 'windows+alt+h');
+      setVal('cfg-paste-last-hotkey', cfg.paste_last_hotkey || 'alt+v');
+      
+      setCheck('cfg-ai-hotkey-enabled', cfg.enable_ai_hotkey !== false);
+      setVal('cfg-ai-hotkey-mode', cfg.ai_hotkey_mode || 'both');
+      setVal('cfg-ai-hotkey', cfg.ai_ptt_hotkey || cfg.ai_hotkey || 'windows+ctrl');
+
+      setCheck('cfg-enable-system-commands', cfg.enable_system_commands !== false);
+      setCheck('cfg-enable-screen-vision', cfg.enable_screen_vision !== false);
+      setCheck('cfg-sound', cfg.enable_sound !== false);
+      setCheck('cfg-start-login', cfg.start_on_login !== false);
+      setCheck('cfg-cascade-enabled', cfg.enable_context_cascade !== false);
+      
+      const aiEnabled = cfg.enable_ai_polish === true;
+      setCheck('cfg-ai-enabled', aiEnabled);
+      const quickAi = document.getElementById('cfg-ai-enabled-quick');
+      if (quickAi) quickAi.checked = aiEnabled;
+      const quickBox = document.getElementById('quick-ai-model-box');
+      if (quickBox) quickBox.classList.toggle('hidden', !aiEnabled);
+
+      const activeModel = cfg.ai_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE';
+      setVal('cfg-ai-model', activeModel);
+      setVal('cfg-ai-model-quick', activeModel);
+
+      const activeMode = cfg.ai_preset_mode || 'flow';
+      setActiveAiMode(activeMode, false);
+      const savedFlowPresets = cfg.ai_flow_presets || {};
+      const activePrompt = cfg.ai_system_prompt || savedFlowPresets[activeMode] || AI_PRESETS[activeMode] || AI_PRESETS.flow;
+      setVal('cfg-ai-prompt', activePrompt);
+
+      // Deep Contextual Intelligence Controls
+      const ctxEnabled = cfg.enable_deep_context !== false;
+      setCheck('cfg-ctx-enabled', ctxEnabled);
+      updateCtxPanelState(ctxEnabled);
+
+      setCheck('cfg-ctx-window', cfg.ctx_include_window !== false);
+      setCheck('cfg-ctx-cursor', cfg.ctx_include_cursor !== false);
+      setCheck('cfg-ctx-focused', cfg.ctx_include_focused_control !== false);
+      setCheck('cfg-ctx-field', cfg.ctx_include_field_content !== false);
+      setCheck('cfg-ctx-history', cfg.ctx_include_history !== false);
+
+      const fieldWords = cfg.ctx_max_field_words || 500;
+      setVal('cfg-ctx-field-words', fieldWords);
+      const fieldWordsBadge = document.getElementById('badge-ctx-field-words');
+      if (fieldWordsBadge) fieldWordsBadge.textContent = `Trailing ${fieldWords} words`;
+
+      const histLimit = cfg.ctx_history_limit || 5;
+      setVal('cfg-ctx-history-limit', histLimit);
+      const histLimitBadge = document.getElementById('badge-ctx-history-limit');
+      if (histLimitBadge) histLimitBadge.textContent = `Last ${histLimit} dictations`;
+
+      // Desktop Gemini Assistant Model & Policy Loading
+      loadAssistantModelsToUI(cfg);
+      const asstMode = cfg.ai_assistant_mode || 'general';
+      setActiveAsstMode(asstMode, false);
+      const savedAsstPresets = cfg.ai_assistant_presets || {};
+      const asstPrompt = cfg.ai_assistant_system_prompt || savedAsstPresets[asstMode] || ASST_PRESETS[asstMode] || ASST_PRESETS.general;
+      setVal('cfg-asst-prompt', asstPrompt);
+
+      // Edge TTS & Theme Settings
+      setVal('cfg-tts-voice', cfg.tts_voice || 'en-IN-NeerjaNeural');
+      setCheck('cfg-tts-enabled', cfg.tts_enabled !== false);
+      setCheck('cfg-tts-auto-speak-voice', cfg.tts_auto_speak_voice !== false);
+      setVal('cfg-tts-rate', cfg.tts_rate || '+0%');
+      const rateBadge = document.getElementById('badge-tts-rate');
+      if (rateBadge) rateBadge.textContent = cfg.tts_rate || '+0%';
+      setVal('cfg-theme', cfg.theme || 'auto');
+      setCheck('cfg-screen-native-res', cfg.screen_native_resolution !== false);
     }
 
-    navSettings.addEventListener('click', () => openSettingsModal('general'));
+    async function loadAssistantModelsToUI(cfg) {
+      const asstModelSelect = document.getElementById('cfg-asst-model');
+      const asstThinkingSelect = document.getElementById('cfg-asst-thinking-level');
+      if (!asstModelSelect || !window.api || !window.api.getAvailableModels) return;
 
-    const navVocab = document.getElementById('nav-vocab');
-    if (navVocab) navVocab.addEventListener('click', () => openSettingsModal('vocab'));
+      try {
+        const res = await window.api.getAvailableModels();
+        if (!res || !res.success) return;
 
-    document.getElementById('btn-close-settings').addEventListener('click', () => {
-      modalSettings.classList.add('hidden');
-    });
+        asstModelSelect.innerHTML = '';
 
-    // Preset button clicks
-    document.querySelectorAll('.btn-prompt-preset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const presetKey = btn.dataset.preset;
-        if (AI_PRESETS[presetKey]) {
-          document.getElementById('cfg-ai-prompt').value = AI_PRESETS[presetKey];
-          saveAllConfig();
+        const grpPrimary = document.createElement('optgroup');
+        grpPrimary.label = "🌟 Recommended Models";
+
+        const opt25 = document.createElement('option');
+        opt25.value = "MODEL_GOOGLE_GEMINI_2_5_FLASH";
+        opt25.textContent = "Gemini 2.5 Flash (⚡ ~600ms)";
+        grpPrimary.appendChild(opt25);
+
+        const opt31 = document.createElement('option');
+        opt31.value = "MODEL_PLACEHOLDER_M50";
+        opt31.textContent = "Gemini 3.1 Flash (🧠 Reasoning)";
+        grpPrimary.appendChild(opt31);
+
+        const opt38 = document.createElement('option');
+        opt38.value = "gemini-3.8-flash";
+        opt38.textContent = "Gemini 3.8 Flash (🔬 Thinking)";
+        grpPrimary.appendChild(opt38);
+
+        asstModelSelect.appendChild(grpPrimary);
+
+        const grpAdv = document.createElement('optgroup');
+        grpAdv.label = `✨ Advanced Models (Show All ${res.totalCount || 22})`;
+
+        (res.allModels || []).forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.modelId || m.key;
+          const thinkBadge = m.supportsThinking ? " [Thinking]" : "";
+          opt.textContent = `${m.label}${thinkBadge}`;
+          grpAdv.appendChild(opt);
+        });
+
+        asstModelSelect.appendChild(grpAdv);
+
+        const savedModel = cfg.ai_assistant_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH';
+        if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(savedModel)) {
+          asstModelSelect.value = 'gemini-3.8-flash';
+          if (asstThinkingSelect) {
+            if (savedModel === 'MODEL_PLACEHOLDER_M318') asstThinkingSelect.value = 'high';
+            else if (savedModel === 'MODEL_PLACEHOLDER_M319') asstThinkingSelect.value = 'medium';
+            else if (savedModel === 'MODEL_PLACEHOLDER_M320') asstThinkingSelect.value = 'low';
+          }
+        } else {
+          asstModelSelect.value = savedModel;
         }
-      });
-    });
+
+        if (cfg.ai_assistant_thinking_level && asstThinkingSelect) {
+          asstThinkingSelect.value = cfg.ai_assistant_thinking_level;
+        }
+        updateAsstThinkingVisibility();
+      } catch (e) {
+        console.error('Error loading assistant models in UI:', e);
+      }
+    }
+
+    function updateAsstThinkingVisibility() {
+      const asstModelSelect = document.getElementById('cfg-asst-model');
+      const thinkingBox = document.getElementById('cfg-asst-thinking-box');
+      if (!asstModelSelect || !thinkingBox) return;
+      const val = asstModelSelect.value;
+      if (val === 'gemini-3.8-flash' || val === 'MODEL_PLACEHOLDER_M35' || val === 'MODEL_PLACEHOLDER_M26' || val === 'MODEL_OPENAI_GPT_OSS_120B_MEDIUM') {
+        thinkingBox.classList.remove('hidden');
+      } else {
+        thinkingBox.classList.add('hidden');
+      }
+    }
+
+    function openSettingsModal(defaultTab = 'general') {
+      if (defaultTab === 'ai') switchView('ai');
+      else if (defaultTab === 'vocab') switchView('vocab');
+      else switchView('general');
+    }
 
     async function saveAllConfig() {
-      const pttVal = document.getElementById('cfg-ptt-hotkey').value.trim() || 'windows+alt';
-      const toggleVal = document.getElementById('cfg-toggle-hotkey').value.trim() || 'windows+alt+h';
-      const modeVal = document.getElementById('cfg-dictation-mode').value || 'both';
-      const startLoginVal = document.getElementById('cfg-start-login') ? document.getElementById('cfg-start-login').checked : true;
+      const pttEl = document.getElementById('cfg-ptt-hotkey');
+      const pttVal = (pttEl?.value || currentConfig.push_to_talk_hotkey || 'windows+alt').trim();
+
+      const toggleEl = document.getElementById('cfg-toggle-hotkey');
+      const toggleVal = (toggleEl?.value || currentConfig.toggle_hotkey || currentConfig.hotkey || 'windows+alt+h').trim();
+
+      const pasteLastEl = document.getElementById('cfg-paste-last-hotkey');
+      const pasteLastVal = (pasteLastEl?.value || currentConfig.paste_last_hotkey || 'alt+v').trim();
+
+      const modeEl = document.getElementById('cfg-dictation-mode');
+      const modeVal = modeEl?.value || currentConfig.dictation_mode || 'both';
+
+      const startLoginEl = document.getElementById('cfg-start-login');
+      const startLoginVal = startLoginEl ? startLoginEl.checked : (currentConfig.start_on_login !== false);
+
+      const activeMode = currentConfig.ai_preset_mode || 'flow';
+      const promptEl = document.getElementById('cfg-ai-prompt');
+      const promptVal = (promptEl && promptEl.value.trim()) ? promptEl.value.trim() : (currentConfig.ai_system_prompt || AI_PRESETS[activeMode] || AI_PRESETS.flow);
+
+      const ctxEnabledEl = document.getElementById('cfg-ctx-enabled');
+      const ctxEnabled = ctxEnabledEl ? ctxEnabledEl.checked : (currentConfig.enable_deep_context !== false);
+
+      const ctxWindowEl = document.getElementById('cfg-ctx-window');
+      const ctxWindow = ctxWindowEl ? ctxWindowEl.checked : (currentConfig.ctx_include_window !== false);
+
+      const ctxCursorEl = document.getElementById('cfg-ctx-cursor');
+      const ctxCursor = ctxCursorEl ? ctxCursorEl.checked : (currentConfig.ctx_include_cursor !== false);
+
+      const ctxFocusedEl = document.getElementById('cfg-ctx-focused');
+      const ctxFocused = ctxFocusedEl ? ctxFocusedEl.checked : (currentConfig.ctx_include_focused_control !== false);
+
+      const ctxFieldEl = document.getElementById('cfg-ctx-field');
+      const ctxField = ctxFieldEl ? ctxFieldEl.checked : (currentConfig.ctx_include_field_content !== false);
+
+      const ctxHistEl = document.getElementById('cfg-ctx-history');
+      const ctxHist = ctxHistEl ? ctxHistEl.checked : (currentConfig.ctx_include_history !== false);
+
+      const ctxFieldWordsEl = document.getElementById('cfg-ctx-field-words');
+      const ctxFieldWords = ctxFieldWordsEl ? (parseInt(ctxFieldWordsEl.value, 10) || currentConfig.ctx_max_field_words || 500) : (currentConfig.ctx_max_field_words || 500);
+
+      const ctxHistLimitEl = document.getElementById('cfg-ctx-history-limit');
+      const ctxHistLimit = ctxHistLimitEl ? (parseInt(ctxHistLimitEl.value, 10) || currentConfig.ctx_history_limit || 5) : (currentConfig.ctx_history_limit || 5);
+
+      const aiHotkeyEnabledEl = document.getElementById('cfg-ai-hotkey-enabled');
+      const aiHotkeyEnabled = aiHotkeyEnabledEl ? aiHotkeyEnabledEl.checked : (currentConfig.enable_ai_hotkey !== false);
+
+      const aiHotkeyModeEl = document.getElementById('cfg-ai-hotkey-mode');
+      const aiHotkeyMode = aiHotkeyModeEl ? aiHotkeyModeEl.value : (currentConfig.ai_hotkey_mode || 'both');
+
+      const aiHotkeyEl = document.getElementById('cfg-ai-hotkey');
+      const aiHotkey = (aiHotkeyEl?.value || currentConfig.ai_ptt_hotkey || currentConfig.ai_hotkey || 'windows+ctrl').trim();
+
+      const sysCommandsEl = document.getElementById('cfg-enable-system-commands');
+      const sysCommands = sysCommandsEl ? sysCommandsEl.checked : (currentConfig.enable_system_commands !== false);
+
+      const screenVisionEl = document.getElementById('cfg-enable-screen-vision');
+      const screenVision = screenVisionEl ? screenVisionEl.checked : (currentConfig.enable_screen_vision !== false);
+
+      // Assistant configuration values
+      const asstModelEl = document.getElementById('cfg-asst-model');
+      const asstModelRaw = (asstModelEl && asstModelEl.value) ? asstModelEl.value : (currentConfig.ai_assistant_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH');
+
+      const asstThinkingEl = document.getElementById('cfg-asst-thinking-level');
+      const asstThinkingEffort = asstThinkingEl?.value || currentConfig.ai_assistant_thinking_level || 'high';
+
+      let asstModelToSave = asstModelRaw;
+      if (asstModelRaw === 'gemini-3.8-flash') {
+        asstModelToSave = asstThinkingEffort === 'high' ? 'MODEL_PLACEHOLDER_M318' : (asstThinkingEffort === 'medium' ? 'MODEL_PLACEHOLDER_M319' : 'MODEL_PLACEHOLDER_M320');
+      }
+
+      const asstMode = currentConfig.ai_assistant_mode || 'general';
+      const asstPromptEl = document.getElementById('cfg-asst-prompt');
+      const asstPromptVal = (asstPromptEl && asstPromptEl.value.trim()) ? asstPromptEl.value.trim() : (currentConfig.ai_assistant_system_prompt || ASST_PRESETS[asstMode] || ASST_PRESETS.general);
+
+      // Edge TTS & Theme values
+      const ttsVoiceEl = document.getElementById('cfg-tts-voice');
+      const ttsVoice = ttsVoiceEl?.value || currentConfig.tts_voice || 'en-IN-NeerjaNeural';
+
+      const ttsEnabledEl = document.getElementById('cfg-tts-enabled');
+      const ttsEnabled = ttsEnabledEl ? ttsEnabledEl.checked : (currentConfig.tts_enabled !== false);
+
+      const ttsAutoSpeakEl = document.getElementById('cfg-tts-auto-speak-voice');
+      const ttsAutoSpeak = ttsAutoSpeakEl ? ttsAutoSpeakEl.checked : (currentConfig.tts_auto_speak_voice !== false);
+
+      const ttsRateEl = document.getElementById('cfg-tts-rate');
+      const ttsRate = (ttsRateEl?.value || currentConfig.tts_rate || '+0%').trim();
+
+      const themeEl = document.getElementById('cfg-theme');
+      const themeVal = themeEl?.value || currentConfig.theme || 'auto';
+
+      const screenNativeResEl = document.getElementById('cfg-screen-native-res');
+      const screenNativeRes = screenNativeResEl ? screenNativeResEl.checked : (currentConfig.screen_native_resolution !== false);
+
+      const aiPolishEl = document.getElementById('cfg-ai-enabled');
+      const aiPolishVal = aiPolishEl ? aiPolishEl.checked : (currentConfig.enable_ai_polish === true);
+
+      const aiModelEl = document.getElementById('cfg-ai-model');
+      const aiModelVal = (aiModelEl && aiModelEl.value) ? aiModelEl.value : (currentConfig.ai_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE');
+
+      const soundEl = document.getElementById('cfg-sound');
+      const soundVal = soundEl ? soundEl.checked : (currentConfig.enable_sound !== false);
+
+      const cascadeEl = document.getElementById('cfg-cascade-enabled');
+      const cascadeVal = cascadeEl ? cascadeEl.checked : (currentConfig.enable_context_cascade !== false);
+
+      const userNameEl = document.getElementById('cfg-user-name');
+      const userNameVal = userNameEl ? userNameEl.value.trim() : (currentConfig.user_name || 'Copy');
+
+      const flowPresets = { ...(currentConfig.ai_flow_presets || {}), [activeMode]: promptVal };
+      const asstPresets = { ...(currentConfig.ai_assistant_presets || {}), [asstMode]: asstPromptVal };
+
       const cfg = {
         ...currentConfig,
-        user_name: document.getElementById('cfg-user-name').value.trim() || 'Copy',
+        user_name: userNameVal,
         dictation_mode: modeVal,
         push_to_talk_hotkey: pttVal,
         toggle_hotkey: toggleVal,
+        paste_last_hotkey: pasteLastVal,
         hotkey: toggleVal,
-        enable_sound: document.getElementById('cfg-sound').checked,
+        enable_ai_hotkey: aiHotkeyEnabled,
+        ai_hotkey_mode: aiHotkeyMode,
+        ai_ptt_hotkey: 'windows+ctrl',
+        ai_toggle_hotkey: 'windows+ctrl+h',
+        ai_hotkey: aiHotkey,
+        enable_system_commands: sysCommands,
+        enable_screen_vision: screenVision,
+        enable_sound: soundVal,
         start_on_login: startLoginVal,
-        enable_context_cascade: document.getElementById('cfg-cascade-enabled').checked,
-        enable_ai_polish: document.getElementById('cfg-ai-enabled').checked,
-        ai_model: document.getElementById('cfg-ai-model').value,
-        ai_system_prompt: document.getElementById('cfg-ai-prompt').value.trim()
+        enable_context_cascade: cascadeVal,
+        enable_ai_polish: aiPolishVal,
+        ai_model: aiModelVal,
+        ai_preset_mode: activeMode,
+        ai_system_prompt: promptVal,
+        ai_custom_prompt: (activeMode === 'custom') ? promptVal : (currentConfig.ai_custom_prompt || AI_PRESETS.custom),
+        ai_flow_presets: flowPresets,
+        enable_deep_context: ctxEnabled,
+        ctx_include_window: ctxWindow,
+        ctx_include_cursor: ctxCursor,
+        ctx_include_focused_control: ctxFocused,
+        ctx_include_field_content: ctxField,
+        ctx_include_history: ctxHist,
+        ctx_max_field_words: ctxFieldWords,
+        ctx_history_limit: ctxHistLimit,
+        ai_assistant_model: asstModelToSave,
+        ai_assistant_thinking_level: asstThinkingEffort,
+        ai_assistant_mode: asstMode,
+        ai_assistant_system_prompt: asstPromptVal,
+        ai_assistant_custom_prompt: (asstMode === 'custom') ? asstPromptVal : (currentConfig.ai_assistant_custom_prompt || ASST_PRESETS.custom),
+        ai_assistant_presets: asstPresets,
+        tts_service: 'edge-tts',
+        tts_voice: ttsVoice,
+        tts_enabled: ttsEnabled,
+        tts_auto_speak_voice: ttsAutoSpeak,
+        tts_rate: ttsRate,
+        theme: themeVal,
+        screen_native_resolution: screenNativeRes
       };
-      await window.api.saveConfig(cfg);
+
+      if (window.api && window.api.saveConfig) {
+        await window.api.saveConfig(cfg);
+      }
       currentConfig = cfg;
-      document.getElementById('user-greeting').textContent = `Welcome back, ${cfg.user_name}`;
+      const greetingEl = document.getElementById('user-greeting');
+      if (greetingEl) {
+        greetingEl.textContent = cfg.user_name && cfg.user_name.trim() ? `Welcome back, ${cfg.user_name.trim()}` : 'Welcome back';
+      }
       updateHeaderBadges(cfg);
       return cfg;
     }
 
+    // Play Voice Demo in Settings
+    const btnPlayVoiceDemoSettings = document.getElementById('btn-play-voice-demo-settings');
+    if (btnPlayVoiceDemoSettings) {
+      btnPlayVoiceDemoSettings.addEventListener('click', async () => {
+        const v = document.getElementById('cfg-tts-voice')?.value || 'en-IN-NeerjaNeural';
+        btnPlayVoiceDemoSettings.disabled = true;
+        const origText = btnPlayVoiceDemoSettings.innerHTML;
+        btnPlayVoiceDemoSettings.innerHTML = `<span class="animate-spin text-xs">⏳</span> Playing...`;
+        try {
+          if (window.api && window.api.playTtsDemo) {
+            const res = await window.api.playTtsDemo(v);
+            if (res && res.success && res.audio_b64) {
+              audioPlayer.src = `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}`;
+              await audioPlayer.play();
+            }
+          }
+        } catch (err) {
+          console.error('Demo error:', err);
+        } finally {
+          btnPlayVoiceDemoSettings.disabled = false;
+          btnPlayVoiceDemoSettings.innerHTML = origText;
+        }
+      });
+    }
+
+    const ttsRateInput = document.getElementById('cfg-tts-rate');
+    if (ttsRateInput) {
+      ttsRateInput.addEventListener('input', () => {
+        const b = document.getElementById('badge-tts-rate');
+        if (b) b.textContent = ttsRateInput.value || '+0%';
+      });
+    }
+
+    // Bidirectional sync for Quick Controls <-> AI Tab Controls
+    const quickAiToggle = document.getElementById('cfg-ai-enabled-quick');
+    const mainAiToggle = document.getElementById('cfg-ai-enabled');
+    const quickAiSelect = document.getElementById('cfg-ai-model-quick');
+    const mainAiSelect = document.getElementById('cfg-ai-model');
+
+    if (quickAiToggle && mainAiToggle) {
+      quickAiToggle.addEventListener('change', () => {
+        mainAiToggle.checked = quickAiToggle.checked;
+        const box = document.getElementById('quick-ai-model-box');
+        if (box) box.classList.toggle('hidden', !quickAiToggle.checked);
+        saveAllConfig();
+      });
+      mainAiToggle.addEventListener('change', () => {
+        quickAiToggle.checked = mainAiToggle.checked;
+        const box = document.getElementById('quick-ai-model-box');
+        if (box) box.classList.toggle('hidden', !mainAiToggle.checked);
+        saveAllConfig();
+      });
+    }
+
+    if (quickAiSelect && mainAiSelect) {
+      quickAiSelect.addEventListener('change', () => {
+        mainAiSelect.value = quickAiSelect.value;
+        saveAllConfig();
+      });
+      mainAiSelect.addEventListener('change', () => {
+        quickAiSelect.value = mainAiSelect.value;
+        saveAllConfig();
+      });
+    }
+
+    // Deep Contextual Intelligence Event Listeners
+    const ctxMasterToggle = document.getElementById('cfg-ctx-enabled');
+    if (ctxMasterToggle) {
+      ctxMasterToggle.addEventListener('change', () => {
+        updateCtxPanelState(ctxMasterToggle.checked);
+        saveAllConfig();
+      });
+    }
+
+    ['cfg-ctx-window', 'cfg-ctx-cursor', 'cfg-ctx-focused', 'cfg-ctx-field', 'cfg-ctx-history'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => saveAllConfig());
+    });
+
+    const sliderFieldWords = document.getElementById('cfg-ctx-field-words');
+    const badgeFieldWords = document.getElementById('badge-ctx-field-words');
+    if (sliderFieldWords && badgeFieldWords) {
+      sliderFieldWords.addEventListener('input', () => {
+        badgeFieldWords.textContent = `Trailing ${sliderFieldWords.value} words`;
+      });
+      sliderFieldWords.addEventListener('change', () => {
+        saveAllConfig();
+      });
+    }
+
+    const sliderHistLimit = document.getElementById('cfg-ctx-history-limit');
+    const badgeHistLimit = document.getElementById('badge-ctx-history-limit');
+    if (sliderHistLimit && badgeHistLimit) {
+      sliderHistLimit.addEventListener('input', () => {
+        badgeHistLimit.textContent = `Last ${sliderHistLimit.value} dictations`;
+      });
+      sliderHistLimit.addEventListener('change', () => {
+        saveAllConfig();
+      });
+    }
+
     // Instant real-time auto-save listeners on all settings toggles
-    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-enabled', 'cfg-ai-model'].forEach(id => {
+    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-hotkey-enabled', 'cfg-ai-hotkey-mode', 'cfg-tts-voice', 'cfg-tts-enabled', 'cfg-tts-auto-speak-voice', 'cfg-theme', 'cfg-screen-native-res'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => saveAllConfig());
     });
-    ['cfg-user-name'].forEach(id => {
+    ['cfg-user-name', 'cfg-tts-rate'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => saveAllConfig());
     });
 
-    document.getElementById('btn-save-settings').addEventListener('click', async () => {
-      await saveAllConfig();
-      modalSettings.classList.add('hidden');
+    // Dictation AI Intelligence Modes & Prompt Listeners
+    document.querySelectorAll('.btn-ai-mode').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setActiveAiMode(btn.dataset.mode, true);
+        saveAllConfig();
+      });
     });
 
-    document.getElementById('btn-save-ai').addEventListener('click', async () => {
-      await saveAllConfig();
-      const statusMsg = document.getElementById('ai-status-msg');
-      statusMsg.classList.remove('hidden');
-      setTimeout(() => statusMsg.classList.add('hidden'), 2500);
+    const btnResetPrompt = document.getElementById('btn-reset-prompt');
+    if (btnResetPrompt) {
+      btnResetPrompt.addEventListener('click', () => {
+        const mode = currentConfig.ai_preset_mode || 'flow';
+        const promptArea = document.getElementById('cfg-ai-prompt');
+        if (promptArea) {
+          promptArea.value = AI_PRESETS[mode] || AI_PRESETS.flow;
+          if (!currentConfig.ai_flow_presets) currentConfig.ai_flow_presets = {};
+          currentConfig.ai_flow_presets[mode] = promptArea.value;
+        }
+        saveAllConfig();
+      });
+    }
+
+    const aiPromptArea = document.getElementById('cfg-ai-prompt');
+    if (aiPromptArea) {
+      let aiPromptDebounce = null;
+      const saveAiPrompt = () => {
+        const mode = currentConfig.ai_preset_mode || 'flow';
+        if (!currentConfig.ai_flow_presets) currentConfig.ai_flow_presets = {};
+        currentConfig.ai_flow_presets[mode] = aiPromptArea.value.trim();
+        saveAllConfig();
+      };
+      aiPromptArea.addEventListener('change', saveAiPrompt);
+      aiPromptArea.addEventListener('input', () => {
+        clearTimeout(aiPromptDebounce);
+        aiPromptDebounce = setTimeout(saveAiPrompt, 500);
+      });
+    }
+
+    // Desktop Gemini Assistant Policy & Intelligence Listeners
+    document.querySelectorAll('.btn-asst-mode').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setActiveAsstMode(btn.dataset.mode, true);
+        saveAllConfig();
+      });
     });
+
+    const btnResetAsstPrompt = document.getElementById('btn-reset-asst-prompt');
+    if (btnResetAsstPrompt) {
+      btnResetAsstPrompt.addEventListener('click', () => {
+        const asstMode = currentConfig.ai_assistant_mode || 'general';
+        const promptArea = document.getElementById('cfg-asst-prompt');
+        if (promptArea) {
+          promptArea.value = ASST_PRESETS[asstMode] || ASST_PRESETS.general;
+          if (!currentConfig.ai_assistant_presets) currentConfig.ai_assistant_presets = {};
+          currentConfig.ai_assistant_presets[asstMode] = promptArea.value;
+        }
+        saveAllConfig();
+      });
+    }
+
+    const asstModelSelect = document.getElementById('cfg-asst-model');
+    if (asstModelSelect) {
+      asstModelSelect.addEventListener('change', () => {
+        updateAsstThinkingVisibility();
+        saveAllConfig();
+      });
+    }
+
+    const asstThinkingSelect = document.getElementById('cfg-asst-thinking-level');
+    if (asstThinkingSelect) {
+      asstThinkingSelect.addEventListener('change', () => {
+        saveAllConfig();
+      });
+    }
+
+    const asstPromptArea = document.getElementById('cfg-asst-prompt');
+    if (asstPromptArea) {
+      let asstPromptDebounce = null;
+      const saveAsstPrompt = () => {
+        const mode = currentConfig.ai_assistant_mode || 'general';
+        if (!currentConfig.ai_assistant_presets) currentConfig.ai_assistant_presets = {};
+        currentConfig.ai_assistant_presets[mode] = asstPromptArea.value.trim();
+        saveAllConfig();
+      };
+      asstPromptArea.addEventListener('change', saveAsstPrompt);
+      asstPromptArea.addEventListener('input', () => {
+        clearTimeout(asstPromptDebounce);
+        asstPromptDebounce = setTimeout(saveAsstPrompt, 500);
+      });
+    }
+
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    if (btnSaveSettings) {
+      btnSaveSettings.addEventListener('click', async () => {
+        await saveAllConfig();
+        const statusMsg = document.getElementById('general-status-msg');
+        if (statusMsg) {
+          statusMsg.classList.remove('hidden');
+          setTimeout(() => statusMsg.classList.add('hidden'), 2500);
+        }
+      });
+    }
+
+    const btnSaveAi = document.getElementById('btn-save-ai');
+    if (btnSaveAi) {
+      btnSaveAi.addEventListener('click', async () => {
+        await saveAllConfig();
+        const statusMsg = document.getElementById('ai-status-msg');
+        if (statusMsg) {
+          statusMsg.classList.remove('hidden');
+          setTimeout(() => statusMsg.classList.add('hidden'), 2500);
+        }
+      });
+    }
 
     // Custom Vocabulary & Acronyms Management
     async function loadVocabulary() {
@@ -1114,13 +2496,17 @@
       await window.api.saveVocabulary(currentVocabulary);
     };
 
-    document.getElementById('input-vocab-search').addEventListener('input', () => {
-      renderVocabularyList();
-    });
+    const inputVocabSearch = document.getElementById('input-vocab-search');
+    if (inputVocabSearch) {
+      inputVocabSearch.addEventListener('input', () => {
+        renderVocabularyList();
+      });
+    }
 
     async function handleAddVocab() {
       const spokenInput = document.getElementById('input-vocab-spoken');
       const targetInput = document.getElementById('input-vocab-target');
+      if (!spokenInput || !targetInput) return;
       const spoken = spokenInput.value.trim().toLowerCase();
       const target = targetInput.value.trim();
 
@@ -1134,60 +2520,310 @@
       await window.api.saveVocabulary(currentVocabulary);
 
       const statusMsg = document.getElementById('vocab-status-msg');
-      statusMsg.classList.remove('hidden');
-      setTimeout(() => statusMsg.classList.add('hidden'), 2000);
+      if (statusMsg) {
+        statusMsg.classList.remove('hidden');
+        setTimeout(() => statusMsg.classList.add('hidden'), 2000);
+      }
     }
 
-    document.getElementById('btn-add-vocab').addEventListener('click', handleAddVocab);
-    document.getElementById('input-vocab-target').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleAddVocab();
+    const btnAddVocab = document.getElementById('btn-add-vocab');
+    if (btnAddVocab) btnAddVocab.addEventListener('click', handleAddVocab);
+
+    const inputVocabTarget = document.getElementById('input-vocab-target');
+    if (inputVocabTarget) {
+      inputVocabTarget.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleAddVocab();
+      });
+    }
+
+    const btnSaveVocab = document.getElementById('btn-save-vocab');
+    if (btnSaveVocab) {
+      btnSaveVocab.addEventListener('click', async () => {
+        await window.api.saveVocabulary(currentVocabulary);
+        const statusMsg = document.getElementById('vocab-status-msg');
+        if (statusMsg) {
+          statusMsg.classList.remove('hidden');
+          setTimeout(() => statusMsg.classList.add('hidden'), 2000);
+        }
+      });
+    }
+
+    // =========================================================================
+    // Speech Macros & Snippets Engine Controller
+    // =========================================================================
+    const macroEditorCard = document.getElementById('macro-editor-card');
+    const btnAddMacroModal = document.getElementById('btn-add-macro-modal');
+    const btnCancelMacroEdit = document.getElementById('btn-cancel-macro-edit');
+    const btnSaveMacro = document.getElementById('btn-save-macro');
+    const editMacroId = document.getElementById('edit-macro-id');
+    const macroTriggerInput = document.getElementById('macro-trigger-input');
+    const macroCatInput = document.getElementById('macro-category-input');
+    const macroDescInput = document.getElementById('macro-desc-input');
+    const macroExpInput = document.getElementById('macro-expansion-input');
+    const macroEditorTitle = document.getElementById('macro-editor-title');
+    const macroTestInput = document.getElementById('macro-test-input');
+    const btnTestExpand = document.getElementById('btn-test-expand');
+    const macroTestResult = document.getElementById('macro-test-result');
+
+    if (btnAddMacroModal) {
+      btnAddMacroModal.addEventListener('click', () => {
+        editMacroId.value = '';
+        macroTriggerInput.value = '';
+        macroCatInput.value = 'General';
+        macroDescInput.value = '';
+        macroExpInput.value = '';
+        macroEditorTitle.innerHTML = `<span>⚡</span><span>Create Speech Macro</span>`;
+        macroEditorCard.classList.remove('hidden');
+        macroTriggerInput.focus();
+      });
+    }
+
+    if (btnCancelMacroEdit) {
+      btnCancelMacroEdit.addEventListener('click', () => {
+        macroEditorCard.classList.add('hidden');
+      });
+    }
+
+    // Insert dynamic variables into textarea at caret position
+    document.querySelectorAll('.btn-insert-var').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = btn.dataset.var;
+        if (!v || !macroExpInput) return;
+        const start = macroExpInput.selectionStart || 0;
+        const end = macroExpInput.selectionEnd || 0;
+        const text = macroExpInput.value;
+        macroExpInput.value = text.substring(0, start) + v + text.substring(end);
+        macroExpInput.selectionStart = macroExpInput.selectionEnd = start + v.length;
+        macroExpInput.focus();
+      });
     });
 
-    document.getElementById('btn-save-vocab').addEventListener('click', async () => {
-      await window.api.saveVocabulary(currentVocabulary);
-      const statusMsg = document.getElementById('vocab-status-msg');
-      statusMsg.classList.remove('hidden');
-      setTimeout(() => statusMsg.classList.add('hidden'), 2000);
-    });
+    if (btnSaveMacro) {
+      btnSaveMacro.addEventListener('click', async () => {
+        const trigger = (macroTriggerInput.value || '').trim();
+        const exp = (macroExpInput.value || '').trim();
+        const cat = (macroCatInput.value || 'General').trim();
+        const desc = (macroDescInput.value || '').trim();
+        const macroId = (editMacroId && editMacroId.value) ? Number(editMacroId.value) : null;
+
+        if (!trigger || !exp) {
+          alert('Please enter both a trigger phrase and an expansion snippet.');
+          return;
+        }
+
+        const payload = {
+          id: macroId,
+          trigger_keyword: trigger,
+          expansion_text: exp,
+          category: cat,
+          description: desc
+        };
+
+        if (window.api && window.api.saveMacro) {
+          await window.api.saveMacro(payload);
+          macroEditorCard.classList.add('hidden');
+          loadMacros();
+        }
+      });
+    }
+
+    // Live Macro Sandbox Testing
+    async function testMacroExpansion() {
+      if (!macroTestInput || !macroTestResult) return;
+      const text = macroTestInput.value.trim();
+      if (!text) {
+        macroTestResult.classList.add('hidden');
+        return;
+      }
+      if (window.api && window.api.expandMacro) {
+        const res = await window.api.expandMacro(text);
+        if (res && res.expanded) {
+          macroTestResult.textContent = res.expanded;
+          macroTestResult.classList.remove('hidden');
+        }
+      }
+    }
+
+    if (btnTestExpand) {
+      btnTestExpand.addEventListener('click', testMacroExpansion);
+    }
+    if (macroTestInput) {
+      macroTestInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') testMacroExpansion();
+      });
+    }
+
+    async function loadMacros() {
+      const container = document.getElementById('macros-list-container');
+      if (!container) return;
+      try {
+        if (!window.api || !window.api.getMacros) return;
+        const res = await window.api.getMacros();
+        const macros = (res && res.data) || [];
+        if (macros.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-10 text-slate-500 text-xs">
+              No speech macros configured yet. Click "+ New Macro" above to create your first speech macro!
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = macros.map(m => `
+          <div class="p-3 rounded-xl bg-[#151722] border border-[#222533] hover:border-amber-500/30 transition flex items-start justify-between gap-4 text-xs">
+            <div class="min-w-[180px] space-y-1">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-amber-300 font-mono">${escapeHtml(m.trigger_keyword)}</span>
+                <span class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">${escapeHtml(m.category || 'General')}</span>
+              </div>
+              <div class="text-[10px] text-slate-400">${escapeHtml(m.description || 'Speech macro')}</div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <pre class="bg-black/40 border border-white/[0.04] p-2 rounded-lg text-[10px] font-mono text-slate-300 max-h-24 overflow-y-auto custom-scroll whitespace-pre-wrap">${escapeHtml(m.expansion_text)}</pre>
+            </div>
+            <div class="flex items-center gap-1 shrink-0 pt-1">
+              <button class="btn-edit-macro px-2 py-1 rounded-lg bg-[#1f2230] hover:bg-[#2a2f42] text-slate-300 hover:text-white transition text-[10px] cursor-pointer" data-id="${m.id}" data-trigger="${escapeHtml(m.trigger_keyword)}" data-cat="${escapeHtml(m.category || '')}" data-desc="${escapeHtml(m.description || '')}" data-exp="${escapeHtml(m.expansion_text)}">
+                Edit
+              </button>
+              <button class="btn-del-macro px-2 py-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition text-[10px] cursor-pointer" data-id="${m.id}">
+                Delete
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.btn-edit-macro').forEach(btn => {
+          btn.addEventListener('click', () => {
+            editMacroId.value = btn.dataset.id;
+            macroTriggerInput.value = btn.dataset.trigger;
+            macroCatInput.value = btn.dataset.cat;
+            macroDescInput.value = btn.dataset.desc;
+            macroExpInput.value = btn.dataset.exp;
+            macroEditorTitle.innerHTML = `<span>✏️</span><span>Edit Speech Macro</span>`;
+            macroEditorCard.classList.remove('hidden');
+            macroExpInput.focus();
+          });
+        });
+
+        container.querySelectorAll('.btn-del-macro').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('Delete this speech macro?')) {
+              await window.api.deleteMacro(Number(btn.dataset.id));
+              loadMacros();
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Error loading macros:', err);
+      }
+    }
 
     // Window controls
-    document.getElementById('btn-win-min').addEventListener('click', () => window.api.minimize());
-    document.getElementById('btn-win-max').addEventListener('click', () => window.api.maximize());
-    document.getElementById('btn-win-close').addEventListener('click', () => window.api.close());
+    const btnWinMin = document.getElementById('btn-win-min');
+    if (btnWinMin) btnWinMin.addEventListener('click', () => window.api.minimize());
+
+    const btnWinMax = document.getElementById('btn-win-max');
+    if (btnWinMax) btnWinMax.addEventListener('click', () => window.api.maximize());
+
+    const btnWinClose = document.getElementById('btn-win-close');
+    if (btnWinClose) btnWinClose.addEventListener('click', () => window.api.close());
 
     // Search filter
-    document.getElementById('search-input').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      const filtered = allHistory.filter(i => (i.text || '').toLowerCase().includes(q));
-      renderDictations(filtered);
-    });
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        const filtered = allHistory.filter(i => (i.text || '').toLowerCase().includes(q));
+        renderDictations(filtered);
+      });
+    }
 
     // Clear History
-    document.getElementById('btn-clear-history').addEventListener('click', async () => {
-      if (confirm('Clear all dictation history and securely delete encrypted recordings?')) {
-        await window.api.clearHistory();
-        modalSettings.classList.add('hidden');
-        loadData();
-      }
-    });
+    const btnClearHistory = document.getElementById('btn-clear-history');
+    if (btnClearHistory) {
+      btnClearHistory.addEventListener('click', async () => {
+        if (confirm('Clear all dictation history and securely delete encrypted recordings?')) {
+          await window.api.clearHistory();
+          loadData();
+        }
+      });
+    }
 
-    // Load Data
+    let hasInitialRender = false;
+
+    // Load Data with Instant Cache (< 1ms)
     async function loadData() {
-      // Load config
+      // 1. Instant User Identity & Badges from Local Cache (< 0.1ms)
+      if (window.api && window.api.getUserCache) {
+        try {
+          const userCacheRes = await window.api.getUserCache();
+          if (userCacheRes && userCacheRes.success && userCacheRes.data) {
+            const cachedUser = userCacheRes.data;
+            const greetingEl = document.getElementById('user-greeting');
+            if (greetingEl) {
+              const customName = (currentConfig && currentConfig.user_name) ? currentConfig.user_name.trim() : '';
+              greetingEl.textContent = customName ? `Welcome back, ${customName}` : 'Welcome back';
+            }
+            const badgeEl = document.getElementById('quick-quota-plan');
+            if (badgeEl) {
+              const plan = (cachedUser.planBadge || cachedUser.planName || '').toUpperCase();
+              badgeEl.textContent = plan || 'ACCOUNT';
+            }
+            const pctEl = document.getElementById('quick-quota-pct');
+            if (pctEl && cachedUser.weekly_percent !== undefined) {
+              pctEl.textContent = `${Math.round(cachedUser.weekly_percent)}% Remaining`;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. Load Config (< 1ms)
       const cfgRes = await window.api.getConfig();
-      if (cfgRes.success && cfgRes.data) {
+      if (cfgRes && cfgRes.success && cfgRes.data) {
         currentConfig = cfgRes.data;
-        document.getElementById('user-greeting').textContent = `Welcome back, ${currentConfig.user_name || 'Copy'}`;
+        populateConfigUI(currentConfig);
+        if (currentConfig.user_name && currentConfig.user_name.trim()) {
+          const greetingEl = document.getElementById('user-greeting');
+          if (greetingEl) greetingEl.textContent = `Welcome back, ${currentConfig.user_name.trim()}`;
+        }
         updateHeaderBadges(currentConfig);
       }
 
-      // Load History
-      const histRes = await window.api.getHistory();
-      if (histRes.success) {
-        allHistory = histRes.data || [];
-        renderDictations(allHistory);
-        updateTopStats(allHistory);
+      // 3. Load SQLite / Sync History (< 2ms)
+      try {
+        const histRes = await window.api.getHistory();
+        if (histRes && histRes.success) {
+          const newHist = histRes.data || [];
+          const prevCount = allHistory.length;
+          const prevFirstId = prevCount > 0 ? allHistory[0].id : null;
+          const newCount = newHist.length;
+          const newFirstId = newCount > 0 ? newHist[0].id : null;
+          
+          allHistory = newHist;
+          // Always render on initial load, or whenever data changes
+          if (!hasInitialRender || prevCount !== newCount || prevFirstId !== newFirstId) {
+            hasInitialRender = true;
+            renderDictations(allHistory);
+            updateTopStats(allHistory);
+          }
+        } else {
+          if (!hasInitialRender) {
+            hasInitialRender = true;
+            renderDictations([]);
+            updateTopStats([]);
+          }
+        }
+      } catch (histErr) {
+        console.error('Error fetching history:', histErr);
+        if (!hasInitialRender) {
+          hasInitialRender = true;
+          renderDictations([]);
+          updateTopStats([]);
+        }
       }
+
+      // 4. Background Non-Blocking Quota Refresh
+      loadQuotaSummary();
     }
 
     function calculateStreak(items) {
@@ -1324,7 +2960,8 @@
               </div>
 
               <!-- Inline Audio Player Indicator if active -->
-              <div id="player-bar-${item.id}" class="${isPlaying ? 'flex' : 'hidden'} items-center space-x-2 mt-2 pt-2 border-t border-[#232634]">
+              ${isPlaying ? `
+              <div id="player-bar-${item.id}" class="flex items-center space-x-2 mt-2 pt-2 border-t border-[#232634]">
                 <div class="flex items-center space-x-0.5 h-3">
                   <span class="w-0.5 h-2 bg-emerald-400 animate-pulse"></span>
                   <span class="w-0.5 h-3 bg-emerald-400 animate-pulse delay-75"></span>
@@ -1332,7 +2969,7 @@
                   <span class="w-0.5 h-2.5 bg-emerald-400 animate-pulse delay-100"></span>
                 </div>
                 <span class="text-[10px] text-emerald-400 font-medium">Playing decrypted audio</span>
-              </div>
+              </div>` : `<div id="player-bar-${item.id}" class="hidden"></div>`}
             </div>
 
             <!-- Right: Direct Functional Actions -->
@@ -1546,19 +3183,19 @@
       allHistory.forEach(item => {
         if (item.app_name) uniqueApps.add(item.app_name);
         let cat = item.category;
-        if (!cat || !catCounts.hasOwnProperty(cat)) {
+        if (!cat || cat === "Other Tasks" || !catCounts.hasOwnProperty(cat)) {
           const t = (item.text || '').toLowerCase();
           const app = (item.app_name || '').toLowerCase();
-          if (app.includes('code') || app.includes('cursor') || app.includes('terminal') || app.includes('powershell') || app.includes('cmd') || /^(explain|write|generate|how to|can you|create|what is|refactor|debug|fix|prompt)/i.test(t)) {
+          if (app.includes('antigravity') || app.includes('code') || app.includes('cursor') || app.includes('terminal') || app.includes('powershell') || app.includes('cmd') || app.includes('craft-anything') || /^(explain|write|generate|how to|can you|create|what is|refactor|debug|fix|prompt|build)\b/i.test(t) || /\b(def |function |const |docker|k8s|api|class |import )\b/i.test(t)) {
             cat = "AI Prompts";
-          } else if (app.includes('slack') || app.includes('teams') || app.includes('discord') || /\b(pr|pull request|commit|ticket|deploy|sprint|standup)\b/i.test(t)) {
-            cat = "Work Messages";
-          } else if (app.includes('mail') || app.includes('outlook') || /\b(dear|hello|regards|sincerely|subject:)\b/i.test(t)) {
+          } else if (app.includes('mail') || app.includes('outlook') || /\b(dear|hello|regards|sincerely|subject:|please find attached)\b/i.test(t)) {
             cat = "Emails";
-          } else if (app.includes('word') || app.includes('notepad') || app.includes('obsidian') || (item.word_count || 0) > 40) {
-            cat = "Documents";
-          } else if (app.includes('whatsapp') || app.includes('telegram') || /\b(hey|see you|cool|sure thing|tomorrow)\b/i.test(t)) {
+          } else if (app.includes('slack') || app.includes('teams') || /\b(sprint|standup|ticket|pr\b|pull request|jira)\b/i.test(t)) {
+            cat = "Work Messages";
+          } else if (app.includes('whatsapp') || app.includes('telegram') || app.includes('discord') || /\b(hey|yo|bro|sup|see you|cool|haha|lol)\b/i.test(t)) {
             cat = "Personal Messages";
+          } else if (app.includes('word') || app.includes('notepad') || app.includes('obsidian') || (item.word_count || 0) > 35) {
+            cat = "Documents";
           } else {
             cat = "Other Tasks";
           }
@@ -1572,14 +3209,12 @@
         const pct = totalItems > 0 ? Math.round((count / totalItems) * 100) : 0;
         const labelEl = document.getElementById(labelId);
         const barEl = document.getElementById(barId);
-        if (labelEl) labelEl.textContent = `${count} ${labelName}`;
+        if (labelEl) {
+          labelEl.textContent = count > 0 ? `${count} ${labelName} (${pct}%)` : `0 ${labelName}`;
+        }
         if (barEl) {
           barEl.style.width = `${pct}%`;
-          if (pct >= 8) {
-            barEl.textContent = `${pct}%`;
-          } else {
-            barEl.textContent = '';
-          }
+          barEl.textContent = ''; // Strip text completely from inside the bar
         }
       };
 
@@ -1649,6 +3284,186 @@
       }
     }
 
+    let latestQuotaData = null;
+
+    async function loadQuotaSummary() {
+      try {
+        if (!window.api || !window.api.getQuotaSummary) return;
+        const res = await window.api.getQuotaSummary();
+        if (res && res.success) {
+          latestQuotaData = res;
+          renderQuotaUI();
+        }
+      } catch (err) {
+        console.error('Failed to load quota summary:', err);
+      }
+    }
+
+    function renderQuotaUI() {
+      if (!latestQuotaData || !latestQuotaData.success) return;
+      const q = latestQuotaData;
+      const user = q.user || {};
+      const gemini = q.gemini || {};
+      const thirdParty = q.thirdParty || {};
+
+      // 1. Quick pill in Dictations view header
+      const quickPlan = document.getElementById('quick-quota-plan');
+      const quickPct = document.getElementById('quick-quota-pct');
+      const quickReset = document.getElementById('quick-quota-reset');
+      if (quickPlan) quickPlan.textContent = (user.planBadge || user.planName || 'PRO').toUpperCase();
+      if (quickPct) {
+        const pct = Math.round(gemini.weeklyPercentRemaining !== undefined ? gemini.weeklyPercentRemaining : 100);
+        quickPct.textContent = `${pct}% Remaining`;
+      }
+      if (quickReset) {
+        const resetText = gemini.fiveHourResetHuman ? `5h: ${gemini.fiveHourResetHuman}` : (gemini.weeklyResetHuman ? `Wk: ${gemini.weeklyResetHuman}` : 'Active');
+        quickReset.textContent = resetText;
+      }
+
+      // 2. Insights Header: Dynamic User Profile & Plan Badge
+      const userBadge = document.getElementById('quota-plan-badge');
+      if (userBadge) {
+        const badgeTitle = user.planBadge || (user.planName ? `${user.planName} PLAN` : 'ACCOUNT');
+        userBadge.textContent = badgeTitle.toUpperCase();
+      }
+      const userNameEl = document.getElementById('quota-user-name');
+      if (userNameEl) userNameEl.textContent = user.name || user.email || 'User';
+      const mainGreetingEl = document.getElementById('user-greeting');
+      if (mainGreetingEl && user.name && user.name.trim()) {
+        mainGreetingEl.textContent = `Welcome back, ${user.name.trim()}`;
+      }
+      rawUserEmail = user.email || '';
+      updateEmailDisplay();
+
+      // Weekly Limit Remaining
+      const weeklyPctEl = document.getElementById('quota-weekly-pct');
+      const weeklyResetEl = document.getElementById('quota-weekly-reset');
+      const weeklyBadgeEl = document.getElementById('quota-weekly-badge');
+      const weeklyDescEl = document.getElementById('quota-weekly-desc');
+      const barWeekly = document.getElementById('bar-quota-weekly');
+
+      const weeklyPct = gemini.weeklyPercentRemaining !== undefined ? gemini.weeklyPercentRemaining : 100;
+      if (weeklyPctEl) weeklyPctEl.textContent = `${weeklyPct}%`;
+      if (weeklyResetEl) weeklyResetEl.textContent = gemini.weeklyResetHuman || 'Soon';
+      if (weeklyBadgeEl) weeklyBadgeEl.textContent = `${weeklyPct}% REMAINING`;
+      if (weeklyDescEl) weeklyDescEl.textContent = gemini.weeklyDescription || `Window refreshes ${gemini.weeklyResetHuman || 'soon'}`;
+      if (barWeekly) barWeekly.style.width = `${Math.min(100, Math.max(0, weeklyPct))}%`;
+
+      // 5-Hour Cycle Limit Remaining
+      const fiveHPctEl = document.getElementById('quota-5h-pct');
+      const fiveHResetEl = document.getElementById('quota-5h-reset');
+      const fiveHBadgeEl = document.getElementById('quota-5h-badge');
+      const fiveHDescEl = document.getElementById('quota-5h-desc');
+      const bar5h = document.getElementById('bar-quota-5h');
+
+      const fiveHPct = gemini.fiveHourPercentRemaining !== undefined ? gemini.fiveHourPercentRemaining : 100;
+      if (fiveHPctEl) fiveHPctEl.textContent = `${fiveHPct}%`;
+      if (fiveHResetEl) fiveHResetEl.textContent = gemini.fiveHourResetHuman || 'Soon';
+      if (fiveHBadgeEl) fiveHBadgeEl.textContent = `${fiveHPct}% REMAINING`;
+      if (fiveHDescEl) fiveHDescEl.textContent = gemini.fiveHourDescription || `Cycle refreshes ${gemini.fiveHourResetHuman || 'soon'}`;
+      if (bar5h) bar5h.style.width = `${Math.min(100, Math.max(0, fiveHPct))}%`;
+
+      // 3. Claude & GPT Models Quota
+      const tpWeeklyPctEl = document.getElementById('quota-3p-weekly-pct');
+      const tpWeeklyResetEl = document.getElementById('quota-3p-weekly-reset');
+      const barTpWeekly = document.getElementById('bar-quota-3p-weekly');
+      const tpWeeklyPct = thirdParty.weeklyPercentRemaining !== undefined ? thirdParty.weeklyPercentRemaining : 100;
+      if (tpWeeklyPctEl) tpWeeklyPctEl.textContent = `${tpWeeklyPct}%`;
+      if (tpWeeklyResetEl) tpWeeklyResetEl.textContent = thirdParty.weeklyResetHuman || 'Soon';
+      if (barTpWeekly) barTpWeekly.style.width = `${Math.min(100, Math.max(0, tpWeeklyPct))}%`;
+
+      const tp5hPctEl = document.getElementById('quota-3p-5h-pct');
+      const tp5hResetEl = document.getElementById('quota-3p-5h-reset');
+      const barTp5h = document.getElementById('bar-quota-3p-5h');
+      const tp5hPct = thirdParty.fiveHourPercentRemaining !== undefined ? thirdParty.fiveHourPercentRemaining : 100;
+      if (tp5hPctEl) tp5hPctEl.textContent = `${tp5hPct}%`;
+      if (tp5hResetEl) tp5hResetEl.textContent = thirdParty.fiveHourResetHuman || 'Soon';
+      if (barTp5h) barTp5h.style.width = `${Math.min(100, Math.max(0, tp5hPct))}%`;
+
+      // 4. Credits & Tier Info
+      const promptCreditsEl = document.getElementById('quota-credits-prompt');
+      const flowCreditsEl = document.getElementById('quota-credits-flow');
+      const tierInfoEl = document.getElementById('quota-tier-info');
+      if (promptCreditsEl) promptCreditsEl.textContent = (user.availablePromptCredits !== undefined ? user.availablePromptCredits : 0).toLocaleString();
+      if (flowCreditsEl) flowCreditsEl.textContent = (user.availableFlowCredits !== undefined ? user.availableFlowCredits : 0).toLocaleString();
+      if (tierInfoEl) tierInfoEl.textContent = `${(user.planName || 'PRO').toUpperCase()} ACTIVE`;
+    }
+
+    // Email Masking & Streamer Privacy Toggle
+    let isEmailMasked = true;
+    let rawUserEmail = '';
+
+    function maskEmail(email) {
+      if (!email || !email.includes('@')) return email || '';
+      const [u, d] = email.split('@');
+      if (u.length <= 2) {
+        return u[0] + '••••@' + d;
+      }
+      const p = u.slice(0, 2);
+      const s = u.length > 5 ? u.slice(-1) : '';
+      const m = '•'.repeat(Math.min(6, Math.max(3, u.length - 3)));
+      return `${p}${m}${s}@${d}`;
+    }
+
+    function updateEmailDisplay() {
+      const userEmailEl = document.getElementById('quota-user-email');
+      const eyeEl = document.getElementById('quota-email-eye');
+      if (!userEmailEl) return;
+      if (!rawUserEmail) {
+        userEmailEl.textContent = '';
+        return;
+      }
+      if (isEmailMasked) {
+        userEmailEl.textContent = maskEmail(rawUserEmail);
+        if (eyeEl) {
+          eyeEl.innerHTML = `
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          `;
+        }
+      } else {
+        userEmailEl.textContent = rawUserEmail;
+        if (eyeEl) {
+          eyeEl.innerHTML = `
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          `;
+        }
+      }
+    }
+
+    const emailBadge = document.getElementById('quota-email-badge');
+    if (emailBadge) {
+      emailBadge.addEventListener('click', () => {
+        isEmailMasked = !isEmailMasked;
+        updateEmailDisplay();
+      });
+    }
+
+    // Refresh quota button (spins only the svg icon, keeping button upright!)
+    const btnRefreshQuota = document.getElementById('btn-refresh-quota');
+    if (btnRefreshQuota) {
+      btnRefreshQuota.addEventListener('click', async () => {
+        const spinner = document.getElementById('refresh-quota-spinner');
+        if (spinner) spinner.classList.add('animate-spin');
+        await loadQuotaSummary();
+        setTimeout(() => {
+          if (spinner) spinner.classList.remove('animate-spin');
+        }, 600);
+      });
+    }
+
+    // Quick pill click
+    const quickQuotaPill = document.getElementById('quick-quota-pill');
+    if (quickQuotaPill) {
+      quickQuotaPill.addEventListener('click', () => {
+        switchView('insights');
+      });
+    }
+
+    function showDictations() { switchView('dictations'); }
+    function showInsights() { switchView('insights'); }
+
     function escapeHtml(str) {
       if (!str) return '';
       return str
@@ -1659,9 +3474,13 @@
         .replace(/'/g, "&#039;");
     }
 
-    // Auto-refresh when pre-warmed window is shown/focused, and poll every 5s if kept open
+    // Auto-refresh when pre-warmed window is shown/focused, and low-frequency refresh if kept open and visible
     window.addEventListener('focus', () => loadData());
-    setInterval(() => loadData(), 5000);
+    setInterval(() => {
+      if (!document.hidden) {
+        loadData();
+      }
+    }, 20000);
 
     // Initialize
     loadData();

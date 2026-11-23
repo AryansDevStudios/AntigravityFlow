@@ -21,5 +21,40 @@ contextBridge.exposeInMainWorld('api', {
 
   // Vocabulary & Technical Acronyms
   getVocabulary: () => ipcRenderer.invoke('get-vocabulary'),
-  saveVocabulary: (vocab) => ipcRenderer.invoke('save-vocabulary', vocab)
+  saveVocabulary: (vocab) => ipcRenderer.invoke('save-vocabulary', vocab),
+
+  // Quota & User Allowance Summary
+  getQuotaSummary: () => ipcRenderer.invoke('get-quota-summary'),
+  getUserCache: () => ipcRenderer.invoke('get-user-cache'),
+  getAvailableModels: () => ipcRenderer.invoke('get-available-models'),
+
+  // Speech Macros & Snippets Engine
+  getMacros: () => ipcRenderer.invoke('get-macros'),
+  saveMacro: (macro) => ipcRenderer.invoke('save-macro', macro),
+  deleteMacro: (id) => ipcRenderer.invoke('delete-macro', id),
+  expandMacro: (text) => ipcRenderer.invoke('expand-macro', text),
+
+  // Desktop Gemini Assistant & System Controls
+  openAssistant: () => ipcRenderer.invoke('open-assistant'),
+  closeAssistant: () => ipcRenderer.invoke('close-assistant'),
+  toggleAssistant: () => ipcRenderer.invoke('toggle-assistant'),
+  resizeAssistant: (size) => ipcRenderer.invoke('resize-assistant', size),
+  getAssistantBounds: () => ipcRenderer.invoke('get-assistant-bounds'),
+  refinePrompt: (params) => ipcRenderer.invoke('refine-prompt', params),
+  webSearch: (query) => ipcRenderer.invoke('web-search', query),
+  triggerDictation: (params) => ipcRenderer.invoke('trigger-dictation', params),
+  queryAssistant: (params) => ipcRenderer.invoke('query-assistant', params),
+  executeSystemCommand: (command) => ipcRenderer.invoke('execute-system-command', command),
+  captureScreenshot: () => ipcRenderer.invoke('capture-screenshot'),
+  pasteToActiveWindow: (text) => ipcRenderer.invoke('paste-to-active-window', text),
+  // Edge TTS Online Speech Engine
+  getTtsVoices: () => ipcRenderer.invoke('get-tts-voices'),
+  playTtsDemo: (voice) => ipcRenderer.invoke('play-tts-demo', voice),
+  synthesizeSpeech: (params) => ipcRenderer.invoke('synthesize-speech', params),
+  getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
+
+  // Event Listeners
+  onAssistantVoiceQuery: (callback) => ipcRenderer.on('assistant-voice-query', (_, text) => callback(text)),
+  onAssistantVoiceState: (callback) => ipcRenderer.on('assistant-voice-state', (_, state) => callback(state)),
+  onAssistantFocusPrompt: (callback) => ipcRenderer.on('assistant-focus-prompt', (_, data) => callback(data))
 });
