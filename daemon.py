@@ -257,7 +257,7 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "voices": voices}, ensure_ascii=False).encode('utf-8'))
                 return
-            elif self.path == "/health":
+            elif self.path in ("/status", "/health"):
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -278,7 +278,13 @@ def start_daemon_control_server(daemon_instance, port=48198):
             body = self.rfile.read(length) if length > 0 else b'{}'
             try:
                 data = json.loads(body.decode('utf-8') or '{}')
-                if self.path == "/assistant/query":
+                if self.path in ("/status", "/health"):
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
+                    return
+                elif self.path == "/assistant/query":
                     import assistant_service
                     res = assistant_service.query_gemini_assistant(
                         prompt=data.get("prompt") or data.get("message", ""),
@@ -1408,7 +1414,23 @@ def open_ui():
     else:
         subprocess.Popen("npx electron .", shell=True, cwd=UI_DIR)
 
+def check_existing_instance():
+    """Checks if an existing AntigravityFlow daemon is already running and serving on port 48198."""
+    for endpoint in ("http://127.0.0.1:48198/status", "http://127.0.0.1:48198/health"):
+        try:
+            req = urllib.request.Request(endpoint)
+            with urllib.request.urlopen(req, timeout=0.4) as res:
+                if res.status == 200:
+                    return True
+        except Exception:
+            pass
+    return False
+
 def main():
+    if check_existing_instance():
+        print("[+] AntigravityFlow daemon is already running on port 48198. Exiting cleanly.")
+        sys.exit(0)
+
     pill = FloatingPill()
     pill.hide()
 

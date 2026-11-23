@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, screen, desktopCapturer, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 
@@ -85,12 +86,29 @@ if (!gotTheLock) {
     // Tells Windows Shell to use our black and gold emblem for the taskbar icon
     app.setAppUserModelId('com.antigravityflow.app');
 
-    // If running from packaged installer, spawn bundled background daemon
+    // If running from packaged installer, spawn bundled background daemon only if not already active
     if (app.isPackaged) {
       const embeddedDaemon = path.join(process.resourcesPath, 'bin', 'AntigravityFlowDaemon.exe');
       if (fs.existsSync(embeddedDaemon)) {
-        const { spawn } = require('child_process');
-        spawn(embeddedDaemon, [], { detached: true, stdio: 'ignore' }).unref();
+        const pingReq = http.request({
+          hostname: '127.0.0.1',
+          port: 48198,
+          path: '/status',
+          method: 'GET',
+          timeout: 400
+        }, (res) => {
+          // Daemon is already running cleanly!
+        });
+        pingReq.on('error', () => {
+          const { spawn } = require('child_process');
+          spawn(embeddedDaemon, [], { detached: true, stdio: 'ignore' }).unref();
+        });
+        pingReq.on('timeout', () => {
+          pingReq.destroy();
+          const { spawn } = require('child_process');
+          spawn(embeddedDaemon, [], { detached: true, stdio: 'ignore' }).unref();
+        });
+        pingReq.end();
       }
     }
 
@@ -388,7 +406,6 @@ async function captureCleanScreenshot() {
   }
 }
 
-const http = require('http');
 function startAssistantBridgeServer() {
   const ASSISTANT_PORT = 48199;
   const server = http.createServer((req, res) => {
@@ -862,12 +879,17 @@ const grpcKeepAliveAgent = new https.Agent({
 });
 
 function getLanguageServerConfig() {
-  try {
-    const cachePath = path.join(DATA_DIR, '.server_cache.json');
-    if (fs.existsSync(cachePath)) {
-      return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    }
-  } catch (_) {}
+  const candidatePaths = [
+    path.join(DATA_DIR, '.server_cache.json'),
+    path.join(BASE_DIR, 'data', '.server_cache.json')
+  ];
+  for (const p of candidatePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf8'));
+      }
+    } catch (_) {}
+  }
   return null;
 }
 
@@ -1052,7 +1074,7 @@ ipcMain.handle('query-assistant', async (event, params) => {
   // 1. Primary Route: In-process Daemon Server (< 1ms dispatch, zero process startup delay)
   try {
     const daemonRes = await callDaemonControl('/assistant/query', params, 45000);
-    if (daemonRes && daemonRes.success !== undefined) {
+    if (daemonRes && daemonRes.success === true) {
       return daemonRes;
     }
   } catch (daemonErr) {

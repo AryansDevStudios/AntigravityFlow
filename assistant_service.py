@@ -766,16 +766,18 @@ def stage_media_artifact(b64_data: str, mime_type: str = "image/jpeg", display_n
 def call_model_with_cascade(prompt_text: str, current_model: str, media_items: list = None, timeout_seconds: float = 35.0) -> tuple:
     """Invokes LanguageServer via StartCascade + SendUserCascadeMessage,
     capturing both the response content and the thinking process (for reasoning models).
-    Gracefully falls back to unary GetModelResponse if needed."""
+    Gracefully falls back to unary GetModelResponse and base Flash model if needed."""
     resolved_model = MODEL_KEY_TO_ID.get(current_model, current_model)
     cid = str(uuid.uuid4())
+    cascade_failed = False
+
     try:
         start_res = call_language_server_rpc("StartCascade", {
             "source": "CORTEX_TRAJECTORY_SOURCE_CASCADE_CLIENT",
             "cascadeId": cid,
             "requestedModel": resolved_model,
             "projectEnvConfig": {"projectId": "outside-of-project", "defaultProjectEnvironment": {}}
-        }, timeout=10.0)
+        }, timeout=8.0)
 
         if start_res and "cascadeId" in start_res:
             msg_payload = {
@@ -795,39 +797,58 @@ def call_model_with_cascade(prompt_text: str, current_model: str, media_items: l
                         "useAiCredits": False
                     }
                 },
-                "deliveryStrategy": "MESSAGE_DELIVERY_STRATEGY_WHEN_IDLE"
+                "deliveryStrategy": "MESSAGE_DELIVERY_STRATEGY_IMMEDIATE"
             }
             if media_items:
                 msg_payload["media"] = media_items
 
-            call_language_server_rpc("SendUserCascadeMessage", msg_payload, timeout=10.0)
+            call_language_server_rpc("SendUserCascadeMessage", msg_payload, timeout=8.0)
 
             start_poll = time.time()
             while time.time() - start_poll < timeout_seconds:
-                time.sleep(0.4)
-                steps_data = call_language_server_rpc("GetCascadeTrajectorySteps", {"cascadeId": cid}, timeout=10.0)
+                time.sleep(0.35)
+                steps_data = call_language_server_rpc("GetCascadeTrajectorySteps", {"cascadeId": cid}, timeout=8.0)
                 for s in steps_data.get("steps", []):
-                    if s.get("type") == "CORTEX_STEP_TYPE_PLANNER_RESPONSE":
-                        status = s.get("status")
+                    stype = s.get("type")
+                    status = s.get("status")
+                    if stype in ("CORTEX_STEP_TYPE_PLANNER_RESPONSE", "CORTEX_STEP_TYPE_MODEL_RESPONSE"):
                         if status == "CORTEX_STEP_STATUS_DONE":
-                            pr = s.get("plannerResponse", {})
-                            resp_text = (pr.get("response") or pr.get("modifiedResponse") or "").strip()
+                            pr = s.get("plannerResponse") or s.get("modelResponse") or {}
+                            resp_text = (pr.get("response") or pr.get("modifiedResponse") or s.get("content") or "").strip()
                             thinking_text = (pr.get("thinking") or "").strip()
-                            return resp_text, thinking_text
+                            if resp_text:
+                                return resp_text, thinking_text
                         elif status == "CORTEX_STEP_STATUS_ERROR":
                             print(f"[Assistant] Cascade step status error: {status}")
+                            cascade_failed = True
                             break
+                if cascade_failed:
+                    break
     except Exception as e:
         print(f"[Assistant] Cascade execution notice: {e}")
 
-    # Fallback to unary GetModelResponse
+    # Fallback 1: Unary GetModelResponse with resolved_model
     try:
         body = {"prompt": prompt_text, "model": resolved_model}
-        res_data = call_language_server_rpc("GetModelResponse", body, timeout=20.0)
-        return (res_data.get("response") or "").strip(), ""
+        res_data = call_language_server_rpc("GetModelResponse", body, timeout=15.0)
+        resp = (res_data.get("response") or "").strip()
+        if resp:
+            return resp, ""
     except Exception as e:
         print(f"[Assistant] Fallback unary execution notice: {e}")
-        return "", ""
+
+    # Fallback 2: Unary GetModelResponse with base Gemini 2.5 Flash
+    if resolved_model != "MODEL_GOOGLE_GEMINI_2_5_FLASH":
+        try:
+            body = {"prompt": prompt_text, "model": "MODEL_GOOGLE_GEMINI_2_5_FLASH"}
+            res_data = call_language_server_rpc("GetModelResponse", body, timeout=12.0)
+            resp = (res_data.get("response") or "").strip()
+            if resp:
+                return resp, ""
+        except Exception:
+            pass
+
+    return "", ""
 
 def query_gemini_assistant(
     prompt: str,
