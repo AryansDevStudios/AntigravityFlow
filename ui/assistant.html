@@ -667,10 +667,13 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
               rate: this.rate
             });
 
-            if (res && res.success && res.audio_b64) {
-              this.audioPlayer.src = `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}`;
-              await this.audioPlayer.play();
-              return;
+            if (res && res.success) {
+              const audioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
+              if (audioSrc) {
+                this.audioPlayer.src = audioSrc;
+                await this.audioPlayer.play();
+                return;
+              }
             }
           }
         } catch (e) {

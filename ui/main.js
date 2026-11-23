@@ -66,6 +66,7 @@ app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('disable-breakpad');
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 if (!gotTheLock) {
   app.quit();
@@ -190,7 +191,7 @@ function createAssistantWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: true,
+      backgroundThrottling: false,
       spellcheck: false
     }
   };

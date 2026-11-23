@@ -98,12 +98,26 @@ def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+
     clean_text = text.strip()
     cache_key = f"{voice}_{rate}_{pitch}_{clean_text[:120]}"
     if cache_key in _AUDIO_CACHE:
-        return {
-            "success": True,
-            "voice": voice,
-            "data_url": _AUDIO_CACHE[cache_key],
-            "cached": True
-        }
+        cached_entry = _AUDIO_CACHE[cache_key]
+        if isinstance(cached_entry, dict):
+            return {
+                "success": True,
+                "voice": voice,
+                "data_url": cached_entry.get("data_url", ""),
+                "audio_b64": cached_entry.get("audio_b64", ""),
+                "format": cached_entry.get("format", "audio/mp3"),
+                "cached": True
+            }
+        else:
+            b64_part = cached_entry.split(",")[-1] if "," in cached_entry else cached_entry
+            return {
+                "success": True,
+                "voice": voice,
+                "data_url": cached_entry,
+                "audio_b64": b64_part,
+                "format": "audio/mp3",
+                "cached": True
+            }
 
     try:
         t0 = time.time()
@@ -121,12 +135,18 @@ def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+
         
         # Cache small snippets (under 200 chars)
         if len(clean_text) < 200 and len(_AUDIO_CACHE) < 50:
-            _AUDIO_CACHE[cache_key] = data_url
+            _AUDIO_CACHE[cache_key] = {
+                "data_url": data_url,
+                "audio_b64": b64,
+                "format": "audio/mp3"
+            }
 
         return {
             "success": True,
             "voice": voice,
             "data_url": data_url,
+            "audio_b64": b64,
+            "format": "audio/mp3",
             "bytes_length": len(raw_mp3),
             "duration_sec": round(time.time() - t0, 2)
         }

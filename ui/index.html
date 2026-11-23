@@ -2238,9 +2238,27 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         try {
           if (window.api && window.api.playTtsDemo) {
             const res = await window.api.playTtsDemo(v);
-            if (res && res.success && res.audio_b64) {
-              audioPlayer.src = `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}`;
-              await audioPlayer.play();
+            if (res && res.success) {
+              const audioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
+              if (audioSrc) {
+                audioPlayer.src = audioSrc;
+                await new Promise((resolve) => {
+                  audioPlayer.onended = () => resolve();
+                  audioPlayer.onerror = (e) => {
+                    console.error('Audio playback error:', e);
+                    resolve();
+                  };
+                  audioPlayer.play().catch(playErr => {
+                    console.error('audioPlayer.play error:', playErr);
+                    resolve();
+                  });
+                });
+              } else {
+                console.warn('No audio src returned for voice demo', res);
+              }
+            } else {
+              console.error('Demo error from server:', res?.error);
+              alert('Voice synthesis failed: ' + (res?.error || 'Unknown error'));
             }
           }
         } catch (err) {
