@@ -1497,12 +1497,16 @@
       ai: {
         nav: document.getElementById('nav-ai'),
         el: document.getElementById('view-ai'),
-        onLoad: () => populateConfigUI(currentConfig)
+        onLoad: () => {
+          try { populateConfigUI(currentConfig); } catch (e) { console.error('AI onLoad error:', e); }
+        }
       },
       general: {
         nav: document.getElementById('nav-general'),
         el: document.getElementById('view-general'),
-        onLoad: () => populateConfigUI(currentConfig)
+        onLoad: () => {
+          try { populateConfigUI(currentConfig); } catch (e) { console.error('General onLoad error:', e); }
+        }
       }
     };
 
@@ -1875,6 +1879,14 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     setupKeyRecorder('btn-record-paste-last', 'cfg-paste-last-hotkey');
     setupKeyRecorder('btn-record-ai-hotkey', 'cfg-ai-hotkey');
 
+    function updateCtxPanelState(enabled) {
+      const panel = document.getElementById('ctx-options-panel');
+      if (panel) {
+        panel.classList.toggle('opacity-40', !enabled);
+        panel.classList.toggle('pointer-events-none', !enabled);
+      }
+    }
+
     function populateConfigUI(cfg) {
       if (!cfg) cfg = currentConfig;
       
@@ -1887,7 +1899,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         if (el) el.checked = val;
       };
 
-      setVal('cfg-user-name', cfg.user_name || 'Copy');
+      setVal('cfg-user-name', (cfg.user_name && cfg.user_name !== 'Copy') ? cfg.user_name : '');
       setVal('cfg-dictation-mode', cfg.dictation_mode || 'both');
       setVal('cfg-ptt-hotkey', cfg.push_to_talk_hotkey || 'windows+alt');
       setVal('cfg-toggle-hotkey', cfg.toggle_hotkey || cfg.hotkey || 'windows+alt+h');
@@ -2150,7 +2162,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const cascadeVal = cascadeEl ? cascadeEl.checked : (currentConfig.enable_context_cascade !== false);
 
       const userNameEl = document.getElementById('cfg-user-name');
-      const userNameVal = userNameEl ? userNameEl.value.trim() : (currentConfig.user_name || 'Copy');
+      const rawUserName = userNameEl ? userNameEl.value.trim() : (currentConfig.user_name || '');
+      const userNameVal = (rawUserName === 'Copy') ? '' : rawUserName;
 
       const flowPresets = { ...(currentConfig.ai_flow_presets || {}), [activeMode]: promptVal };
       const asstPresets = { ...(currentConfig.ai_assistant_presets || {}), [asstMode]: asstPromptVal };
@@ -2778,15 +2791,22 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
 
       // 2. Load Config (< 1ms)
-      const cfgRes = await window.api.getConfig();
-      if (cfgRes && cfgRes.success && cfgRes.data) {
-        currentConfig = cfgRes.data;
-        populateConfigUI(currentConfig);
-        if (currentConfig.user_name && currentConfig.user_name.trim()) {
+      try {
+        const cfgRes = await window.api.getConfig();
+        if (cfgRes && cfgRes.success && cfgRes.data) {
+          currentConfig = cfgRes.data;
+          try {
+            populateConfigUI(currentConfig);
+          } catch (popErr) {
+            console.error('Error populating config UI:', popErr);
+          }
+          const customName = (currentConfig.user_name && currentConfig.user_name.trim() !== 'Copy') ? currentConfig.user_name.trim() : '';
           const greetingEl = document.getElementById('user-greeting');
-          if (greetingEl) greetingEl.textContent = `Welcome back, ${currentConfig.user_name.trim()}`;
+          if (greetingEl) greetingEl.textContent = customName ? `Welcome back, ${customName}` : 'Welcome back';
+          updateHeaderBadges(currentConfig);
         }
-        updateHeaderBadges(currentConfig);
+      } catch (cfgErr) {
+        console.error('Error loading config:', cfgErr);
       }
 
       // 3. Load SQLite / Sync History (< 2ms)
@@ -3329,8 +3349,15 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const userNameEl = document.getElementById('quota-user-name');
       if (userNameEl) userNameEl.textContent = user.name || user.email || 'User';
       const mainGreetingEl = document.getElementById('user-greeting');
-      if (mainGreetingEl && user.name && user.name.trim()) {
-        mainGreetingEl.textContent = `Welcome back, ${user.name.trim()}`;
+      const customName = (currentConfig && currentConfig.user_name && currentConfig.user_name.trim() !== 'Copy') ? currentConfig.user_name.trim() : '';
+      if (mainGreetingEl) {
+        if (customName) {
+          mainGreetingEl.textContent = `Welcome back, ${customName}`;
+        } else if (user.name && user.name.trim() && user.name.trim() !== 'Copy') {
+          mainGreetingEl.textContent = `Welcome back, ${user.name.trim()}`;
+        } else {
+          mainGreetingEl.textContent = 'Welcome back';
+        }
       }
       rawUserEmail = user.email || '';
       updateEmailDisplay();
