@@ -16,50 +16,10 @@ ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
+import llm_refiner
+
 def discover_server():
-    server_proc = None
-    for p in psutil.process_iter(['name', 'cmdline']):
-        if p.info['name'] == 'language_server.exe':
-            server_proc = p
-            break
-
-    if not server_proc:
-        raise RuntimeError("Antigravity language_server.exe is not running.")
-
-    cmd = ' '.join(server_proc.info['cmdline'] or [])
-    token_match = re.search(r'--csrf_token\s+([a-f0-9-]+)', cmd)
-    if not token_match:
-        raise RuntimeError("Could not find CSRF token.")
-    csrf_token = token_match.group(1)
-
-    ports = []
-    try:
-        conns = [c for c in psutil.net_connections(kind='tcp') if c.pid == server_proc.pid and c.status == 'LISTEN']
-        ports = [c.laddr.port for c in conns if c.laddr.ip in ('127.0.0.1', '::1', '0.0.0.0')]
-    except Exception:
-        pass
-
-    if not ports:
-        ports = [57071, 57072]
-
-    active_port = None
-    for port in ports:
-        try:
-            req = urllib.request.Request(
-                f"https://127.0.0.1:{port}/",
-                headers={"x-codeium-csrf-token": csrf_token}
-            )
-            with urllib.request.urlopen(req, context=ctx, timeout=0.3) as res:
-                if res.status == 200:
-                    active_port = port
-                    break
-        except Exception:
-            continue
-
-    if not active_port:
-        raise RuntimeError(f"Could not connect via HTTPS to any port: {ports}")
-
-    return active_port, csrf_token
+    return llm_refiner.discover_server()
 
 def make_grpc_web_frame(payload_bytes: bytes, flag: int = 0) -> bytes:
     """Encodes a payload into a gRPC-Web binary frame with flag and 4-byte big-endian length."""
@@ -162,7 +122,7 @@ def _transcribe_single_segment(
         "preCursorText": pre_cursor_text or "",
         "postCursorText": "",
         "cascadeId": cascade_id or "",
-        "continuous": True
+        "continuous": False
     }
     init_bytes = make_grpc_web_frame(json.dumps(init_payload).encode("utf-8"))
 
@@ -300,7 +260,7 @@ def transcribe_audio_batch(
     if not raw_text:
         return ""
 
-    return format_transcript(raw_text, category=category)
+    return raw_text.strip()
 
 # Backwards compatible alias
 def batch_transcribe_pcm(pcm_bytes: bytes, cascade_id: str = "", pre_cursor_text: str = "", timeout: float = 8.0) -> str:

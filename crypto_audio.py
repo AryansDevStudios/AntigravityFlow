@@ -67,7 +67,8 @@ def decrypt_audio_data(enc_bytes: bytes) -> bytes:
 
 def save_encrypted_recording(pcm_bytes: bytes, file_path: str, sample_rate: int = 16000) -> int:
     """Converts PCM to WAV, encrypts it, and writes to disk."""
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    parent_dir = os.path.dirname(os.path.abspath(file_path))
+    os.makedirs(parent_dir, exist_ok=True)
     wav_bytes = pcm_to_wav_bytes(pcm_bytes, sample_rate=sample_rate)
     enc_data = encrypt_audio_data(wav_bytes)
     with open(file_path, "wb") as f:

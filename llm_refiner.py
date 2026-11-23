@@ -22,7 +22,28 @@ DEFAULT_SYSTEM_PROMPT = (
     "Return ONLY the final polished text with no surrounding quotes, markdown fences, preamble, or commentary."
 )
 
+import db
+
 def discover_server():
+    # 1. Ultra-fast Cache Check: Validate cached port and token (< 15ms)
+    cache_path = os.path.join(db.DATA_DIR, ".server_cache.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            cached_port = c.get("port")
+            cached_token = c.get("csrf_token")
+            if cached_port and cached_token:
+                req = urllib.request.Request(
+                    f"https://127.0.0.1:{cached_port}/",
+                    headers={"x-codeium-csrf-token": cached_token}
+                )
+                with urllib.request.urlopen(req, context=ctx, timeout=0.25) as res:
+                    if res.status == 200:
+                        return cached_port, cached_token
+        except Exception:
+            pass
+
     server_proc = None
     for p in psutil.process_iter(['name', 'cmdline']):
         if p.info['name'] == 'language_server.exe':
@@ -65,6 +86,12 @@ def discover_server():
     if not active_port:
         raise RuntimeError(f"Could not connect via HTTPS to any port: {ports}")
 
+    try:
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump({"port": active_port, "csrf_token": csrf_token}, f)
+    except Exception:
+        pass
+
     return active_port, csrf_token
 
 def make_grpc_web_frame(payload_bytes: bytes, flag: int = 0) -> bytes:
@@ -86,9 +113,24 @@ def parse_grpc_web_stream(stream):
         elif flag == 0x80:
             yield f"TRAILER: {payload.decode('utf-8', errors='replace')}"
 
-def polish_with_gemini(raw_text: str, model: str = "MODEL_PLACEHOLDER_M318", system_prompt: str = "") -> str:
-    """Passes raw dictation text through local Antigravity Gemini Flash to clean grammar,
-    remove disfluencies, and format output according to system instructions.
+from prompts import get_preset_prompt, build_context_envelope, PROMPT_AUTHENTIC_FLOW
+import db
+
+PRIMARY_MODEL = "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE"
+FALLBACK_MODEL = "MODEL_PLACEHOLDER_M50"
+
+def polish_with_gemini(
+    raw_text: str,
+    model: str = PRIMARY_MODEL,
+    preset_mode: str = "flow",
+    system_prompt: str = "",
+    app_name: str = "",
+    window_title: str = "",
+    system_ctx: dict = None,
+    config: dict = None
+) -> str:
+    """Passes raw dictation text through local Antigravity Gemini Flash Lite to clean grammar,
+    execute commands, or apply contextual user formatting according to active mode and context settings.
     
     If server is unreachable or times out, immediately falls back to raw_text (zero data loss).
     """
@@ -112,27 +154,52 @@ def polish_with_gemini(raw_text: str, model: str = "MODEL_PLACEHOLDER_M318", sys
         "x-grpc-web": "1"
     }
 
-    instruction = system_prompt.strip() if system_prompt and system_prompt.strip() else DEFAULT_SYSTEM_PROMPT
-    full_prompt = f"{instruction}\n\nRaw text to polish:\n{clean_input}"
+    target_model = model if model else PRIMARY_MODEL
+    
+    # 1. Resolve instruction: explicit system_prompt > mode preset prompt
+    if system_prompt and system_prompt.strip():
+        instruction = system_prompt.strip()
+    else:
+        instruction = get_preset_prompt(preset_mode)
 
-    # Priority 1: Direct single-shot GetModelResponse (fast, fallback immediately if unconfigured)
+    # 2. Fetch past conversation/dictations context (~1,000 - 2,000 words memory)
+    recent_history = []
+    cfg = config or {}
+    hist_limit = int(cfg.get("ctx_history_limit", 5))
     try:
-        conn = http.client.HTTPSConnection('127.0.0.1', port, context=ctx, timeout=1.5)
-        body = {"prompt": full_prompt, "model": model}
+        if cfg.get("ctx_include_history", True) and cfg.get("enable_deep_context", True):
+            recent_history = db.get_history(limit=hist_limit)
+    except Exception:
+        pass
+
+    # 3. Build rich context envelope
+    full_prompt = build_context_envelope(
+        clean_input=clean_input,
+        system_instruction=instruction,
+        app_name=app_name,
+        window_title=window_title,
+        recent_history=recent_history,
+        system_ctx=system_ctx,
+        config=cfg
+    )
+
+    # Fast direct single-shot GetModelResponse (~720ms - 1000ms on Flash Lite)
+    try:
+        conn = http.client.HTTPSConnection('127.0.0.1', port, context=ctx, timeout=4.0)
+        body = {"prompt": full_prompt, "model": target_model}
         frame = make_grpc_web_frame(json.dumps(body).encode("utf-8"))
         conn.request("POST", "/exa.language_server_pb.LanguageServerService/GetModelResponse", body=frame, headers=headers)
         res = conn.getresponse()
-        hdr = res.read(5)
-        if hdr and len(hdr) >= 5:
-            length = int.from_bytes(hdr[1:5], "big")
-            data = json.loads(res.read(length).decode("utf-8"))
-            conn.close()
+        raw = res.read()
+        conn.close()
+        if len(raw) >= 5:
+            length = int.from_bytes(raw[1:5], "big")
+            data = json.loads(raw[5:5+length].decode("utf-8"))
             resp_text = data.get("response", "").strip()
             if resp_text:
                 return resp_text.strip('"').strip("'")
     except Exception as e:
-        # Expected if language_server.exe requires Cascade session context for LLM completion
-        print(f"[LLM Refiner] Local LLM pass bypassed ({e}); using raw transcript.")
+        print(f"[LLM Refiner] GetModelResponse ({target_model}) failed: {e}; using raw transcript.")
 
     # Fallback to raw text
     return clean_input
