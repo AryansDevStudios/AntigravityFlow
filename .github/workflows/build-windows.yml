@@ -1,0 +1,126 @@
+name: Build Windows Binaries & Installers
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      release_build:
+        description: 'Publish as GitHub Release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, windows-2022 ]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python Runtime (3.12)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile Python Daemon Binary (PyInstaller)
+        run: |
+          python -m PyInstaller build_daemon.spec --clean -y
+
+      - name: Verify Daemon Executable
+        run: |
+          if (!(Test-Path "dist/AntigravityFlowDaemon.exe")) {
+            Write-Error "Daemon executable was not produced at dist/AntigravityFlowDaemon.exe"
+            exit 1
+          }
+          Get-Item "dist/AntigravityFlowDaemon.exe" | Select-Object Name, Length
+
+      - name: Setup Node.js Runtime (20.x)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'ui/package-lock.json'
+
+      - name: Install Electron UI Dependencies
+        working-directory: ui
+        run: |
+          npm ci
+
+      - name: Package Electron Installer & Portable Binaries
+        working-directory: ui
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run dist
+
+      - name: Organize Output Artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "release-artifacts" -Force
+          Copy-Item "dist/AntigravityFlowDaemon.exe" -Destination "release-artifacts/AntigravityFlowDaemon-${{ matrix.os }}-x64.exe"
+          Get-ChildItem -Path "ui/dist/*.exe", "ui/dist/*.zip", "ui/dist/*.blockmap" | ForEach-Object {
+            Copy-Item $_.FullName -Destination "release-artifacts/"
+          }
+          Get-ChildItem -Path "release-artifacts" | Select-Object Name, Length
+
+      - name: Upload Windows Binaries Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AntigravityFlow-${{ matrix.os }}-binaries
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: build-windows
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_build == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download All Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Prepare Release Asset Directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "release-assets" -Force
+          Get-ChildItem -Path "all-artifacts" -Recurse -File | ForEach-Object {
+            Copy-Item $_.FullName -Destination "release-assets/" -Force
+          }
+          Get-ChildItem -Path "release-assets" | Select-Object Name, Length
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

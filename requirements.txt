@@ -1,0 +1,12 @@
+# AntigravityFlow Python Dependencies
+sounddevice>=0.4.6
+pystray>=0.19.5
+Pillow>=10.0.0
+keyboard>=0.13.5
+psutil>=5.9.0
+pyperclip>=1.8.2
+numpy>=1.24.0
+edge-tts>=6.1.10
+uiautomation>=2.0.18
+cryptography>=41.0.0
+pyinstaller>=6.0.0
