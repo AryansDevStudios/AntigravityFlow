@@ -52,9 +52,28 @@ def main():
     print("\n[*] Step 2: Packaging Electron Windows Setup...")
     run("npm run dist", cwd=UI_DIR)
 
+    # 4. Copy to Downloads folder
+    ui_dist = os.path.join(UI_DIR, "dist")
+    downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+    copied_installers = []
+
+    if os.path.exists(ui_dist):
+        for f in os.listdir(ui_dist):
+            if f.endswith(".exe") and not f.startswith("builder-"):
+                src = os.path.join(ui_dist, f)
+                dst = os.path.join(downloads_dir, f)
+                shutil.copy2(src, dst)
+                size_mb = os.path.getsize(dst) / (1024 * 1024)
+                copied_installers.append((dst, size_mb))
+                print(f"[+] Copied installer to Downloads: {dst} ({size_mb:.2f} MB)")
+
     print("\n" + "=" * 60)
     print(" BUILD COMPLETE!")
-    print(f" Installer available in: {os.path.join(UI_DIR, 'dist')}")
+    if copied_installers:
+        for path, size in copied_installers:
+            print(f" Saved in Downloads: {path} ({size:.2f} MB)")
+    else:
+        print(f" Installer available in: {ui_dist}")
     print("=" * 60)
 
 if __name__ == "__main__":

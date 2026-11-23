@@ -10,6 +10,10 @@ datas = []
 if os.path.exists(sounds_dir):
     datas.append((sounds_dir, "sounds"))
 
+vocab_file = os.path.join(base_dir, "data", "vocabulary.json")
+if os.path.exists(vocab_file):
+    datas.append((vocab_file, "data"))
+
 # Include PortAudio DLL for sounddevice if found
 import sounddevice
 sd_dir = os.path.dirname(sounddevice.__file__)
