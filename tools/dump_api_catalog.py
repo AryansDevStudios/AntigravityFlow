@@ -24,12 +24,16 @@ def dump_catalog():
         services[f"exa.{pkg.decode('ascii')}.{svc.decode('ascii')}"].add(method.decode('ascii'))
 
     total_methods = sum(len(m) for m in services.values())
+    clean_exe_path = exe_path
+    user_home = os.path.expanduser("~")
+    if user_home in clean_exe_path:
+        clean_exe_path = clean_exe_path.replace(user_home, "%USERPROFILE%")
     output_lines = [
         "# Antigravity Language Server API Catalog",
         "",
         f"> **Total Registered Services:** {len(services)}  ",
         f"> **Total Connect-RPC Endpoints:** {total_methods}  ",
-        f"> **Binary Location:** `{exe_path}`  ",
+        f"> **Binary Location:** `{clean_exe_path}`  ",
         "",
         "Every endpoint in this catalog is exposed locally over HTTPS on port `57071` via the Connect-RPC protocol.",
         "Headers required for calls:",

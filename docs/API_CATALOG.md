@@ -2,7 +2,7 @@
 
 > **Total Registered Services:** 13  
 > **Total Connect-RPC Endpoints:** 648  
-> **Binary Location:** `C:\Users\aryan\AppData\Local\Programs\Antigravity\resources\bin\language_server.exe`  
+> **Binary Location:** `%LOCALAPPDATA%\Programs\Antigravity\resources\bin\language_server.exe`  
 
 Every endpoint in this catalog is exposed locally over HTTPS on port `57071` via the Connect-RPC protocol.
 Headers required for calls:
