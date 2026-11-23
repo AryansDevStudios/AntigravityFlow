@@ -28,7 +28,8 @@
         "portable",
         "zip"
       ],
-      "icon": "icon.ico"
+      "icon": "icon.ico",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -41,9 +42,6 @@
     },
     "portable": {
       "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
-    },
-    "zip": {
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
     "extraResources": [
       {
