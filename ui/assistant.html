@@ -569,8 +569,8 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
         this.enabled = true;
         this.selectedVoice = 'en-IN-NeerjaNeural';
         this.rate = '+0%';
-        this.prefetchPromise = null;
-        this.currentAbortController = null;
+        this.prefetchAudioSrc = null;
+        this.prefetchText = null;
 
         this.audioPlayer.addEventListener('ended', () => {
           this.playNext();
@@ -617,32 +617,15 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
       }
 
       feedToken(token) {
-        if (!this.enabled) return;
-        this.bufferedText += token;
-        const sentenceMatch = this.bufferedText.match(/^([\s\S]+?[.!?\n])(\s+[\s\S]*)$/);
-        if (sentenceMatch) {
-          const sentence = sentenceMatch[1].trim();
-          this.bufferedText = sentenceMatch[2];
-          const cleaned = this.cleanChunk(sentence);
-          if (cleaned && cleaned.length >= 2 && /[a-zA-Z0-9]/.test(cleaned)) {
-            this.enqueue(cleaned);
-          }
-        }
+        // No-op: Speech synthesis is strictly deferred until the entire message is completely generated and rendered
       }
 
       flush() {
-        if (!this.enabled) return;
-        if (this.bufferedText.trim()) {
-          const cleaned = this.cleanChunk(this.bufferedText.trim());
-          if (cleaned && cleaned.length >= 2 && /[a-zA-Z0-9]/.test(cleaned)) {
-            this.enqueue(cleaned);
-          }
-        }
-        this.bufferedText = '';
+        // No-op: Full text is spoken via speakFullText when the complete response has arrived
       }
 
-      enqueue(sentence) {
-        this.queue.push(sentence);
+      enqueue(passage) {
+        this.queue.push(passage);
         if (!this.isPlaying && !this.isPaused) {
           this.playNext();
         }
@@ -651,37 +634,68 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
       async playNext() {
         if (this.queue.length === 0) {
           this.isPlaying = false;
+          this.prefetchAudioSrc = null;
+          this.prefetchText = null;
           this.updatePillUI(false);
           return;
         }
 
         this.isPlaying = true;
         this.updatePillUI(true, false);
-        const sentence = this.queue.shift();
+        const textToSpeak = this.queue.shift();
 
         try {
-          if (window.api && window.api.synthesizeSpeech) {
-            const res = await window.api.synthesizeSpeech({
-              text: sentence,
-              voice: this.selectedVoice,
-              rate: this.rate
-            });
+          let audioSrc = null;
+          if (this.prefetchAudioSrc && this.prefetchText === textToSpeak) {
+            audioSrc = this.prefetchAudioSrc;
+            this.prefetchAudioSrc = null;
+            this.prefetchText = null;
+          } else {
+            if (window.api && window.api.synthesizeSpeech) {
+              const res = await window.api.synthesizeSpeech({
+                text: textToSpeak,
+                voice: this.selectedVoice,
+                rate: this.rate
+              });
 
-            if (res && res.success) {
-              const audioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
-              if (audioSrc) {
-                this.audioPlayer.src = audioSrc;
-                await this.audioPlayer.play();
-                return;
+              if (res && res.success) {
+                audioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
               }
             }
+          }
+
+          if (audioSrc && this.isPlaying) {
+            // Trigger background prefetch for next chunk (if any) while current audio plays
+            if (this.queue.length > 0) {
+              this.prefetchNextChunk(this.queue[0]);
+            }
+            this.audioPlayer.src = audioSrc;
+            await this.audioPlayer.play();
+            return;
           }
         } catch (e) {
           console.error('Edge TTS playback error:', e);
         }
 
-        // Advance to next chunk if error
+        // Advance to next chunk if error or empty
         this.playNext();
+      }
+
+      async prefetchNextChunk(nextText) {
+        if (!nextText || this.prefetchAudioSrc) return;
+        try {
+          if (window.api && window.api.synthesizeSpeech) {
+            const res = await window.api.synthesizeSpeech({
+              text: nextText,
+              voice: this.selectedVoice,
+              rate: this.rate
+            });
+            if (res && res.success) {
+              this.prefetchAudioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
+              this.prefetchText = nextText;
+            }
+          }
+        } catch (_) {}
       }
 
       pause() {
@@ -703,6 +717,8 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
       cancel() {
         this.queue = [];
         this.bufferedText = '';
+        this.prefetchAudioSrc = null;
+        this.prefetchText = null;
         this.isPlaying = false;
         this.isPaused = false;
         try {
@@ -715,16 +731,56 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
 
       speakFullText(text) {
         this.cancel();
-        if (!text) return;
+        if (!this.enabled || !text) return;
         const cleaned = this.cleanChunk(text);
-        if (!cleaned) return;
+        if (!cleaned || cleaned.length < 2) return;
 
-        // Split into sentences
-        const sentences = cleaned.match(/[^.!?\n]+[.!?\n]+/g) || [cleaned];
-        for (const s of sentences) {
-          const st = s.trim();
-          if (st.length >= 2 && /[a-zA-Z0-9]/.test(st)) {
-            this.enqueue(st);
+        // If the entire message is within typical speech length (<= 1500 chars),
+        // synthesize the entire message in a single audio call for completely fluid, natural speech.
+        if (cleaned.length <= 1500) {
+          this.enqueue(cleaned);
+          return;
+        }
+
+        // For exceptionally long messages (> 1500 chars), group by major paragraphs (~900-1200 chars)
+        // rather than individual sentences, preserving natural cadence and minimizing pauses.
+        const chunks = [];
+        const paragraphs = cleaned.split(/(?<=\n)\s*\n/);
+        let currentChunk = '';
+
+        for (const p of paragraphs) {
+          const pt = p.trim();
+          if (!pt) continue;
+          if (currentChunk && (currentChunk.length + pt.length) > 1000) {
+            chunks.push(currentChunk);
+            currentChunk = pt;
+          } else {
+            currentChunk = currentChunk ? (currentChunk + ' ' + pt) : pt;
+          }
+        }
+        if (currentChunk) chunks.push(currentChunk);
+
+        // Fallback sentence-grouping if no paragraph breaks exist
+        if (chunks.length <= 1 && cleaned.length > 1500) {
+          const sentences = cleaned.match(/[^.!?\n]+[.!?\n]+/g) || [cleaned];
+          let sChunk = '';
+          for (const s of sentences) {
+            const st = s.trim();
+            if (!st) continue;
+            if (sChunk && (sChunk.length + st.length) > 1000) {
+              chunks.push(sChunk);
+              sChunk = st;
+            } else {
+              sChunk = sChunk ? (sChunk + ' ' + st) : st;
+            }
+          }
+          if (sChunk) chunks.push(sChunk);
+        }
+
+        for (const chunk of chunks) {
+          const c = chunk.trim();
+          if (c && c.length >= 2 && /[a-zA-Z0-9]/.test(c)) {
+            this.enqueue(c);
           }
         }
       }
@@ -1138,7 +1194,6 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
 
             function finalizeDisplay() {
               if (streamTimer) clearInterval(streamTimer);
-              if (autoSpeak) ttsQueue.flush();
               const parsedHtml = window.marked ? window.marked.parse(rawText) : rawText;
 
               let citationsHtml = '';
@@ -1167,6 +1222,12 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
 
               chatStream.scrollTop = chatStream.scrollHeight;
               autoGrowWindow();
+
+              // Start Text-to-Speech only AFTER the complete message has arrived and rendered in the app
+              if (autoSpeak) {
+                ttsQueue.speakFullText(rawText);
+              }
+
               resolve();
             }
 
@@ -1177,7 +1238,6 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
                 tokensEl.textContent = displayedText;
                 tokenIndex += 2;
                 chatStream.scrollTop = chatStream.scrollHeight;
-                if (autoSpeak) ttsQueue.feedToken(batch);
               } else {
                 finalizeDisplay();
               }
