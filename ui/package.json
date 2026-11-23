@@ -24,12 +24,9 @@
     "productName": "AntigravityFlow",
     "win": {
       "target": [
-        "nsis",
-        "portable",
-        "zip"
+        "nsis"
       ],
-      "icon": "icon.ico",
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+      "icon": "icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -39,9 +36,6 @@
       "createStartMenuShortcut": true,
       "shortcutName": "AntigravityFlow",
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
     },
     "extraResources": [
       {

@@ -29,17 +29,20 @@ jobs:
             python_version: '3.12'
             python_arch: 'x64'
             electron_script: 'dist:x64'
+            label: 'x64'
             name: 'Windows x64 (AMD64)'
           - arch: arm64
             python_version: '3.12'
             python_arch: 'x64'
             electron_script: 'dist:arm64'
-            name: 'Windows ARM64 (Qualcomm Snapdragon / Copilot+)'
+            label: 'arm'
+            name: 'Windows ARM (Snapdragon / Surface)'
           - arch: ia32
             python_version: '3.11'
             python_arch: 'x86'
             electron_script: 'dist:ia32'
-            name: 'Windows ia32 (32-bit x86)'
+            label: 'x32'
+            name: 'Windows x32 (32-bit x86)'
 
     steps:
       - name: Checkout Source Code
@@ -83,27 +86,32 @@ jobs:
         run: |
           npm ci
 
-      - name: Package Electron Binaries (${{ matrix.target.arch }})
+      - name: Package Standalone Installer (${{ matrix.target.label }})
         working-directory: ui
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run ${{ matrix.target.electron_script }}
 
-      - name: Organize Output Artifacts
+      - name: Organize Standalone Installer
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path "release-artifacts" -Force
-          Copy-Item "dist/AntigravityFlowDaemon.exe" -Destination "release-artifacts/AntigravityFlowDaemon-win-${{ matrix.target.arch }}.exe"
-          Get-ChildItem -Path "ui/dist/*.exe", "ui/dist/*.zip", "ui/dist/*.blockmap" | ForEach-Object {
-            Copy-Item $_.FullName -Destination "release-artifacts/"
+          $setupFile = Get-ChildItem -Path "ui/dist/*Setup*.exe" | Select-Object -First 1
+          if ($setupFile) {
+            $destName = "AntigravityFlow-Setup-${{ matrix.target.label }}.exe"
+            Copy-Item $setupFile.FullName -Destination "release-artifacts/$destName"
+            Write-Host "Prepared standalone all-in-one installer: $destName"
+          } else {
+            Write-Error "No Setup installer executable found in ui/dist!"
+            exit 1
           }
           Get-ChildItem -Path "release-artifacts" | Select-Object Name, Length
 
       - name: Upload Windows Binaries Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AntigravityFlow-win-${{ matrix.target.arch }}
+          name: AntigravityFlow-win-${{ matrix.target.label }}
           path: release-artifacts/*
           if-no-files-found: error
           retention-days: 30
@@ -136,17 +144,18 @@ jobs:
         with:
           path: all-artifacts
 
-      - name: Prepare Release Asset Directory
+      - name: Prepare Clean Release Asset Directory
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path "release-assets" -Force
-          Get-ChildItem -Path "all-artifacts" -Recurse -File | ForEach-Object {
+          # Only collect the standalone installer executables
+          Get-ChildItem -Path "all-artifacts" -Recurse -Filter "*.exe" | ForEach-Object {
             Copy-Item $_.FullName -Destination "release-assets/" -Force
           }
-          $pkg = Get-Content "ui/package.json" | ConvertFrom-Json
-          $x64Setup = Get-ChildItem -Path "release-assets/*Setup*x64.exe" | Select-Object -First 1
-          if ($x64Setup) {
-            Copy-Item $x64Setup.FullName -Destination "release-assets/AntigravityFlow.Setup.$($pkg.version).exe" -Force
+          # Default installer pointing to x64 for instant 1-click download
+          $x64 = Get-ChildItem -Path "release-assets/*-x64.exe" | Select-Object -First 1
+          if ($x64) {
+            Copy-Item $x64.FullName -Destination "release-assets/AntigravityFlow-Installer.exe" -Force
           }
           Get-ChildItem -Path "release-assets" | Select-Object Name, Length
 
@@ -154,33 +163,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
-          name: AntigravityFlow ${{ steps.get_version.outputs.tag }} (Multi-Architecture Release)
+          name: AntigravityFlow ${{ steps.get_version.outputs.tag }}
           body: |
             ## AntigravityFlow ${{ steps.get_version.outputs.tag }}
 
             Smart Voice Dictation & Multimodal AI Assistant for Google Antigravity.
+            Each installer below is an **all-in-one standalone installer & updater**. It bundles the full UI, Python background daemon, Edge TTS neural voices, and AI bridges. Running the installer will install AntigravityFlow or update an existing installation seamlessly.
 
-            ### Architecture Downloads:
-            - **Windows x64 (AMD64 / Intel 64-bit)**:
-              - `AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-x64.exe` (Installer)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-x64-portable.exe` (Single Portable EXE)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-win-x64.zip` (Portable ZIP)
-              - `AntigravityFlowDaemon-win-x64.exe` (Standalone Python Daemon)
+            ### Choose Your Windows Processor Architecture:
+            - **[AntigravityFlow-Installer.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Installer.exe)**: Standard 1-click Installer (x64)
+            - **[AntigravityFlow-Setup-x64.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-x64.exe)**: Windows 64-bit (Intel Core / AMD Ryzen)
+            - **[AntigravityFlow-Setup-arm.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-arm.exe)**: Windows ARM (Qualcomm Snapdragon X Elite / Plus, Surface Pro 11, Copilot+ PCs)
+            - **[AntigravityFlow-Setup-x32.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-x32.exe)**: Windows 32-bit (Legacy Intel/AMD x86 PCs)
 
-            - **Windows ARM64 (Qualcomm Snapdragon X Elite / Plus, Surface Pro 11, Copilot+ PCs)**:
-              - `AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-arm64.exe` (Native ARM64 Installer)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-arm64-portable.exe` (Native Portable EXE)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-win-arm64.zip` (Native Portable ZIP)
-
-            - **Windows ia32 (Legacy 32-bit x86 Intel / AMD)**:
-              - `AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-ia32.exe` (32-bit Installer)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-ia32-portable.exe` (32-bit Portable EXE)
-              - `AntigravityFlow-${{ steps.get_version.outputs.version }}-win-ia32.zip` (32-bit Portable ZIP)
-              - `AntigravityFlowDaemon-win-ia32.exe` (32-bit Standalone Python Daemon)
-
-            ### Integrity & Security:
-            - Built and verified via automated GitHub Actions CI/CD matrix.
-            - All user configuration and encrypted audio vaults persist in `%APPDATA%\AntigravityFlow`.
+            ### Notes:
+            - **No extra files needed**: Everything is self-contained in the single installer.
+            - **Auto-updater**: Running the installer on a machine with an existing install updates it in-place without losing your settings or encrypted local audio vaults.
           files: release-assets/*
           draft: false
           prerelease: false
