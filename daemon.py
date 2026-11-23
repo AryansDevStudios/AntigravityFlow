@@ -263,6 +263,14 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.end_headers()
                 self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
                 return
+            elif self.path == "/assistant/screenshot":
+                import assistant_service
+                res = assistant_service.capture_screen()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                return
             self.send_response(404)
             self.end_headers()
         def do_POST(self):
@@ -288,6 +296,14 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 elif self.path == "/assistant/models":
                     import assistant_service
                     res = assistant_service.get_available_models_catalog()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/screenshot":
+                    import assistant_service
+                    res = assistant_service.capture_screen()
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()

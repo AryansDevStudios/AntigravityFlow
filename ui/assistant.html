@@ -431,7 +431,7 @@
       <div class="flex items-center gap-2">
         <img id="screenshot-thumb" class="w-10 h-6 object-cover rounded-md border border-amber-500/40 shadow-sm" src="" alt="Screen">
         <span class="text-[9px] text-amber-300 font-medium flex items-center gap-1">
-          <span>📷 Native 1080p Screen Attached</span>
+          <span id="screenshot-tray-label">📷 Screen Attached</span>
           <span id="screenshot-res" class="text-slate-400 font-mono text-[8px]"></span>
         </span>
       </div>
@@ -935,12 +935,13 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
 
       let imgHtml = '';
       if (screenshot && screenshot.data_url) {
+        const lbl = screenshot.label || 'Attached Image';
         imgHtml = `
           <div class="mb-1.5 flex items-center gap-2 p-1.5 rounded-xl border border-amber-500/30 bg-amber-950/20">
-            <img src="${screenshot.data_url}" class="w-16 h-10 object-cover rounded-lg border border-amber-500/40">
+            <img src="${screenshot.data_url}" class="w-16 h-10 object-cover rounded-lg border border-amber-500/40 cursor-pointer shadow-sm" onclick="window.open('${screenshot.data_url}')" title="Click to view image">
             <div class="text-[9px] font-mono text-amber-200">
-              <div>Native 1080p Screen</div>
-              <div class="text-slate-400">${screenshot.width}x${screenshot.height}</div>
+              <div class="font-semibold">${lbl}</div>
+              <div class="text-slate-400">${screenshot.width || ''}x${screenshot.height || ''}</div>
             </div>
           </div>
         `;
@@ -1282,18 +1283,37 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
       }
     }
 
-    // Screenshot Capture (Native 1080p)
+    function setAttachedImage(dataUrl, width, height, label = 'Screen Attached') {
+      currentScreenshot = {
+        success: true,
+        data_url: dataUrl,
+        width: width || 1920,
+        height: height || 1080,
+        label: label
+      };
+      if (screenshotThumb) screenshotThumb.src = dataUrl;
+      if (screenshotRes) screenshotRes.textContent = `${width || ''}x${height || ''}`;
+      const trayLabel = document.getElementById('screenshot-tray-label');
+      if (trayLabel) trayLabel.textContent = `📷 ${label}`;
+      if (screenshotTray) screenshotTray.classList.remove('hidden');
+      inputField.placeholder = "Ask something about attached image...";
+      inputField.focus();
+      autoGrowWindow();
+    }
+
+    // Screenshot Capture (Native 1080p Screen Capture)
     async function takeScreenshot() {
       if (window.api && window.api.captureScreenshot) {
-        const res = await window.api.captureScreenshot();
-        if (res.success && res.data_url) {
-          currentScreenshot = res;
-          screenshotThumb.src = res.data_url;
-          screenshotRes.textContent = `${res.width}x${res.height}`;
-          screenshotTray.classList.remove('hidden');
-          inputField.placeholder = "Ask something about your screen...";
-          inputField.focus();
-          autoGrowWindow();
+        try {
+          btnSnap.classList.add('opacity-50', 'pointer-events-none');
+          const res = await window.api.captureScreenshot();
+          if (res && res.success && res.data_url) {
+            setAttachedImage(res.data_url, res.width, res.height, 'Screen Attached');
+          }
+        } catch (err) {
+          console.error('[ScreenCapture] Capture error:', err);
+        } finally {
+          btnSnap.classList.remove('opacity-50', 'pointer-events-none');
         }
       }
     }
@@ -1303,7 +1323,97 @@ Zero pleasantries. Immediate, high-density, accurate answers. Format numbers, eq
     btnRemoveScreenshot.addEventListener('click', () => {
       currentScreenshot = null;
       screenshotTray.classList.add('hidden');
-      inputField.placeholder = "Ask AI or hold Win+Ctrl...";
+      inputField.placeholder = "Ask AI (Shift+Enter for newline)...";
+    });
+
+    // Seamless Clipboard Image Attachment (Ctrl+V / Paste)
+    async function handleClipboardPaste(e) {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      let handledImage = false;
+
+      // 1. Check browser clipboard items for image blob (e.g. Snipping tool, copy image from web)
+      if (clipboardData && clipboardData.items) {
+        for (let i = 0; i < clipboardData.items.length; i++) {
+          const item = clipboardData.items[i];
+          if (item.type.indexOf('image') !== -1) {
+            const file = item.getAsFile();
+            if (file) {
+              e.preventDefault();
+              handledImage = true;
+              const reader = new FileReader();
+              reader.onload = (loadEvt) => {
+                const dataUrl = loadEvt.target.result;
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                  setAttachedImage(dataUrl, tempImg.naturalWidth, tempImg.naturalHeight, 'Pasted Screenshot');
+                };
+                tempImg.src = dataUrl;
+              };
+              reader.readAsDataURL(file);
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. If no image found in browser clipboard items, check native OS clipboard image via IPC
+      if (!handledImage && window.api && window.api.readClipboardImage) {
+        const textData = clipboardData ? clipboardData.getData('text') : '';
+        // If there is no text being pasted or user pressed Ctrl+V without active text
+        if (!textData) {
+          try {
+            const clipRes = await window.api.readClipboardImage();
+            if (clipRes && clipRes.success && clipRes.data_url) {
+              e.preventDefault();
+              setAttachedImage(clipRes.data_url, clipRes.width, clipRes.height, 'Clipboard Image');
+              return;
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    inputField.addEventListener('paste', handleClipboardPaste);
+    document.addEventListener('paste', handleClipboardPaste);
+
+    // Global shortcut Ctrl+V when window is focused even if input textarea is not focused
+    window.addEventListener('keydown', async (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (document.activeElement !== inputField && window.api && window.api.readClipboardImage) {
+          try {
+            const clipRes = await window.api.readClipboardImage();
+            if (clipRes && clipRes.success && clipRes.data_url) {
+              e.preventDefault();
+              setAttachedImage(clipRes.data_url, clipRes.width, clipRes.height, 'Clipboard Image');
+            }
+          } catch (_) {}
+        }
+      }
+    });
+
+    // Drag-and-Drop Image Attachment onto Assistant Window
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (loadEvt) => {
+            const dataUrl = loadEvt.target.result;
+            const tempImg = new Image();
+            tempImg.onload = () => {
+              setAttachedImage(dataUrl, tempImg.naturalWidth, tempImg.naturalHeight, file.name || 'Dropped Image');
+            };
+            tempImg.src = dataUrl;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     });
 
     btnSend.addEventListener('click', () => submitQuery(null, { isVoice: false }));

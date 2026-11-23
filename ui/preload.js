@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('api', {
   queryAssistant: (params) => ipcRenderer.invoke('query-assistant', params),
   executeSystemCommand: (command) => ipcRenderer.invoke('execute-system-command', command),
   captureScreenshot: () => ipcRenderer.invoke('capture-screenshot'),
+  readClipboardImage: () => ipcRenderer.invoke('read-clipboard-image'),
   pasteToActiveWindow: (text) => ipcRenderer.invoke('paste-to-active-window', text),
   // Edge TTS Online Speech Engine
   getTtsVoices: () => ipcRenderer.invoke('get-tts-voices'),

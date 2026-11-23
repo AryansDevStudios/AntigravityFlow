@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, screen, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen, desktopCapturer, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -298,26 +298,83 @@ async function captureCleanScreenshot() {
       try { mainWindow.setContentProtection(true); } catch (_) {}
     }
 
-    // Brief 20ms yield to let DWM register the capture protection flag without touching window opacity
     if (assistantWasVisible || mainWasVisible) {
-      await new Promise(r => setTimeout(r, 20));
+      await new Promise(r => setTimeout(r, 40));
     }
 
-    // Execute fast native Python BitBlt capture (<15ms) attached to active user desktop
-    return await new Promise((resolve) => {
-      const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-      const pythonExe = getPythonExecutable();
-      execFile(pythonExe, [pythonScript, 'screenshot'], { maxBuffer: 15 * 1024 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
-          return resolve({ success: false, error: stderr || error.message });
-        }
-        try {
-          resolve(JSON.parse(stdout.trim()));
-        } catch (parseErr) {
-          resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
-        }
+    // 1. Primary: Native Electron desktopCapturer (100% native, zero external process dependency)
+    try {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const scale = primaryDisplay.scaleFactor || 1;
+      const { width, height } = primaryDisplay.size;
+      const targetW = Math.round(width * scale);
+      const targetH = Math.round(height * scale);
+
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: targetW, height: targetH },
+        fetchWindowIcons: false
       });
-    });
+
+      if (sources && sources.length > 0) {
+        const thumb = sources[0].thumbnail;
+        if (!thumb.isEmpty()) {
+          const imgSize = thumb.getSize();
+          return {
+            success: true,
+            data_url: thumb.toDataURL(),
+            width: imgSize.width,
+            height: imgSize.height
+          };
+        }
+      }
+    } catch (dcErr) {
+      console.warn('[ScreenCapture] Native desktopCapturer notice:', dcErr);
+    }
+
+    // 2. Secondary: Query running Daemon HTTP server on 127.0.0.1:48198
+    try {
+      const daemonSnap = await new Promise((resolve) => {
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port: 48198,
+          path: '/assistant/screenshot',
+          method: 'POST',
+          timeout: 2500
+        }, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            try { resolve(JSON.parse(body)); } catch (_) { resolve(null); }
+          });
+        });
+        req.on('error', () => resolve(null));
+        req.end();
+      });
+      if (daemonSnap && daemonSnap.success && daemonSnap.data_url) {
+        return daemonSnap;
+      }
+    } catch (_) {}
+
+    // 3. Fallback: Python assistant_service.py if present
+    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
+    if (fs.existsSync(pythonScript)) {
+      return await new Promise((resolve) => {
+        const pythonExe = getPythonExecutable();
+        execFile(pythonExe, [pythonScript, 'screenshot'], { maxBuffer: 15 * 1024 * 1024 }, (error, stdout, stderr) => {
+          if (error) {
+            return resolve({ success: false, error: stderr || error.message });
+          }
+          try {
+            resolve(JSON.parse(stdout.trim()));
+          } catch (parseErr) {
+            resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
+          }
+        });
+      });
+    }
+
+    return { success: false, error: 'Screen capture failed: no capture source available.' };
   } catch (err) {
     return { success: false, error: err.message };
   } finally {
@@ -1058,26 +1115,25 @@ ipcMain.handle('execute-system-command', async (event, command) => {
 });
 
 ipcMain.handle('capture-screenshot', async () => {
-  const snap = await captureCleanScreenshot();
-  if (snap && snap.success) {
-    return snap;
-  }
+  return await captureCleanScreenshot();
+});
 
-  // Fallback to Python assistant_service.py screenshot if needed
-  return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, [pythonScript, 'screenshot'], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        return resolve({ success: false, error: stderr || error.message });
-      }
-      try {
-        resolve(JSON.parse(stdout.trim()));
-      } catch (parseErr) {
-        resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
-      }
-    });
-  });
+ipcMain.handle('read-clipboard-image', () => {
+  try {
+    const img = clipboard.readImage();
+    if (!img.isEmpty()) {
+      const size = img.getSize();
+      return {
+        success: true,
+        data_url: img.toDataURL(),
+        width: size.width,
+        height: size.height
+      };
+    }
+  } catch (err) {
+    console.error('[Clipboard] Error reading image:', err);
+  }
+  return { success: false };
 });
 
 ipcMain.handle('paste-to-active-window', async (event, text) => {

@@ -781,12 +781,21 @@ def call_model_with_cascade(prompt_text: str, current_model: str, media_items: l
             msg_payload = {
                 "cascadeId": cid,
                 "items": [{"text": prompt_text}],
+                "customAgentSpec": {
+                    "builtinAgent": {
+                        "defaultAgent": {
+                            "isGoogle": False,
+                            "isInteractive": True
+                        }
+                    }
+                },
                 "cascadeConfig": {
                     "plannerConfig": {
                         "planModel": resolved_model,
                         "useAiCredits": False
                     }
-                }
+                },
+                "deliveryStrategy": "MESSAGE_DELIVERY_STRATEGY_WHEN_IDLE"
             }
             if media_items:
                 msg_payload["media"] = media_items
@@ -798,11 +807,16 @@ def call_model_with_cascade(prompt_text: str, current_model: str, media_items: l
                 time.sleep(0.4)
                 steps_data = call_language_server_rpc("GetCascadeTrajectorySteps", {"cascadeId": cid}, timeout=10.0)
                 for s in steps_data.get("steps", []):
-                    if s.get("type") == "CORTEX_STEP_TYPE_PLANNER_RESPONSE" and s.get("status") == "CORTEX_STEP_STATUS_DONE":
-                        pr = s.get("plannerResponse", {})
-                        resp_text = (pr.get("response") or pr.get("modifiedResponse") or "").strip()
-                        thinking_text = (pr.get("thinking") or "").strip()
-                        return resp_text, thinking_text
+                    if s.get("type") == "CORTEX_STEP_TYPE_PLANNER_RESPONSE":
+                        status = s.get("status")
+                        if status == "CORTEX_STEP_STATUS_DONE":
+                            pr = s.get("plannerResponse", {})
+                            resp_text = (pr.get("response") or pr.get("modifiedResponse") or "").strip()
+                            thinking_text = (pr.get("thinking") or "").strip()
+                            return resp_text, thinking_text
+                        elif status == "CORTEX_STEP_STATUS_ERROR":
+                            print(f"[Assistant] Cascade step status error: {status}")
+                            break
     except Exception as e:
         print(f"[Assistant] Cascade execution notice: {e}")
 
@@ -873,18 +887,69 @@ def query_gemini_assistant(
     elif is_screen_query(clean_prompt):
         is_screen_req = True
 
+    # 1. Resolve raw image bytes and file path for multimodal vision & OCR
+    media_items = []
+    raw_b64 = None
+    snap_path = None
+
+    if screenshot_info:
+        if screenshot_info.get("data_url") and "," in screenshot_info["data_url"]:
+            raw_b64 = screenshot_info["data_url"].split(",", 1)[-1]
+            try:
+                snap_path = os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
+                raw_bytes = base64.b64decode(raw_b64)
+                with open(snap_path, "wb") as f:
+                    f.write(raw_bytes)
+            except Exception as b64_err:
+                print(f"[Assistant] Error saving data_url screenshot: {b64_err}")
+        elif screenshot_info.get("file_path") and os.path.exists(screenshot_info["file_path"]):
+            snap_path = screenshot_info["file_path"]
+            try:
+                with open(snap_path, "rb") as f:
+                    raw_b64 = base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+
+    if not raw_b64 and is_screen_req:
+        default_snap = os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
+        if os.path.exists(default_snap):
+            snap_path = default_snap
+        else:
+            # Capture screen directly if not already on disk
+            captured = capture_screen()
+            if captured.get("success"):
+                snap_path = captured.get("file_path")
+        if snap_path and os.path.exists(snap_path):
+            try:
+                with open(snap_path, "rb") as f:
+                    raw_b64 = base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+
+    # 2. Extract OCR text and stage multimodal artifact via Language Server
+    ocr_extracted_text = ""
+    if raw_b64:
+        try:
+            import io
+            img_bytes = base64.b64decode(raw_b64)
+            pil_img = Image.open(io.BytesIO(img_bytes))
+            try:
+                import winocr
+                ocr_res = winocr.recognize_pil_sync(pil_img)
+                if ocr_res and isinstance(ocr_res, dict) and ocr_res.get("text"):
+                    ocr_extracted_text = ocr_res["text"].strip()
+            except Exception as ocr_err:
+                print(f"[Assistant] winocr notice: {ocr_err}")
+        except Exception as img_err:
+            print(f"[Assistant] Image decoding notice: {img_err}")
+
+        art_uri = stage_media_artifact(raw_b64, mime_type="image/jpeg", display_name="user_screenshot.jpg")
+        if art_uri:
+            media_items.append({"mimeType": "image/jpeg", "uri": art_uri})
+
+    # 3. Screen intelligence (foreground application & active control)
     screen_intel = None
     if is_screen_req:
-        snap_path = screenshot_info.get("file_path") if screenshot_info else None
-        if not snap_path or not os.path.exists(snap_path):
-            default_snap = os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
-            if os.path.exists(default_snap):
-                snap_path = default_snap
-            else:
-                # Capture screen directly if not already on disk
-                captured = capture_screen()
-                if captured.get("success"):
-                    snap_path = captured.get("file_path")
         screen_intel = extract_screen_intelligence(snap_path)
 
     # Auto-detect or honor web search request (strictly when needed)
@@ -947,8 +1012,18 @@ def query_gemini_assistant(
         if screen_intel.get("field_content"):
             envelope_parts.append(f"\nACTIVE EDITOR / TEXT FIELD CONTENT:\n\"\"\"\n{screen_intel['field_content']}\n\"\"\"")
         envelope_parts.append("\n[NATIVE SCREENSHOT ATTACHED: High-resolution pixel-perfect screen capture is available. Read all text, code, questions, and UI elements directly from the image.]")
-
         envelope_parts.append("--- END LIVE SCREEN INTELLIGENCE ---\n")
+
+    if ocr_extracted_text:
+        envelope_parts.append(
+            "\n--- LIVE SCREEN / DOCUMENT / PDF OCR EXTRACTED TEXT ---\n"
+            f"{ocr_extracted_text}\n"
+            "--- END EXTRACTED OCR TEXT ---\n"
+            "NOTE: The exact raw text, questions, code, and symbols above were extracted directly from the attached screen/document using Windows OCR engine. "
+            "Use both this extracted text and the high-resolution visual image to answer with 100% accuracy.\n"
+        )
+
+    if screen_intel or ocr_extracted_text or media_items:
         envelope_parts.append(
             "MANDATORY INSTRUCTIONS FOR SCREEN QUESTION SOLVING & ANALYSIS:\n"
             "1. **Analyze What is Happening**: Summarize what is currently displayed on the user's screen (the application, open question/test, document, or code environment).\n"
@@ -969,33 +1044,6 @@ def query_gemini_assistant(
     envelope_parts.append(f"USER: {clean_prompt}")
     envelope_parts.append("ASSISTANT:")
     full_prompt = "\n".join(envelope_parts)
-
-    # Multimodal image staging: if a screenshot was provided or captured, stage it via SaveMediaAsArtifact
-    media_items = []
-    raw_b64 = None
-    if screenshot_info:
-        if screenshot_info.get("data_url") and "," in screenshot_info["data_url"]:
-            raw_b64 = screenshot_info["data_url"].split(",", 1)[-1]
-        elif screenshot_info.get("file_path") and os.path.exists(screenshot_info["file_path"]):
-            try:
-                with open(screenshot_info["file_path"], "rb") as f:
-                    raw_b64 = base64.b64encode(f.read()).decode("ascii")
-            except Exception:
-                pass
-
-    if not raw_b64 and is_screen_req:
-        snap_p = (screen_intel.get("screenshot_path") if screen_intel else None) or os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
-        if snap_p and os.path.exists(snap_p):
-            try:
-                with open(snap_p, "rb") as f:
-                    raw_b64 = base64.b64encode(f.read()).decode("ascii")
-            except Exception:
-                pass
-
-    if raw_b64:
-        art_uri = stage_media_artifact(raw_b64, mime_type="image/jpeg", display_name="user_screenshot.jpg")
-        if art_uri:
-            media_items.append({"mimeType": "image/jpeg", "uri": art_uri})
 
     try:
         resp_text, thinking_text = call_model_with_cascade(full_prompt, target_model, media_items=media_items)
