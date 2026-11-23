@@ -23,7 +23,8 @@ DEFAULT_VOCABULARY = {
     "pr": "PR",
     "prs": "PRs",
     "anti gravity": "Antigravity",
-    "whisper flow": "Wispr Flow",
+    "antigravity flow": "AntigravityFlow",
+    "antigravity float": "AntigravityFloat",
     "github actions": "GitHub Actions",
     "npm install": "npm install",
     "npm run dev": "npm run dev",
@@ -63,12 +64,20 @@ DEFAULT_VOCABULARY = {
 def load_vocabulary() -> dict:
     os.makedirs(DATA_DIR, exist_ok=True)
     if not os.path.exists(VOCAB_PATH):
-        with open(VOCAB_PATH, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_VOCABULARY, f, indent=2)
+        try:
+            with open(VOCAB_PATH, "w", encoding="utf-8") as f:
+                json.dump(DEFAULT_VOCABULARY, f, indent=2)
+        except Exception:
+            pass
         return DEFAULT_VOCABULARY.copy()
     try:
         with open(VOCAB_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            if not data or not isinstance(data, dict) or len(data) == 0:
+                with open(VOCAB_PATH, "w", encoding="utf-8") as fw:
+                    json.dump(DEFAULT_VOCABULARY, fw, indent=2)
+                return DEFAULT_VOCABULARY.copy()
+            return data
     except Exception:
         return DEFAULT_VOCABULARY.copy()
 
@@ -158,31 +167,31 @@ def clean_punctuation_and_flow(text: str) -> str:
 
     return text.strip()
 
+def apply_vocabulary(text: str) -> str:
+    """Replaces custom vocabulary phrases and technical acronyms with their designated casing."""
+    if not text or not text.strip():
+        return text
+    vocab = load_vocabulary()
+    if not vocab:
+        return text
+
+    # Sort keys by length descending so longer multi-word phrases match first
+    sorted_phrases = sorted(vocab.keys(), key=lambda k: len(str(k)), reverse=True)
+    for phrase in sorted_phrases:
+        p_str = str(phrase).strip()
+        if not p_str:
+            continue
+        replacement = str(vocab[phrase])
+        pattern = r'\b' + re.escape(p_str) + r'\b'
+        text = re.sub(pattern, lambda m, r=replacement: r, text, flags=re.IGNORECASE)
+    return text
+
 def format_transcript(raw_text: str, category: str = "Other Tasks") -> str:
-    """Master formatting pipeline:
-    1. Punctuation & Flow smoothing (fixes ASR pause artifacts & spacing)
-    2. Vocabulary & Technical Acronym mapping
-    3. Smart number & metric normalization
-    4. Application-specific profile rules
+    """Formats raw ASR transcript by applying custom vocabulary & technical acronyms
+    while preserving spacing and structure.
     """
     if not raw_text or not raw_text.strip():
         return raw_text
+    clean_text = raw_text.strip()
+    return apply_vocabulary(clean_text)
 
-    text = raw_text.strip()
-
-    # Step 1: Punctuation & Flow smoothing
-    text = clean_punctuation_and_flow(text)
-
-    # Step 2: Vocabulary mapping
-    vocab = load_vocabulary()
-    for phrase, target in vocab.items():
-        pattern = r'\b' + re.escape(phrase) + r'\b'
-        text = re.sub(pattern, target, text, flags=re.IGNORECASE)
-
-    # Step 3: Numbers & Metrics normalization
-    text = normalize_numbers_and_metrics(text)
-
-    # Step 4: Application-specific profile
-    text = apply_app_profile(text, category)
-
-    return text.strip()
