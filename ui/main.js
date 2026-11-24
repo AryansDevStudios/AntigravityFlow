@@ -1245,28 +1245,10 @@ ipcMain.handle('query-assistant', async (event, params) => {
       return daemonRes;
     }
   } catch (daemonErr) {
-    // Daemon not running or timed out; proceed to accelerated direct gRPC fallback
+    console.warn('[Main] Daemon query endpoint unreachable, using backend runner:', daemonErr.message);
   }
 
-  // 2. Direct Node.js gRPC-web fallback for standard conversational queries
-  const isDirectCandidate = !params.screenshot_info && !params.enable_web_search;
-  const lsCfg = getLanguageServerConfig();
-  if (isDirectCandidate && lsCfg && lsCfg.port && lsCfg.csrf_token) {
-    try {
-      const gRes = await callDirectGrpcModel(lsCfg.port, lsCfg.csrf_token, params.prompt, params.model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH');
-      if (gRes.success && gRes.text) {
-        return {
-          success: true,
-          response: gRes.text,
-          model: params.model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH',
-          steps: [],
-          citations: []
-        };
-      }
-    } catch (_) {}
-  }
-
-  // 3. Fallback: Standalone daemon process execution
+  // 2. Direct Fallback: Standalone daemon process execution (preserves full agentic prompt & MCP execution)
   return new Promise((resolve) => {
     const payload = JSON.stringify(params || {});
     runBackendCommand('query', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {

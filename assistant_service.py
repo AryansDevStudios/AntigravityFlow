@@ -217,24 +217,29 @@ def execute_system_command(command: str, shell: str = "powershell") -> dict:
         return {"success": False, "stdout": "", "stderr": "Empty command", "exit_code": 1, "duration": 0.0, "command": ""}
 
     # Normalize interactive GUI binaries so they execute non-blocking
-    gui_apps = (
-        "notepad", "notepad.exe", "explorer", "explorer.exe", "code", "code.cmd", "code.exe",
-        "calc", "calc.exe", "mspaint", "mspaint.exe", "taskmgr", "taskmgr.exe", "chrome", "msedge"
-    )
-
-    tokens = clean_cmd.split(None, 1)
-    first_token = tokens[0].lower() if tokens else ""
-    first_base = os.path.basename(first_token)
-
-    if first_base in gui_apps and not clean_cmd.lower().startswith(("start-process", "start ", "& ")):
-        arg = tokens[1].strip() if len(tokens) > 1 else ""
-        if shell == "powershell":
-            if arg:
-                clean_cmd = f"Start-Process {first_token} -ArgumentList '{arg.replace(\"'\", \"''\")}'"
+    # Auto-wrap interactive GUI binaries across single-line and multi-line scripts so they never block
+    gui_names = {
+        'notepad', 'notepad.exe', 'explorer', 'explorer.exe', 'calc', 'calc.exe',
+        'mspaint', 'mspaint.exe', 'code', 'code.cmd', 'code.exe', 'taskmgr', 'taskmgr.exe'
+    }
+    wrapped_lines = []
+    for line in clean_cmd.splitlines():
+        trimmed = line.strip()
+        parts = trimmed.split(None, 1)
+        if parts and parts[0].lower() in gui_names and not trimmed.lower().startswith(('start-process', 'start ', '& ')):
+            indent = line[:len(line) - len(line.lstrip())]
+            binary = parts[0]
+            args = parts[1] if len(parts) > 1 else ''
+            if shell == "powershell":
+                if args:
+                    wrapped_lines.append(f"{indent}Start-Process {binary} -ArgumentList {args}")
+                else:
+                    wrapped_lines.append(f"{indent}Start-Process {binary}")
             else:
-                clean_cmd = f"Start-Process {first_token}"
+                wrapped_lines.append(f'{indent}start "" {trimmed}')
         else:
-            clean_cmd = f"start \"\" {clean_cmd}"
+            wrapped_lines.append(line)
+    clean_cmd = "\n".join(wrapped_lines)
 
     try:
         shell_cmd = ["powershell.exe", "-NoProfile", "-Command", clean_cmd] if shell == "powershell" else ["cmd.exe", "/c", clean_cmd]
