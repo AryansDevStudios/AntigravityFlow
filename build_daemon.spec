@@ -75,12 +75,42 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['matplotlib', 'scipy', 'pandas', 'torch', 'cv2', 'pytest', 'unittest'],
+    excludes=['matplotlib', 'scipy', 'pandas', 'torch', 'cv2', 'pytest', 'unittest', 'torchvision', 'llvmlite', 'ctranslate2', 'onnxruntime', 'pyarrow', 'pymupdf', 'pikepdf', 'av'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Strip out massive unrelated ML / video / compiler bloat accidentally crawled from host environment
+bloat_keywords = [
+    'torch', 'llvmlite', 'ctranslate2', 'cv2', 'pymupdf', 'pyarrow',
+    'onnxruntime', 'av.libs', 'avcodec', 'avfilter', 'avformat', 'libx265',
+    'mupdf', 'parquet', 'pikepdf', 'qpdf', 'arrow', 'torchvision',
+    'libsvtav1enc'
+]
+
+def is_bloat(name, path):
+    low_name = str(name).lower()
+    low_path = str(path).lower()
+    # Always keep numpy internal runtime DLLs
+    if 'numpy.libs' in low_path or 'numpy.libs' in low_name:
+        return False
+    if any(k in low_name or k in low_path for k in bloat_keywords):
+        return True
+    if 'scipy' in low_name or 'scipy' in low_path:
+        return True
+    return False
+
+a.binaries = [
+    b for b in a.binaries
+    if not is_bloat(b[0], b[1])
+]
+
+a.datas = [
+    d for d in a.datas
+    if not is_bloat(d[0], d[1])
+]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
