@@ -402,7 +402,21 @@
       </div>
 
       <!-- Policy Prompt Textarea -->
-      <textarea id="policy-system-prompt" rows="4" class="w-full border rounded-xl p-2.5 font-mono text-[10px] leading-relaxed resize-none custom-scroll focus:outline-none" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main);" placeholder="System instructions for the AI assistant..."></textarea>
+      <textarea id="policy-system-prompt" rows="3" class="w-full border rounded-xl p-2.5 font-mono text-[10px] leading-relaxed resize-none custom-scroll focus:outline-none" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main);" placeholder="System instructions for the AI assistant..."></textarea>
+
+      <!-- Autonomous Execution Toggle -->
+      <div class="flex items-center justify-between p-2 rounded-xl border border-white/10 bg-black/25">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 text-xs">⚡</span>
+          <div>
+            <div class="text-[10px] font-semibold text-slate-200">Autonomous Command &amp; Tool Execution</div>
+            <div class="text-[8px] text-slate-400">Allow AI to run PowerShell commands, open applications, and modify files</div>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+          <input id="policy-enable-commands" type="checkbox" class="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer" checked>
+        </label>
+      </div>
 
       <div class="flex items-center justify-between text-[10px]">
         <button id="btn-reset-policy" type="button" class="text-slate-400 hover:text-amber-400 underline cursor-pointer">↺ Reset to Preset Default</button>
@@ -1151,7 +1165,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         },
         setIntel: (screenIntel, steps = []) => {
           let html = '';
-          if (screenIntel && (screenIntel.app_name || screenIntel.window_title)) {
+          const hasScreenStep = steps && steps.some(s => s.type === 'screen_vision');
+          if (screenIntel && (screenIntel.app_name || screenIntel.window_title) && !hasScreenStep) {
             html += `
               <div class="mb-2 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between text-[9px] font-mono text-amber-300" style="background: rgba(245, 158, 11, 0.1);">
                 <span class="flex items-center gap-1.5 font-medium truncate">
@@ -1163,28 +1178,149 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             `;
           }
           if (steps && steps.length > 0) {
+            const cmdCount = steps.filter(s => s.type === 'powershell').length;
+            const readCount = steps.filter(s => s.type === 'file_read').length;
+            const writeCount = steps.filter(s => s.type === 'file_write').length;
+            const searchCount = steps.filter(s => s.type === 'file_search').length;
+            const launchCount = steps.filter(s => s.type === 'app_launch').length;
+            const screenCount = steps.filter(s => s.type === 'screen_vision').length;
+            const blockedCount = steps.filter(s => s.type === 'blocked').length;
+
+            let summaryTitle = '';
+            if (blockedCount > 0 && steps.length === 1) {
+              summaryTitle = `<span class="text-rose-400">🛡️ Blocked 1 command</span> <span class="text-slate-400 font-normal text-[9px]">(Disabled in Settings)</span>`;
+            } else if (cmdCount === 1 && steps.length === 1) {
+              const cmdPreview = steps[0].command ? steps[0].command.slice(0, 32) : 'PowerShell';
+              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed 1 command</span> <span class="text-slate-400 font-mono text-[9px] truncate max-w-[130px]">(${escapeHtml(cmdPreview)})</span>`;
+            } else if (cmdCount > 1 && steps.length === cmdCount) {
+              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed ${cmdCount} commands</span>`;
+            } else if (readCount === 1 && steps.length === 1) {
+              const fname = (steps[0].target || '').split(/[\\/]/).pop() || 'file';
+              summaryTitle = `<span class="text-blue-400">📄</span> <span>Read file:</span> <span class="text-blue-200 font-mono text-[9px] truncate max-w-[140px]">${escapeHtml(fname)}</span>`;
+            } else if (writeCount === 1 && steps.length === 1) {
+              const fname = (steps[0].target || '').split(/[\\/]/).pop() || 'file';
+              summaryTitle = `<span class="text-emerald-400">✍️</span> <span>Wrote file:</span> <span class="text-emerald-200 font-mono text-[9px] truncate max-w-[140px]">${escapeHtml(fname)}</span>`;
+            } else if (screenCount === 1 && steps.length === 1) {
+              summaryTitle = `<span class="text-fuchsia-400">📷</span> <span>Analyzed active screen</span> <span class="text-slate-400 text-[9px]">(${escapeHtml(steps[0].target || 'Desktop')})</span>`;
+            } else {
+              const tags = [];
+              if (cmdCount > 0) tags.push(`${cmdCount} cmd`);
+              if (readCount > 0) tags.push(`${readCount} read`);
+              if (writeCount > 0) tags.push(`${writeCount} write`);
+              if (searchCount > 0) tags.push(`${searchCount} search`);
+              if (launchCount > 0) tags.push(`${launchCount} launch`);
+              if (screenCount > 0) tags.push(`screen`);
+              if (blockedCount > 0) tags.push(`${blockedCount} blocked`);
+              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed ${steps.length} actions</span> <span class="text-slate-400 font-mono text-[8.5px]">(${tags.join(', ')})</span>`;
+            }
+
+            const totalDur = steps.reduce((acc, s) => acc + (parseFloat(s.duration) || 0), 0);
+            const durDisplay = totalDur > 0 ? `${totalDur.toFixed(2)}s` : '';
+
             html += `
-              <div class="mb-2 p-2 rounded-xl border border-amber-500/25 text-[10px]" style="background: var(--code-bg);">
+              <div class="mb-2 rounded-xl border border-amber-500/30 overflow-hidden" style="background: var(--code-bg);">
                 <details class="cursor-pointer group">
-                  <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-0.5">
-                    <span class="flex items-center gap-1.5">
-                      <span class="text-amber-400">⚡</span> Executed ${steps.length} autonomous ${steps.length > 1 ? 'steps' : 'step'}
-                    </span>
-                    <span class="text-[9px] font-mono text-amber-400 group-open:rotate-180 transition-transform">▼</span>
+                  <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-1.5 px-2.5 transition hover:bg-amber-500/10 text-[10px]">
+                    <div class="flex items-center gap-1.5 truncate">
+                      ${summaryTitle}
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 ml-2 font-mono text-[9px] text-slate-400">
+                      ${durDisplay ? `<span class="text-slate-500">${durDisplay}</span>` : ''}
+                      <span class="px-1.5 py-0.5 rounded border border-white/10 bg-black/40 text-amber-400 group-open:hidden">Details ▼</span>
+                      <span class="px-1.5 py-0.5 rounded border border-white/10 bg-black/40 text-amber-400 hidden group-open:inline">Hide ▲</span>
+                    </div>
                   </summary>
-                  <div class="mt-2 space-y-1.5 pt-2 border-t border-white/[0.06] font-mono text-[9px]">
-                    ${steps.map((s, idx) => `
-                      <div class="p-1.5 rounded-lg border border-white/[0.04] bg-black/30">
-                        <div class="text-amber-300 font-semibold">[Step ${s.step || idx+1}] ${escapeHtml(s.command || s.tool || '')}</div>
-                        ${s.stdout ? `<pre class="mt-1 p-1 rounded text-slate-300 overflow-x-auto text-[9px] max-h-28 custom-scroll">${escapeHtml(s.stdout)}</pre>` : ''}
-                      </div>
-                    `).join('')}
+
+                  <div class="p-2 space-y-2 border-t border-white/[0.06] font-mono text-[9px]">
+                    ${steps.map((s, idx) => {
+                      let badge = '';
+                      let icon = '⚡';
+                      let borderColor = 'border-white/[0.08]';
+                      const stype = s.type || 'powershell';
+
+                      if (stype === 'powershell') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">POWERSHELL</span>';
+                        icon = '📟';
+                      } else if (stype === 'file_read') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">READ FILE</span>';
+                        icon = '📄';
+                      } else if (stype === 'file_write') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">WRITE FILE</span>';
+                        icon = '✍️';
+                      } else if (stype === 'file_search') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">SEARCH</span>';
+                        icon = '🔍';
+                      } else if (stype === 'app_launch') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">LAUNCH APP</span>';
+                        icon = '🚀';
+                      } else if (stype === 'screen_vision') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30">SCREEN VISION</span>';
+                        icon = '📷';
+                      } else if (stype === 'blocked') {
+                        badge = '<span class="text-[8px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">BLOCKED</span>';
+                        icon = '🛡️';
+                        borderColor = 'border-rose-500/30';
+                      }
+
+                      const isSuccess = s.exit_code === 0 || s.exit_code === '0';
+                      const statusPill = stype === 'blocked' ? '<span class="text-rose-400">Blocked by Policy</span>' :
+                        (s.exit_code !== undefined ? (isSuccess ? '<span class="text-emerald-400">✓ Exit 0</span>' : `<span class="text-rose-400">✕ Exit ${s.exit_code}</span>`) : '');
+
+                      return `
+                        <div class="p-2 rounded-xl border ${borderColor} bg-black/40 space-y-1.5">
+                          <div class="flex items-center justify-between text-[10px]">
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-200">
+                              <span>${icon}</span>
+                              <span>Step ${s.step || idx+1}</span>
+                              ${badge}
+                            </div>
+                            <div class="flex items-center gap-2 text-[9px] font-mono">
+                              ${statusPill}
+                              ${s.duration ? `<span class="text-slate-500">${s.duration}s</span>` : ''}
+                            </div>
+                          </div>
+
+                          ${s.command ? `
+                            <div class="flex items-center justify-between bg-black/60 rounded px-2 py-1 border border-white/5 font-mono text-[9px] text-amber-300 select-text overflow-x-auto">
+                              <span class="truncate" title="${escapeHtml(s.command)}">${escapeHtml(s.command)}</span>
+                              <button type="button" class="ml-2 text-slate-400 hover:text-white shrink-0 cursor-pointer" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('span').title); this.textContent='✓'; setTimeout(()=>this.textContent='📋',1200);" title="Copy Command">📋</button>
+                            </div>
+                          ` : ''}
+
+                          ${s.target && !s.command ? `
+                            <div class="text-slate-300 font-mono text-[9px] truncate" title="${escapeHtml(s.target)}">Target: <span class="text-amber-200">${escapeHtml(s.target)}</span></div>
+                          ` : ''}
+
+                          ${s.preview ? `
+                            <div class="mt-1">
+                              <div class="text-[8px] text-slate-400 uppercase tracking-wider mb-0.5">Content Preview:</div>
+                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-24 overflow-y-auto select-text custom-scroll">${escapeHtml(s.preview)}</pre>
+                            </div>
+                          ` : ''}
+
+                          ${s.stdout ? `
+                            <div class="mt-1">
+                              <div class="text-[8px] text-slate-400 uppercase tracking-wider mb-0.5">Output:</div>
+                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-28 overflow-y-auto select-text custom-scroll">${escapeHtml(s.stdout)}</pre>
+                            </div>
+                          ` : ''}
+
+                          ${s.stderr ? `
+                            <div class="mt-1">
+                              <div class="text-[8px] text-rose-400 uppercase tracking-wider mb-0.5">Diagnostics / Warning:</div>
+                              <pre class="p-1.5 rounded bg-rose-950/30 border border-rose-500/20 text-rose-300 font-mono text-[8px] max-h-24 overflow-y-auto select-text custom-scroll">${escapeHtml(s.stderr)}</pre>
+                            </div>
+                          ` : ''}
+                        </div>
+                      `;
+                    }).join('')}
                   </div>
                 </details>
               </div>
             `;
           }
           intelEl.innerHTML = html;
+          autoGrowWindow();
         },
         streamText: (rawText, citations = [], steps = [], screenIntel = null, autoSpeak = false) => {
           return new Promise((resolve) => {
@@ -1780,12 +1916,23 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       activeSystemInstruction = policyPromptText.value;
     });
 
+    const policyEnableCmds = document.getElementById('policy-enable-commands');
+    if (policyEnableCmds) {
+      policyEnableCmds.addEventListener('change', async () => {
+        if (window.api && window.api.saveConfig) {
+          await window.api.saveConfig({ enable_system_commands: policyEnableCmds.checked });
+        }
+      });
+    }
+
     btnSavePolicy.addEventListener('click', async () => {
       activeSystemInstruction = policyPromptText.value.trim();
+      const allowCmds = policyEnableCmds ? policyEnableCmds.checked : true;
       if (window.api && window.api.saveConfig) {
         await window.api.saveConfig({
           ai_assistant_mode: activeMode,
-          ai_assistant_system_prompt: activeSystemInstruction
+          ai_assistant_system_prompt: activeSystemInstruction,
+          enable_system_commands: allowCmds
         });
       }
       policyPanel.classList.add('hidden');
@@ -1803,6 +1950,9 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           } else {
             activeSystemInstruction = ASST_PRESETS[activeMode] || ASST_PRESETS.general;
             policyPromptText.value = activeSystemInstruction;
+          }
+          if (policyEnableCmds && cfg.enable_system_commands !== undefined) {
+            policyEnableCmds.checked = cfg.enable_system_commands !== false;
           }
           selectPresetMode(activeMode);
         }

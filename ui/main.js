@@ -1265,10 +1265,27 @@ ipcMain.handle('query-assistant', async (event, params) => {
 });
 
 ipcMain.handle('execute-system-command', async (event, command) => {
+  const cleanCmd = (command || '').trim();
+  // Check user execution policy in Settings
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}');
+      if (cfg.enable_system_commands === false) {
+        return {
+          success: false,
+          stdout: '',
+          stderr: 'System command execution is disabled by user policy in Settings.',
+          exit_code: -1,
+          duration: '0.00',
+          command: cleanCmd
+        };
+      }
+    }
+  } catch (_) {}
+
   // Direct native PowerShell execution via Node.js (0ms Python startup overhead)
   return new Promise((resolve) => {
     const start = Date.now();
-    const cleanCmd = (command || '').trim();
     execFile('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cleanCmd], { timeout: 15000 }, (error, stdout, stderr) => {
       const dur = ((Date.now() - start) / 1000).toFixed(2);
       resolve({

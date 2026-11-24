@@ -208,13 +208,28 @@ def capture_screen(save_path: str = None) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-def execute_system_command(command: str, shell: str = "powershell") -> dict:
+def execute_system_command(command: str, shell: str = "powershell", enforce_policy: bool = True) -> dict:
     """Runs unrestricted PowerShell or CMD commands and returns stdout, stderr, and execution time.
     Automatically handles interactive GUI apps with Start-Process to prevent synchronous pipeline hangs."""
     start_time = time.time()
     clean_cmd = (command or "").strip()
     if not clean_cmd:
         return {"success": False, "stdout": "", "stderr": "Empty command", "exit_code": 1, "duration": 0.0, "command": ""}
+
+    if enforce_policy:
+        try:
+            cfg = db.load_config() if hasattr(db, "load_config") else {}
+            if not cfg.get("enable_system_commands", True):
+                return {
+                    "success": False,
+                    "stdout": "",
+                    "stderr": "System command execution is disabled by user policy in Settings.",
+                    "exit_code": -1,
+                    "duration": 0.0,
+                    "command": clean_cmd
+                }
+        except Exception:
+            pass
 
     # Normalize interactive GUI binaries so they execute non-blocking
     # Auto-wrap interactive GUI binaries across single-line and multi-line scripts so they never block
@@ -272,10 +287,23 @@ def execute_system_command(command: str, shell: str = "powershell") -> dict:
             "command": clean_cmd
         }
 
-def execute_mcp_tool(tool_name: str, arguments: dict = None) -> dict:
+def execute_mcp_tool(tool_name: str, arguments: dict = None, enforce_policy: bool = True) -> dict:
     """Executes a standard Model Context Protocol (MCP) tool securely and returns structured JSON."""
     args = arguments or {}
     start_time = time.time()
+
+    if enforce_policy and tool_name in ("execute_command", "launch_app", "open_file", "write_file"):
+        try:
+            cfg = db.load_config() if hasattr(db, "load_config") else {}
+            if not cfg.get("enable_system_commands", True):
+                return {
+                    "success": False,
+                    "tool": tool_name,
+                    "error": f"Tool '{tool_name}' execution is disabled by user policy in Settings.",
+                    "duration": 0.0
+                }
+        except Exception:
+            pass
     
     try:
         if tool_name == "search_files":
@@ -932,6 +960,7 @@ def query_gemini_assistant(
     # Load persistent AI assistant configuration defaults from SQLite / config.json
     cfg = db.load_config() if hasattr(db, "load_config") else {}
     target_model = model or cfg.get("ai_assistant_model") or "MODEL_GOOGLE_GEMINI_2_5_FLASH"
+    enable_system_commands = cfg.get("enable_system_commands", True)
 
     if not system_instruction:
         mode = cfg.get("ai_assistant_mode", "general")
@@ -950,7 +979,31 @@ def query_gemini_assistant(
             break
 
     if is_direct_command and cmd_to_run:
-        cmd_result = execute_system_command(cmd_to_run)
+        if not enable_system_commands:
+            output_body = (
+                "⚠️ **System Command Execution Disabled**\n\n"
+                f"Attempted command: `$ {cmd_to_run}`\n\n"
+                "System command execution is currently disabled in your Settings. "
+                "You can re-enable it anytime in **Settings** or the **Assistant Policy (⚙️)** panel."
+            )
+            return {
+                "success": True,
+                "response": output_body,
+                "is_system_command": True,
+                "command_result": {"success": False, "stderr": "Execution disabled in Settings", "exit_code": -1, "duration": 0.0, "command": cmd_to_run},
+                "steps": [{
+                    "step": 1,
+                    "type": "blocked",
+                    "action": "execute_command",
+                    "command": cmd_to_run,
+                    "stdout": "",
+                    "stderr": "Command execution blocked: System command execution is disabled by user policy in Settings.",
+                    "exit_code": -1,
+                    "duration": 0.0
+                }]
+            }
+
+        cmd_result = execute_system_command(cmd_to_run, enforce_policy=False)
         output_body = (
             f"```powershell\n$ {cmd_to_run}\n"
             f"{cmd_result['stdout'] if cmd_result['stdout'] else (cmd_result['stderr'] or '(Command finished with no output)')}\n"
@@ -962,7 +1015,16 @@ def query_gemini_assistant(
             "response": output_body,
             "is_system_command": True,
             "command_result": cmd_result,
-            "steps": []
+            "steps": [{
+                "step": 1,
+                "type": "powershell",
+                "action": "execute_command",
+                "command": cmd_to_run,
+                "stdout": cmd_result["stdout"],
+                "stderr": cmd_result["stderr"],
+                "exit_code": cmd_result["exit_code"],
+                "duration": cmd_result["duration"]
+            }]
         }
 
     # Auto-detect screen analysis & question-solving intent
@@ -1056,21 +1118,31 @@ def query_gemini_assistant(
         web_citations = search_res.get("results", [])
 
     # Build prompt envelope with history, vision intelligence, web citations & MCP instructions
-    mcp_instruction = (
-        "\n--- MODEL CONTEXT PROTOCOL (MCP) & SYSTEM TOOL CAPABILITIES ---\n"
-        "You have direct access to deterministic system tools via MCP. When you need to inspect files, search directories, "
-        "read or write files, open apps, check system status, or run commands, output either a ```call_mcp block with JSON arguments, or a ```execute_powershell block:\n"
-        "1. Search Files: ```call_mcp\n{\"tool\": \"search_files\", \"arguments\": {\"path\": \"...\", \"pattern\": \"*.pdf\"}}\n```\n"
-        "2. List Directory: ```call_mcp\n{\"tool\": \"list_directory\", \"arguments\": {\"path\": \"...\"}}\n```\n"
-        "3. Read File: ```call_mcp\n{\"tool\": \"read_file\", \"arguments\": {\"path\": \"...\", \"max_bytes\": 50000}}\n```\n"
-        "4. Write File: ```call_mcp\n{\"tool\": \"write_file\", \"arguments\": {\"path\": \"...\", \"content\": \"...\"}}\n```\n"
-        "5. Launch App / Open File: ```call_mcp\n{\"tool\": \"launch_app\", \"arguments\": {\"path\": \"notepad.exe\"}}\n```\n"
-        "6. System Info: ```call_mcp\n{\"tool\": \"get_system_info\", \"arguments\": {}}\n```\n"
-        "7. Fetch URL: ```call_mcp\n{\"tool\": \"fetch_url\", \"arguments\": {\"url\": \"https://...\"}}\n```\n"
-        "8. Terminal / PowerShell: ```execute_powershell\n<command>\n```\n"
-        "Output ONLY the tool block when an action or tool is required. The system will execute it and return the verified result for your next turn.\n"
-        "--- END MCP CAPABILITIES ---\n"
-    )
+    if enable_system_commands:
+        mcp_instruction = (
+            "\n--- MODEL CONTEXT PROTOCOL (MCP) & SYSTEM TOOL CAPABILITIES ---\n"
+            "You have direct access to deterministic system tools via MCP. When you need to inspect files, search directories, "
+            "read or write files, open apps, check system status, or run commands, output either a ```call_mcp block with JSON arguments, or a ```execute_powershell block:\n"
+            "1. Search Files: ```call_mcp\n{\"tool\": \"search_files\", \"arguments\": {\"path\": \"...\", \"pattern\": \"*.pdf\"}}\n```\n"
+            "2. List Directory: ```call_mcp\n{\"tool\": \"list_directory\", \"arguments\": {\"path\": \"...\"}}\n```\n"
+            "3. Read File: ```call_mcp\n{\"tool\": \"read_file\", \"arguments\": {\"path\": \"...\", \"max_bytes\": 50000}}\n```\n"
+            "4. Write File: ```call_mcp\n{\"tool\": \"write_file\", \"arguments\": {\"path\": \"...\", \"content\": \"...\"}}\n```\n"
+            "5. Launch App / Open File: ```call_mcp\n{\"tool\": \"launch_app\", \"arguments\": {\"path\": \"notepad.exe\"}}\n```\n"
+            "6. System Info: ```call_mcp\n{\"tool\": \"get_system_info\", \"arguments\": {}}\n```\n"
+            "7. Fetch URL: ```call_mcp\n{\"tool\": \"fetch_url\", \"arguments\": {\"url\": \"https://...\"}}\n```\n"
+            "8. Terminal / PowerShell: ```execute_powershell\n<command>\n```\n"
+            "Output ONLY the tool block when an action or tool is required. The system will execute it and return the verified result for your next turn.\n"
+            "--- END MCP CAPABILITIES ---\n"
+        )
+    else:
+        mcp_instruction = (
+            "\n--- MODEL CONTEXT PROTOCOL (MCP) RESTRICTED POLICY ---\n"
+            "NOTICE: Autonomous system command execution, application launching, and file modification tools are DISABLED by user policy in Settings.\n"
+            "You CANNOT execute terminal commands (```execute_powershell) or write files (write_file). "
+            "You MAY still use read-only inspection tools if necessary: ```call_mcp with 'read_file', 'list_directory', 'search_files', 'get_system_info', or 'fetch_url'.\n"
+            "If the user asks you to execute a command, launch an app, or modify a file, politely inform them that command execution is disabled in Settings, and provide the command or code for them to review or run manually.\n"
+            "--- END SYSTEM POLICY ---\n"
+        )
     envelope_parts = [instruction.strip(), mcp_instruction, "\n"]
 
     if history and len(history) > 0:
@@ -1138,6 +1210,26 @@ def query_gemini_assistant(
 
         # Autonomous Multi-Step Execution Loop (up to 6 sequential steps)
         steps_executed = []
+
+        # Record screen analysis step if active
+        if is_screen_req or screen_intel or media_items:
+            app_title = screen_intel.get("app_name", "Desktop") if screen_intel else "Desktop"
+            win_title = screen_intel.get("window_title", "") if screen_intel else ""
+            display_title = f"{app_title} ({win_title})" if win_title else app_title
+            lines_c = screen_intel.get("lines_count", 0) if screen_intel else 0
+            steps_executed.append({
+                "step": 1,
+                "type": "screen_vision",
+                "action": "capture_screen",
+                "tool": "screen_vision",
+                "target": display_title,
+                "command": "capture_screen(1080p, pixel_perfect=True)",
+                "stdout": f"Captured and analyzed active screen: {display_title}" + (f" ({lines_c} lines contextual text detected)" if lines_c else ""),
+                "stderr": "",
+                "exit_code": 0,
+                "duration": 0.12
+            })
+
         current_resp = resp_text
         current_ctx_prompt = full_prompt
 
@@ -1240,19 +1332,107 @@ def query_gemini_assistant(
             if not is_tool_call:
                 break
 
-            step_record = {"step": step_idx, "type": tool_type}
+            current_step_num = len(steps_executed) + 1
 
             if tool_type == "mcp":
-                mcp_res = execute_mcp_tool(tool_name, tool_args)
-                step_record.update({
-                    "tool": tool_name,
-                    "arguments": tool_args,
-                    "command": f"mcp:{tool_name}({json.dumps(tool_args)})",
-                    "stdout": json.dumps(mcp_res.get("matches") or mcp_res.get("items") or mcp_res.get("content") or mcp_res.get("info") or mcp_res, indent=2) if mcp_res.get("success") else "",
-                    "stderr": mcp_res.get("error", "") if not mcp_res.get("success") else "",
-                    "exit_code": 0 if mcp_res.get("success") else 1,
-                    "duration": mcp_res.get("duration", 0.0)
-                })
+                # Check execution policy for mutating tools
+                if not enable_system_commands and tool_name in ("execute_command", "launch_app", "open_file", "write_file"):
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "blocked",
+                        "action": tool_name,
+                        "tool": tool_name,
+                        "target": str(tool_args.get("path") or tool_args.get("command") or tool_args),
+                        "command": f"mcp:{tool_name}({json.dumps(tool_args)})",
+                        "stdout": "",
+                        "stderr": f"Action blocked: Tool '{tool_name}' execution is disabled by user policy in Settings.",
+                        "exit_code": -1,
+                        "duration": 0.0
+                    }
+                    steps_executed.append(step_record)
+                    follow_up_prompt = (
+                        f"{current_ctx_prompt}\n\n"
+                        f"ASSISTANT:\n```call_mcp\n{json.dumps({'tool': tool_name, 'arguments': tool_args}, indent=2)}\n```\n\n"
+                        f"[SYSTEM SECURITY POLICY NOTICE]\n"
+                        f"Execution of '{tool_name}' was blocked because system command execution is disabled in Settings.\n"
+                        f"Inform the user that execution is disabled and provide manual instructions or code snippets for them to run manually.\n"
+                        f"ASSISTANT:"
+                    )
+                    next_resp, next_thinking = call_model_with_cascade(follow_up_prompt, target_model)
+                    if next_resp:
+                        current_resp = next_resp
+                        if next_thinking and not thinking_text:
+                            thinking_text = next_thinking
+                    break
+
+                mcp_res = execute_mcp_tool(tool_name, tool_args, enforce_policy=False)
+                if tool_name == "read_file":
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "file_read",
+                        "action": "read_file",
+                        "tool": "read_file",
+                        "target": mcp_res.get("path", tool_args.get("path", "")),
+                        "command": f"read_file('{mcp_res.get('path', tool_args.get('path', ''))}')",
+                        "stdout": f"Read {mcp_res.get('size_bytes', 0)} bytes from {os.path.basename(mcp_res.get('path', ''))}",
+                        "preview": (mcp_res.get("content", "")[:350] + "...") if len(mcp_res.get("content", "")) > 350 else mcp_res.get("content", ""),
+                        "stderr": mcp_res.get("error", "") if not mcp_res.get("success") else "",
+                        "exit_code": 0 if mcp_res.get("success") else 1,
+                        "duration": mcp_res.get("duration", 0.0)
+                    }
+                elif tool_name == "write_file":
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "file_write",
+                        "action": "write_file",
+                        "tool": "write_file",
+                        "target": mcp_res.get("path", tool_args.get("path", "")),
+                        "command": f"write_file('{mcp_res.get('path', tool_args.get('path', ''))}')",
+                        "stdout": f"Wrote {mcp_res.get('bytes_written', 0)} bytes to {os.path.basename(mcp_res.get('path', ''))}",
+                        "stderr": mcp_res.get("error", "") if not mcp_res.get("success") else "",
+                        "exit_code": 0 if mcp_res.get("success") else 1,
+                        "duration": mcp_res.get("duration", 0.0)
+                    }
+                elif tool_name in ("search_files", "list_directory"):
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "file_search",
+                        "action": tool_name,
+                        "tool": tool_name,
+                        "target": mcp_res.get("path", tool_args.get("path", "")),
+                        "command": f"{tool_name}('{tool_args.get('path', '')}', pattern='{tool_args.get('pattern', '*')}')" if tool_name == "search_files" else f"list_directory('{tool_args.get('path', '')}')",
+                        "stdout": f"Found {mcp_res.get('total_found') or mcp_res.get('count', 0)} items",
+                        "preview": json.dumps(mcp_res.get("matches") or mcp_res.get("items") or [], indent=2)[:350],
+                        "stderr": mcp_res.get("error", "") if not mcp_res.get("success") else "",
+                        "exit_code": 0 if mcp_res.get("success") else 1,
+                        "duration": mcp_res.get("duration", 0.0)
+                    }
+                elif tool_name in ("launch_app", "open_file"):
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "app_launch",
+                        "action": tool_name,
+                        "tool": tool_name,
+                        "target": mcp_res.get("target", tool_args.get("path") or tool_args.get("app", "")),
+                        "command": f"Start-Process '{mcp_res.get('target', '')}'",
+                        "stdout": f"Launched application: {mcp_res.get('target', '')}",
+                        "stderr": mcp_res.get("stderr", "") if not mcp_res.get("success") else "",
+                        "exit_code": mcp_res.get("exit_code", 0),
+                        "duration": mcp_res.get("duration", 0.0)
+                    }
+                else:
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "mcp",
+                        "action": tool_name,
+                        "tool": tool_name,
+                        "target": str(tool_args),
+                        "command": f"mcp:{tool_name}({json.dumps(tool_args)})",
+                        "stdout": json.dumps(mcp_res.get("matches") or mcp_res.get("items") or mcp_res.get("content") or mcp_res.get("info") or mcp_res, indent=2) if mcp_res.get("success") else "",
+                        "stderr": mcp_res.get("error", "") if not mcp_res.get("success") else "",
+                        "exit_code": 0 if mcp_res.get("success") else 1,
+                        "duration": mcp_res.get("duration", 0.0)
+                    }
                 steps_executed.append(step_record)
 
                 formatted_result = json.dumps(mcp_res, indent=2)
@@ -1265,14 +1445,44 @@ def query_gemini_assistant(
                     f"ASSISTANT:"
                 )
             else:
-                exec_res = execute_system_command(cmd)
-                step_record.update({
+                if not enable_system_commands:
+                    step_record = {
+                        "step": current_step_num,
+                        "type": "blocked",
+                        "action": "execute_powershell",
+                        "command": cmd,
+                        "stdout": "",
+                        "stderr": "Command execution blocked: System command execution is disabled by user policy in Settings.",
+                        "exit_code": -1,
+                        "duration": 0.0
+                    }
+                    steps_executed.append(step_record)
+                    follow_up_prompt = (
+                        f"{current_ctx_prompt}\n\n"
+                        f"ASSISTANT:\n```execute_powershell\n{cmd}\n```\n\n"
+                        f"[SYSTEM SECURITY POLICY NOTICE]\n"
+                        f"Command execution was blocked because system command execution is disabled in Settings.\n"
+                        f"Inform the user that execution is disabled and provide the PowerShell code for manual execution.\n"
+                        f"ASSISTANT:"
+                    )
+                    next_resp, next_thinking = call_model_with_cascade(follow_up_prompt, target_model)
+                    if next_resp:
+                        current_resp = next_resp
+                        if next_thinking and not thinking_text:
+                            thinking_text = next_thinking
+                    break
+
+                exec_res = execute_system_command(cmd, enforce_policy=False)
+                step_record = {
+                    "step": current_step_num,
+                    "type": "powershell",
+                    "action": "execute_powershell",
                     "command": cmd,
                     "stdout": exec_res["stdout"],
                     "stderr": exec_res["stderr"],
                     "exit_code": exec_res["exit_code"],
                     "duration": exec_res["duration"]
-                })
+                }
                 steps_executed.append(step_record)
 
                 err_msg = f"Error: {exec_res['stderr']}\n" if exec_res.get("stderr") else ""
