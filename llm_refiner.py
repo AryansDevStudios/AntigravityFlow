@@ -24,7 +24,51 @@ DEFAULT_SYSTEM_PROMPT = (
 
 import db
 
-def discover_server():
+def find_language_server_binary():
+    """Finds installed language_server.exe binary path on Windows."""
+    candidates = [
+        os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        os.path.join(os.environ.get('USERPROFILE', ''), '.gemini', 'bin', 'language_server.exe'),
+        os.path.join(os.environ.get('PROGRAMFILES', ''), 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    return None
+
+def start_language_server_process():
+    """Attempts to auto-launch language_server.exe in persistent background mode if not already running."""
+    ls_bin = find_language_server_binary()
+    if not ls_bin:
+        return None
+    try:
+        import uuid
+        csrf_token = str(uuid.uuid4())
+        cmd = [
+            ls_bin,
+            "--standalone",
+            "--override_ide_name", "antigravity",
+            "--subclient_type", "hub",
+            "--override_ide_version", "2.19.1",
+            "--override_user_agent_name", "antigravity",
+            "--https_server_port", "0",
+            "--csrf_token", csrf_token,
+            "--app_data_dir", "antigravity",
+            "--api_server_url", "https://generativelanguage.googleapis.com",
+            "--cloud_code_endpoint", "https://daily-cloudcode-pa.googleapis.com",
+            "--enable_sidecars"
+        ]
+        flags = 0
+        if os.name == 'nt':
+            flags = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+        print(f"[LLM Refiner] Auto-started language_server.exe (PID: {proc.pid})")
+        return proc
+    except Exception as e:
+        print(f"[LLM Refiner] Notice: Could not auto-start language_server: {e}")
+        return None
+
+def discover_server(raise_on_error=True, auto_start=True):
     # 1. Ultra-fast Cache Check: Validate cached port and token (< 15ms)
     cache_path = os.path.join(db.DATA_DIR, ".server_cache.json")
     if os.path.exists(cache_path):
@@ -54,8 +98,22 @@ def discover_server():
         except Exception:
             continue
 
+    if not server_proc and auto_start:
+        start_language_server_process()
+        time.sleep(1.2)
+        for p in psutil.process_iter(['name', 'cmdline', 'pid']):
+            try:
+                name = (p.info.get('name') or '').lower()
+                if 'language_server' in name:
+                    server_proc = p
+                    break
+            except Exception:
+                continue
+
     if not server_proc:
-        raise RuntimeError("Antigravity language_server.exe is not running.")
+        if raise_on_error:
+            raise RuntimeError("Antigravity language_server.exe is not running.")
+        return None, None
 
     cmd = ' '.join(server_proc.info.get('cmdline') or [])
     token_match = re.search(r'--csrf_token\s+([a-f0-9-]+)', cmd)
@@ -115,7 +173,9 @@ def discover_server():
             continue
 
     if not active_port:
-        raise RuntimeError(f"Could not connect via HTTPS to any port: {ports}")
+        if raise_on_error:
+            raise RuntimeError(f"Could not connect via HTTPS to any port: {ports}")
+        return None, None
 
     # Persist in cache for instant sub-millisecond reuse
     cache_dirs = [db.DATA_DIR]

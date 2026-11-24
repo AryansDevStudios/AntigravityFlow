@@ -112,6 +112,16 @@ if (!gotTheLock) {
       }
     }
 
+    // Sync single unified Windows Task Manager startup registry entry
+    let autostartSetting = true;
+    if (fs.existsSync(CONFIG_PATH)) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}');
+        if (cfg.start_on_login !== undefined) autostartSetting = Boolean(cfg.start_on_login);
+      } catch (_) {}
+    }
+    setSystemAutostart(autostartSetting).catch(() => {});
+
     createWindow();
     createAssistantWindow();
     startAssistantBridgeServer();
@@ -552,6 +562,60 @@ ipcMain.handle('clear-history', async () => {
   }
 });
 
+const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
+const APPROVED_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+
+function setSystemAutostart(enable) {
+  return new Promise((resolve) => {
+    // 1. Always purge legacy 'com.antigravityflow.app' to guarantee single unified registration
+    execFile('reg.exe', ['delete', RUN_KEY, '/v', 'com.antigravityflow.app', '/f'], () => {});
+    execFile('reg.exe', ['delete', APPROVED_KEY, '/v', 'com.antigravityflow.app', '/f'], () => {});
+
+    // Resolve target executable: prefer installed AntigravityFlow.exe or current process
+    let targetExe = process.execPath;
+    if (!app.isPackaged) {
+      const installedExe = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'AntigravityFlow', 'AntigravityFlow.exe');
+      if (fs.existsSync(installedExe)) targetExe = installedExe;
+    }
+
+    if (enable) {
+      const regCmd = `"${targetExe}" --hidden`;
+      execFile('reg.exe', ['add', RUN_KEY, '/v', 'AntigravityFlow', '/t', 'REG_SZ', '/d', regCmd, '/f'], (err) => {
+        // Clear any disabled marker in StartupApproved so Windows Task Manager shows 'Enabled'
+        execFile('reg.exe', ['delete', APPROVED_KEY, '/v', 'AntigravityFlow', '/f'], () => {});
+        try {
+          app.setLoginItemSettings({ openAtLogin: true, path: targetExe, args: ['--hidden'] });
+        } catch (_) {}
+        resolve(!err);
+      });
+    } else {
+      execFile('reg.exe', ['delete', RUN_KEY, '/v', 'AntigravityFlow', '/f'], () => {
+        execFile('reg.exe', ['delete', APPROVED_KEY, '/v', 'AntigravityFlow', '/f'], () => {});
+        try {
+          app.setLoginItemSettings({ openAtLogin: false });
+        } catch (_) {}
+        resolve(true);
+      });
+    }
+  });
+}
+
+function checkSystemAutostart() {
+  return new Promise((resolve) => {
+    execFile('reg.exe', ['query', RUN_KEY, '/v', 'AntigravityFlow'], (err, stdout) => {
+      if (!err && stdout && stdout.includes('AntigravityFlow')) {
+        return resolve(true);
+      }
+      try {
+        const item = app.getLoginItemSettings();
+        return resolve(Boolean(item && item.openAtLogin));
+      } catch (_) {
+        return resolve(false);
+      }
+    });
+  });
+}
+
 ipcMain.handle('get-config', async () => {
   try {
     const defaults = {
@@ -566,14 +630,16 @@ ipcMain.handle('get-config', async () => {
       tts_rate: '+0%',
       tts_auto_speak_voice: true,
       theme: 'auto',
-      screen_native_resolution: true
+      screen_native_resolution: true,
+      start_on_login: true
     };
+    const isAutostart = await checkSystemAutostart();
     if (!fs.existsSync(CONFIG_PATH)) {
-      return { success: true, data: defaults };
+      return { success: true, data: { ...defaults, start_on_login: isAutostart } };
     }
     const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
     const parsed = JSON.parse(raw || '{}');
-    return { success: true, data: { ...defaults, ...parsed } };
+    return { success: true, data: { ...defaults, ...parsed, start_on_login: isAutostart } };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -592,17 +658,7 @@ ipcMain.handle('save-config', async (event, config) => {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2), 'utf-8');
 
     if (merged.start_on_login !== undefined) {
-      try {
-        if (app.isPackaged) {
-          app.setLoginItemSettings({
-            openAtLogin: Boolean(merged.start_on_login),
-            args: ['--hidden']
-          });
-        } else {
-          // In development mode, Windows autostart is managed cleanly by daemon.py
-          app.setLoginItemSettings({ openAtLogin: false });
-        }
-      } catch (_) {}
+      await setSystemAutostart(Boolean(merged.start_on_login));
     }
 
     return { success: true, data: merged };

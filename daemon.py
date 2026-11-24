@@ -95,8 +95,8 @@ ctx.verify_mode = ssl.CERT_NONE
 # ---------------------------------------------------------------------------
 # 1. Fast In-Memory Discovery via psutil (< 25ms)
 # ---------------------------------------------------------------------------
-def discover_antigravity_server():
-    return llm_refiner.discover_server()
+def discover_antigravity_server(raise_on_error=False, auto_start=True):
+    return llm_refiner.discover_server(raise_on_error=raise_on_error, auto_start=auto_start)
 
 
 # ---------------------------------------------------------------------------
@@ -130,18 +130,52 @@ def set_windows_autostart(enable: bool):
     """Configures application to start silently on Windows boot/login via Run registry key."""
     key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
     val_name = "AntigravityFlow"
+    approved_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+
+    # Always clean up legacy com.antigravityflow.app value to prevent duplicates
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
+        try:
+            winreg.DeleteValue(key, "com.antigravityflow.app")
+        except FileNotFoundError:
+            pass
+        winreg.CloseKey(key)
+    except Exception:
+        pass
+
+    # Resolve primary executable: prioritize installed AntigravityFlow.exe if present
+    appdata_local = os.environ.get('LOCALAPPDATA', '')
+    installed_app_exe = os.path.join(appdata_local, 'Programs', 'AntigravityFlow', 'AntigravityFlow.exe')
+
+    if os.path.exists(installed_app_exe):
+        cmd = f'"{installed_app_exe}" --hidden'
+    elif getattr(sys, 'frozen', False):
+        cmd = f'"{sys.executable}"'
+    else:
+        python_exe = sys.executable
+        pythonw_exe = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
+        exec_bin = pythonw_exe if os.path.exists(pythonw_exe) else python_exe
+        script_path = os.path.abspath(__file__)
+        cmd = f'"{exec_bin}" "{script_path}"'
+
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
         if enable:
-            if getattr(sys, 'frozen', False):
-                cmd = f'"{sys.executable}"'
-            else:
-                python_exe = sys.executable
-                pythonw_exe = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
-                exec_bin = pythonw_exe if os.path.exists(pythonw_exe) else python_exe
-                script_path = os.path.abspath(__file__)
-                cmd = f'"{exec_bin}" "{script_path}"'
             winreg.SetValueEx(key, val_name, 0, winreg.REG_SZ, cmd)
+            # Remove any disabled flag in StartupApproved so Task Manager shows Enabled
+            try:
+                appr_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, approved_path, 0, winreg.KEY_SET_VALUE)
+                try:
+                    winreg.DeleteValue(appr_key, val_name)
+                except FileNotFoundError:
+                    pass
+                try:
+                    winreg.DeleteValue(appr_key, "com.antigravityflow.app")
+                except FileNotFoundError:
+                    pass
+                winreg.CloseKey(appr_key)
+            except Exception:
+                pass
         else:
             try:
                 winreg.DeleteValue(key, val_name)
@@ -742,13 +776,12 @@ class DictationDaemon:
         self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "windows+alt")
         self.dictation_mode = self.cfg.get("dictation_mode", "both")
 
-        self.port, self.csrf_token = discover_antigravity_server()
-        self.headers = {
-            "content-type": "application/grpc-web+json",
-            "x-codeium-csrf-token": self.csrf_token,
-            "x-grpc-web": "1"
-        }
-        self.base_url = f"https://127.0.0.1:{self.port}/exa.language_server_pb.LanguageServerService"
+        self.port = None
+        self.csrf_token = None
+        self.headers = {}
+        self.base_url = ""
+        self.ensure_connected(auto_start=True)
+        threading.Thread(target=self._connection_watcher, daemon=True, name="LSWatcher").start()
 
         self.pill = pill_widget
         self.is_recording = False
@@ -877,9 +910,56 @@ class DictationDaemon:
                 self.pill.set_mode("toggle")
             ])
 
+    def is_server_alive(self):
+        """Checks if current port and token are alive and accepting connections."""
+        if not self.port or not self.csrf_token:
+            return False
+        try:
+            req = urllib.request.Request(
+                f"https://127.0.0.1:{self.port}/",
+                headers={"x-codeium-csrf-token": self.csrf_token}
+            )
+            with urllib.request.urlopen(req, context=ctx, timeout=0.25) as res:
+                return res.status == 200
+        except Exception:
+            return False
+
+    def ensure_connected(self, auto_start=True):
+        """Ensures active connection to language_server.exe, discovering or launching it dynamically."""
+        if self.is_server_alive():
+            return True
+
+        port, token = discover_antigravity_server(raise_on_error=False, auto_start=auto_start)
+        if port and token:
+            self.port = port
+            self.csrf_token = token
+            self.headers = {
+                "content-type": "application/grpc-web+json",
+                "x-codeium-csrf-token": self.csrf_token,
+                "x-grpc-web": "1"
+            }
+            self.base_url = f"https://127.0.0.1:{self.port}/exa.language_server_pb.LanguageServerService"
+            print(f"[Daemon] [+] Connected to Antigravity Language Server on port {self.port}")
+            self.update_tray_tooltip(f"AntigravityFlow (Ready • Dictate: {self.ptt_hotkey.upper()}, AI: {self.ai_ptt_hotkey.upper()})")
+            return True
+        else:
+            self.port = None
+            self.csrf_token = None
+            self.headers = {}
+            self.base_url = ""
+            self.update_tray_tooltip("AntigravityFlow (Waiting for Antigravity IDE...)")
+            return False
+
+    def _connection_watcher(self):
+        """Background daemon thread that monitors and auto-connects to language_server when Antigravity starts."""
+        while True:
+            time.sleep(3.5)
+            if not self.port or not self.is_server_alive():
+                self.ensure_connected(auto_start=False)
+
     def _cascade_poller(self):
         while True:
-            if not self.is_recording and self.enable_context_cascade:
+            if not self.is_recording and self.enable_context_cascade and self.port and self.csrf_token:
                 try:
                     cid = get_active_cascade_id(self.port, self.csrf_token)
                     if cid:
@@ -906,6 +986,18 @@ class DictationDaemon:
         with self.session_lock:
             if self.is_recording:
                 return
+
+            if not self.ensure_connected(auto_start=True):
+                print("[Daemon] Cannot start dictation: Language server is not running.")
+                play_sound("error", self.enable_sound)
+                if self.pill:
+                    self.pill.root.after(0, lambda: [
+                        self.pill.show(),
+                        self.pill.set_text("Waiting for Antigravity..."),
+                        self.pill.root.after(2500, self.pill.hide)
+                    ])
+                return
+
             self.active_session_type = session_type
             self.start_time = time.time()
             self.stop_requested.clear()
@@ -1340,16 +1432,7 @@ class DictationDaemon:
         # Sync Windows Startup
         set_windows_autostart(self.start_on_login)
 
-        try:
-            self.port, self.csrf_token = discover_antigravity_server()
-            self.headers = {
-                "content-type": "application/grpc-web+json",
-                "x-codeium-csrf-token": self.csrf_token,
-                "x-grpc-web": "1"
-            }
-            self.base_url = f"https://127.0.0.1:{self.port}/exa.language_server_pb.LanguageServerService"
-        except Exception:
-            pass
+        self.ensure_connected(auto_start=True)
 
         self.enable_ai_hotkey = self.cfg.get("enable_ai_hotkey", True)
         self.ai_ptt_hotkey = self.cfg.get("ai_ptt_hotkey", "windows+ctrl")
