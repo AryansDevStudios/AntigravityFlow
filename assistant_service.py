@@ -12,10 +12,27 @@ from ctypes import wintypes
 import uuid
 from PIL import Image, ImageGrab
 
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+if sys.stdout is None:
+    try:
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+    except Exception:
+        pass
+elif hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+if sys.stderr is None:
+    try:
+        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+    except Exception:
+        pass
+elif hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
@@ -1201,7 +1218,7 @@ def paste_to_active_window(text: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-if __name__ == "__main__":
+def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1].lower()
         if cmd == "query":
@@ -1303,4 +1320,7 @@ if __name__ == "__main__":
             print(json.dumps({"success": False, "error": f"Unknown command: {cmd}"}))
     else:
         print(json.dumps({"success": True, "status": "Assistant Service Ready"}))
+
+if __name__ == "__main__":
+    main()
 

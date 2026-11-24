@@ -97,9 +97,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path "release-artifacts" -Force
+          $pkg = Get-Content "ui/package.json" | ConvertFrom-Json
+          $ver = $pkg.version
           $setupFile = Get-ChildItem -Path "ui/dist/*Setup*.exe" | Select-Object -First 1
           if ($setupFile) {
-            $destName = "AntigravityFlow-Setup-${{ matrix.target.label }}.exe"
+            $destName = "AntigravityFlow-Setup-$ver-${{ matrix.target.label }}.exe"
             Copy-Item $setupFile.FullName -Destination "release-artifacts/$destName"
             Write-Host "Prepared standalone all-in-one installer: $destName"
           } else {
@@ -152,10 +154,11 @@ jobs:
           Get-ChildItem -Path "all-artifacts" -Recurse -Filter "*.exe" | ForEach-Object {
             Copy-Item $_.FullName -Destination "release-assets/" -Force
           }
+          $ver = "${{ steps.get_version.outputs.version }}"
           # Default installer pointing to x64 for instant 1-click download
           $x64 = Get-ChildItem -Path "release-assets/*-x64.exe" | Select-Object -First 1
           if ($x64) {
-            Copy-Item $x64.FullName -Destination "release-assets/AntigravityFlow-Installer.exe" -Force
+            Copy-Item $x64.FullName -Destination "release-assets/AntigravityFlow-Installer-$ver-x64.exe" -Force
           }
           Get-ChildItem -Path "release-assets" | Select-Object Name, Length
 
@@ -168,13 +171,13 @@ jobs:
             ## AntigravityFlow ${{ steps.get_version.outputs.tag }}
 
             Smart Voice Dictation & Multimodal AI Assistant for Google Antigravity.
-            Each installer below is an **all-in-one standalone installer & updater**. It bundles the full UI, Python background daemon, Edge TTS neural voices, and AI bridges. Running the installer will install AntigravityFlow or update an existing installation seamlessly.
+            Each installer below is an **all-in-one standalone installer & updater**. It bundles the full UI, native background daemon, Edge TTS neural voices, and AI bridges. Running the installer will install AntigravityFlow or update an existing installation seamlessly. No Python installation is needed.
 
             ### Choose Your Windows Processor Architecture:
-            - **[AntigravityFlow-Installer.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Installer.exe)**: Standard 1-click Installer (x64)
-            - **[AntigravityFlow-Setup-x64.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-x64.exe)**: Windows 64-bit (Intel Core / AMD Ryzen)
-            - **[AntigravityFlow-Setup-arm.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-arm.exe)**: Windows ARM (Qualcomm Snapdragon X Elite / Plus, Surface Pro 11, Copilot+ PCs)
-            - **[AntigravityFlow-Setup-x32.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-x32.exe)**: Windows 32-bit (Legacy Intel/AMD x86 PCs)
+            - **[AntigravityFlow-Installer-${{ steps.get_version.outputs.version }}-x64.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Installer-${{ steps.get_version.outputs.version }}-x64.exe)**: Standard 1-click Installer (x64)
+            - **[AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-x64.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-x64.exe)**: Windows 64-bit (Intel Core / AMD Ryzen)
+            - **[AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-arm.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-arm.exe)**: Windows ARM (Qualcomm Snapdragon X Elite / Plus, Surface Pro 11, Copilot+ PCs)
+            - **[AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-x32.exe](https://github.com/AryansDevStudios/AntigravityFlow/releases/download/${{ steps.get_version.outputs.tag }}/AntigravityFlow-Setup-${{ steps.get_version.outputs.version }}-x32.exe)**: Windows 32-bit (Legacy Intel/AMD x86 PCs)
 
             ### Notes:
             - **No extra files needed**: Everything is self-contained in the single installer.

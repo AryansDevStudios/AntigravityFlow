@@ -36,6 +36,16 @@ function decryptAudioBuffer(encBuffer) {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
+function getDaemonExecutablePath() {
+  if (app.isPackaged) {
+    const embedded = path.join(process.resourcesPath, 'bin', 'AntigravityFlowDaemon.exe');
+    if (fs.existsSync(embedded)) return embedded;
+  }
+  const distExe = path.join(BASE_DIR, 'dist', 'AntigravityFlowDaemon.exe');
+  if (fs.existsSync(distExe)) return distExe;
+  return null;
+}
+
 function getPythonExecutable() {
   if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
     return process.env.PYTHON_PATH;
@@ -54,6 +64,97 @@ function getPythonExecutable() {
     if (fs.existsSync(c)) return c;
   }
   return 'python';
+}
+
+function getBackendExecutable() {
+  if (app.isPackaged) {
+    const packagedDaemon = path.join(process.resourcesPath, 'bin', 'AntigravityFlowDaemon.exe');
+    if (fs.existsSync(packagedDaemon)) return packagedDaemon;
+  }
+  const localDistDaemon = path.join(BASE_DIR, 'dist', 'AntigravityFlowDaemon.exe');
+  if (fs.existsSync(localDistDaemon)) return localDistDaemon;
+  return null;
+}
+
+let isSpawningDaemon = false;
+function spawnDaemonProcess() {
+  if (isSpawningDaemon) return;
+  isSpawningDaemon = true;
+  setTimeout(() => { isSpawningDaemon = false; }, 3000);
+
+  const exe = getBackendExecutable();
+  const { spawn } = require('child_process');
+  if (exe) {
+    try {
+      const child = spawn(exe, [], { detached: true, stdio: 'ignore', windowsHide: true });
+      child.unref();
+    } catch (e) {
+      console.warn('[Daemon] Error spawning daemon executable:', e.message);
+    }
+  } else if (!app.isPackaged) {
+    try {
+      const pythonExe = getPythonExecutable();
+      const daemonPy = path.join(BASE_DIR, 'daemon.py');
+      const child = spawn(pythonExe, [daemonPy], { detached: true, stdio: 'ignore', windowsHide: true });
+      child.unref();
+    } catch (e) {
+      console.warn('[Daemon] Error spawning daemon Python worker:', e.message);
+    }
+  }
+}
+
+function ensureDaemonRunning() {
+  const pingReq = http.request({
+    hostname: '127.0.0.1',
+    port: 48198,
+    path: '/status',
+    method: 'GET',
+    timeout: 500
+  }, (res) => {
+    // Daemon is healthy
+  });
+  pingReq.on('error', () => {
+    spawnDaemonProcess();
+  });
+  pingReq.on('timeout', () => {
+    pingReq.destroy();
+    spawnDaemonProcess();
+  });
+  pingReq.end();
+}
+
+function runBackendCommand(subcommand, args = [], options = {}, callback) {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+  const promise = new Promise((resolve, reject) => {
+    const exe = getBackendExecutable();
+    const finalArgs = [subcommand, ...args];
+    const opts = { maxBuffer: 15 * 1024 * 1024, windowsHide: true, ...options };
+
+    if (exe) {
+      execFile(exe, finalArgs, opts, (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
+        resolve(stdout);
+      });
+    } else if (!app.isPackaged) {
+      const pythonExe = getPythonExecutable();
+      const daemonPy = path.join(BASE_DIR, 'daemon.py');
+      execFile(pythonExe, [daemonPy, ...finalArgs], opts, (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
+        resolve(stdout);
+      });
+    } else {
+      reject(new Error('Backend daemon executable not found in application bundle.'));
+    }
+  });
+
+  if (callback) {
+    promise.then(out => callback(null, out, '')).catch(err => callback(err, '', err.message));
+    return;
+  }
+  return promise;
 }
 
 let mainWindow = null;
@@ -86,31 +187,9 @@ if (!gotTheLock) {
     // Tells Windows Shell to use our black and gold emblem for the taskbar icon
     app.setAppUserModelId('com.antigravityflow.app');
 
-    // If running from packaged installer, spawn bundled background daemon only if not already active
-    if (app.isPackaged) {
-      const embeddedDaemon = path.join(process.resourcesPath, 'bin', 'AntigravityFlowDaemon.exe');
-      if (fs.existsSync(embeddedDaemon)) {
-        const pingReq = http.request({
-          hostname: '127.0.0.1',
-          port: 48198,
-          path: '/status',
-          method: 'GET',
-          timeout: 400
-        }, (res) => {
-          // Daemon is already running cleanly!
-        });
-        pingReq.on('error', () => {
-          const { spawn } = require('child_process');
-          spawn(embeddedDaemon, [], { detached: true, stdio: 'ignore' }).unref();
-        });
-        pingReq.on('timeout', () => {
-          pingReq.destroy();
-          const { spawn } = require('child_process');
-          spawn(embeddedDaemon, [], { detached: true, stdio: 'ignore' }).unref();
-        });
-        pingReq.end();
-      }
-    }
+    // Continuous background daemon supervisor
+    ensureDaemonRunning();
+    setInterval(ensureDaemonRunning, 10000);
 
     // Sync single unified Windows Task Manager startup registry entry
     let autostartSetting = true;
@@ -384,23 +463,19 @@ async function captureCleanScreenshot() {
       }
     } catch (_) {}
 
-    // 3. Fallback: Python assistant_service.py if present
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    if (fs.existsSync(pythonScript)) {
-      return await new Promise((resolve) => {
-        const pythonExe = getPythonExecutable();
-        execFile(pythonExe, [pythonScript, 'screenshot'], { maxBuffer: 15 * 1024 * 1024 }, (error, stdout, stderr) => {
-          if (error) {
-            return resolve({ success: false, error: stderr || error.message });
-          }
-          try {
-            resolve(JSON.parse(stdout.trim()));
-          } catch (parseErr) {
-            resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
-          }
-        });
+    // 3. Fallback: Standalone backend daemon worker
+    return await new Promise((resolve) => {
+      runBackendCommand('screenshot', [], { maxBuffer: 15 * 1024 * 1024 }, (error, stdout, stderr) => {
+        if (error) {
+          return resolve({ success: false, error: stderr || error.message });
+        }
+        try {
+          resolve(JSON.parse(stdout.trim()));
+        } catch (parseErr) {
+          resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
+        }
       });
-    }
+    });
 
     return { success: false, error: 'Screen capture failed: no capture source available.' };
   } catch (err) {
@@ -694,13 +769,13 @@ ipcMain.handle('get-vocabulary', async () => {
         return { success: true, data: parsed };
       }
     }
-    // Fallback: seed from formatter.load_vocabulary()
+    // Fallback: seed from formatter.load_vocabulary() via daemon
     return new Promise((resolve) => {
-      const pythonExe = getPythonExecutable();
-      execFile(pythonExe, ['-c', 'import formatter, json; print(json.dumps(formatter.load_vocabulary()))'], { cwd: BASE_DIR }, (err, stdout) => {
+      runBackendCommand('vocab-get', [], { cwd: BASE_DIR }, (err, stdout) => {
         if (err) return resolve({ success: true, data: {} });
         try {
-          resolve({ success: true, data: JSON.parse(stdout.trim()) });
+          const res = JSON.parse(stdout.trim());
+          resolve(res.data ? res : { success: true, data: res });
         } catch (_) {
           resolve({ success: true, data: {} });
         }
@@ -729,11 +804,11 @@ ipcMain.handle('get-macros', async () => {
     }
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, ['-c', 'import db, json; print(json.dumps(db.get_macros()))'], { cwd: BASE_DIR }, (err, stdout) => {
+    runBackendCommand('macro-get', [], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, data: [] });
       try {
-        resolve({ success: true, data: JSON.parse(stdout.trim()) });
+        const res = JSON.parse(stdout.trim());
+        resolve(res.data ? res : { success: true, data: res });
       } catch (_) {
         resolve({ success: false, data: [] });
       }
@@ -747,9 +822,8 @@ ipcMain.handle('save-macro', async (event, macro) => {
     if (daemonRes && daemonRes.success) return daemonRes;
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify(macro || {});
-    execFile(pythonExe, ['-c', `import db, json, sys; m = json.loads(sys.argv[1]); res = db.save_macro(m.get('trigger_keyword',''), m.get('expansion_text',''), m.get('description',''), m.get('category','General'), m.get('id')); print(json.dumps(res))`, payload], { cwd: BASE_DIR }, (err, stdout) => {
+    runBackendCommand('macro-save', [payload], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, error: err.message });
       try { resolve(JSON.parse(stdout.trim())); } catch (_) { resolve({ success: true }); }
     });
@@ -762,18 +836,20 @@ ipcMain.handle('delete-macro', async (event, id) => {
     if (daemonRes && daemonRes.success) return daemonRes;
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, ['-c', `import db, sys; res = db.delete_macro(int(sys.argv[1])); print(res)`, String(id)], { cwd: BASE_DIR }, (err) => {
+    runBackendCommand('macro-delete', [String(id)], { cwd: BASE_DIR }, (err) => {
       resolve({ success: !err });
     });
   });
 });
 
 ipcMain.handle('expand-macro', async (event, text) => {
+  try {
+    const daemonRes = await callDaemonControl('/assistant/macros/expand', { text }, 2000);
+    if (daemonRes && daemonRes.success) return daemonRes;
+  } catch (_) {}
   return new Promise((resolve) => {
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify(text || "");
-    execFile(pythonExe, ['-c', `import db, json, sys; t = json.loads(sys.argv[1]); exp = db.expand_macro_text(t); print(json.dumps({'success': True, 'expanded': exp}))`, payload], { cwd: BASE_DIR }, (err, stdout) => {
+    runBackendCommand('macro-expand', [payload], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, expanded: text });
       try { resolve(JSON.parse(stdout.trim())); } catch (_) { resolve({ success: true, expanded: text }); }
     });
@@ -826,11 +902,12 @@ ipcMain.handle('extract-audio', async (event, id) => {
 
 // Retry Transcription via Antigravity local server
 ipcMain.handle('retry-transcription', async (event, id) => {
+  try {
+    const daemonRes = await callDaemonControl('/assistant/retranscribe', { id }, 10000);
+    if (daemonRes && daemonRes.success) return daemonRes;
+  } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'retranscribe.py');
-    const pythonExe = getPythonExecutable();
-    
-    execFile(pythonExe, [pythonScript, String(id)], (error, stdout, stderr) => {
+    runBackendCommand('retranscribe', [String(id)], (error, stdout, stderr) => {
       if (error) {
         return resolve({ success: false, error: stderr || error.message });
       }
@@ -868,19 +945,26 @@ ipcMain.handle('get-quota-summary', async () => {
   if (quotaCache && (now - quotaCacheTime < 20000)) {
     return quotaCache;
   }
-  // Deduplicate concurrent calls (prevent spawning duplicate Python workers)
+  // Deduplicate concurrent calls (prevent spawning duplicate workers)
   if (inFlightQuotaPromise) {
     return inFlightQuotaPromise;
   }
 
+  // Fast-path: In-process daemon control (< 2ms)
+  try {
+    const daemonRes = await callDaemonControl('/assistant/quota', {}, 2500);
+    if (daemonRes && daemonRes.success) {
+      quotaCache = daemonRes;
+      quotaCacheTime = Date.now();
+      return daemonRes;
+    }
+  } catch (_) {}
+
   inFlightQuotaPromise = new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'quota_service.py');
-    const pythonExe = getPythonExecutable();
-    
-    execFile(pythonExe, [pythonScript], { timeout: 4000 }, (error, stdout, stderr) => {
+    runBackendCommand('quota', [], { timeout: 4000 }, (error, stdout, stderr) => {
       inFlightQuotaPromise = null;
       if (error) {
-        // Fallback instantly to disk cache if Python process timed out or errored
+        // Fallback instantly to disk cache if backend worker timed out or errored
         if (fs.existsSync(USER_CACHE_PATH)) {
           try {
             const cached = JSON.parse(fs.readFileSync(USER_CACHE_PATH, 'utf-8'));
@@ -1077,11 +1161,9 @@ ipcMain.handle('get-available-models', async () => {
     }
   } catch (_) {}
 
-  // 2. Python worker fallback
+  // 2. Backend worker fallback
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, [pythonScript, 'models'], { timeout: 4000 }, (error, stdout, stderr) => {
+    runBackendCommand('models', [], { timeout: 4000 }, (error, stdout, stderr) => {
       if (error) {
         const cacheFile = path.join(DATA_DIR, 'models_cache.json');
         if (fs.existsSync(cacheFile)) {
@@ -1155,12 +1237,10 @@ ipcMain.handle('query-assistant', async (event, params) => {
     } catch (_) {}
   }
 
-  // 3. Fallback: Standalone Python process execution
+  // 3. Fallback: Standalone daemon process execution
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify(params || {});
-    execFile(pythonExe, [pythonScript, 'query', payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runBackendCommand('query', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         return resolve({ success: false, error: stderr || error.message });
       }
@@ -1215,11 +1295,13 @@ ipcMain.handle('read-clipboard-image', () => {
 });
 
 ipcMain.handle('paste-to-active-window', async (event, text) => {
+  try {
+    const daemonRes = await callDaemonControl('/assistant/paste', { text }, 2000);
+    if (daemonRes && daemonRes.success) return daemonRes;
+  } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify({ text: text });
-    execFile(pythonExe, [pythonScript, 'paste', payload], (error, stdout, stderr) => {
+    runBackendCommand('paste', [payload], (error, stdout, stderr) => {
       if (error) {
         return resolve({ success: false, error: stderr || error.message });
       }
@@ -1259,11 +1341,13 @@ ipcMain.handle('get-assistant-bounds', async () => {
 });
 
 ipcMain.handle('refine-prompt', async (event, params) => {
+  try {
+    const daemonRes = await callDaemonControl('/assistant/refine', params, 10000);
+    if (daemonRes && daemonRes.success) return daemonRes;
+  } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify(params || {});
-    execFile(pythonExe, [pythonScript, 'refine', payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runBackendCommand('refine', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) return resolve({ success: false, refined_text: (params && params.text) || '' });
       try {
         resolve(JSON.parse(stdout.trim()));
@@ -1275,11 +1359,13 @@ ipcMain.handle('refine-prompt', async (event, params) => {
 });
 
 ipcMain.handle('web-search', async (event, query) => {
+  try {
+    const daemonRes = await callDaemonControl('/assistant/search', { query }, 10000);
+    if (daemonRes && daemonRes.success) return daemonRes;
+  } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
     const payload = JSON.stringify({ query: query });
-    execFile(pythonExe, [pythonScript, 'search', payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    runBackendCommand('search', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) return resolve({ success: false, results: [] });
       try {
         resolve(JSON.parse(stdout.trim()));
@@ -1328,9 +1414,7 @@ ipcMain.handle('get-tts-voices', async () => {
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, [pythonScript, 'tts-voices'], { timeout: 4000 }, (error, stdout) => {
+    runBackendCommand('tts-voices', [], { timeout: 4000 }, (error, stdout) => {
       if (!error && stdout) {
         try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
       }
@@ -1345,9 +1429,7 @@ ipcMain.handle('play-tts-demo', async (event, voice) => {
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, [pythonScript, 'tts-demo', JSON.stringify({ voice })], { timeout: 12000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+    runBackendCommand('tts-demo', [JSON.stringify({ voice })], { timeout: 12000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
       if (!error && stdout) {
         try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
       }
@@ -1362,9 +1444,7 @@ ipcMain.handle('synthesize-speech', async (event, params) => {
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    const pythonScript = path.join(BASE_DIR, 'assistant_service.py');
-    const pythonExe = getPythonExecutable();
-    execFile(pythonExe, [pythonScript, 'tts-synth', JSON.stringify(params || {})], { timeout: 15000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+    runBackendCommand('tts-synth', [JSON.stringify(params || {})], { timeout: 15000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
       if (!error && stdout) {
         try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
       }

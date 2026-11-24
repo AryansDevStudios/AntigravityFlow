@@ -7,14 +7,20 @@ import json
 import sys
 import os
 
-# Windows console encoding safeguard & fallback logger
-DAEMON_OUT_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon_stdout.log")
+# Windows console encoding safeguard & persistent fallback logger
+_appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+_log_dir = os.path.join(_appdata, "AntigravityFlow")
+os.makedirs(_log_dir, exist_ok=True)
+DAEMON_OUT_LOG = os.path.join(_log_dir, "daemon_stdout.log")
 
 if sys.stdout is None:
     try:
-        sys.stdout = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+        sys.stdout = open(1, 'w', encoding='utf-8', buffering=1, errors='replace')
     except Exception:
-        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+        try:
+            sys.stdout = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+        except Exception:
+            sys.stdout = open(os.devnull, 'w', encoding='utf-8')
 elif hasattr(sys.stdout, 'reconfigure'):
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
@@ -23,9 +29,12 @@ elif hasattr(sys.stdout, 'reconfigure'):
 
 if sys.stderr is None:
     try:
-        sys.stderr = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+        sys.stderr = open(2, 'w', encoding='utf-8', buffering=1, errors='replace')
     except Exception:
-        sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+        try:
+            sys.stderr = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+        except Exception:
+            sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 elif hasattr(sys.stderr, 'reconfigure'):
     try:
         sys.stderr.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
@@ -297,6 +306,22 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.end_headers()
                 self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
                 return
+            elif self.path == "/assistant/quota":
+                import quota_service
+                res = quota_service.get_quota_summary()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                return
+            elif self.path == "/assistant/vocabulary":
+                import formatter
+                res = formatter.load_vocabulary()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "data": res}, ensure_ascii=False).encode('utf-8'))
+                return
             elif self.path == "/assistant/screenshot":
                 import assistant_service
                 res = assistant_service.capture_screen()
@@ -402,6 +427,57 @@ def start_daemon_control_server(daemon_instance, port=48198):
                     res = edge_tts_service.get_demo_audio(
                         voice=data.get("voice", "en-IN-NeerjaNeural")
                     )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/refine":
+                    import assistant_service
+                    res = assistant_service.refine_voice_prompt(
+                        raw_text=data.get("text", ""),
+                        model=data.get("model")
+                    )
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/search":
+                    import assistant_service
+                    res = assistant_service.search_web_unified(data.get("query", ""))
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/paste":
+                    import assistant_service
+                    res = assistant_service.paste_to_active_window(data.get("text", ""))
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(res, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/macros/expand":
+                    exp = db.expand_macro_text(data.get("text", ""))
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "expanded": exp}, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/retranscribe":
+                    import retranscribe
+                    rec_id = int(data.get("id", 0))
+                    item = retranscribe.retranscribe(rec_id)
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "data": item}, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/quota":
+                    import quota_service
+                    res = quota_service.get_quota_summary()
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
@@ -780,8 +856,6 @@ class DictationDaemon:
         self.csrf_token = None
         self.headers = {}
         self.base_url = ""
-        self.ensure_connected(auto_start=True)
-        threading.Thread(target=self._connection_watcher, daemon=True, name="LSWatcher").start()
 
         self.pill = pill_widget
         self.is_recording = False
@@ -834,6 +908,10 @@ class DictationDaemon:
 
         self.tray_icon = None
         self.input_stream = None
+
+        # Safe connection initialization after all attributes are loaded
+        self.ensure_connected(auto_start=True)
+        threading.Thread(target=self._connection_watcher, daemon=True, name="LSWatcher").start()
 
         # Context cascade cache (polled periodically in background)
         self.cached_cascade_id = ""
@@ -1510,68 +1588,130 @@ def check_existing_instance():
     return False
 
 def main():
-    if check_existing_instance():
-        print("[+] AntigravityFlow daemon is already running on port 48198. Exiting cleanly.")
-        sys.exit(0)
+    try:
+        if check_existing_instance():
+            print("[+] AntigravityFlow daemon is already running on port 48198. Exiting cleanly.")
+            sys.exit(0)
 
-    pill = FloatingPill()
-    pill.hide()
+        pill = FloatingPill()
+        pill.hide()
 
-    daemon = DictationDaemon(pill_widget=pill)
-    daemon.reload_config()
-
-    # Start local HTTP control server on 127.0.0.1:48198 for seamless Electron UI triggers
-    start_daemon_control_server(daemon, port=48198)
-
-    # Pre-warm AntigravityFlow dashboard in background for instant opening
-    prewarm_ui()
-
-    # Wire pill buttons
-    pill.on_cancel = daemon.cancel_session
-    pill.on_confirm = daemon.stop_session
-
-    # Hook dual-mode keyboard listener
-    keyboard.hook(daemon.hotkey_mgr.handle_event)
-
-    def on_open_ui(icon, item):
-        open_ui()
-
-    def on_reload(icon, item):
+        daemon = DictationDaemon(pill_widget=pill)
         daemon.reload_config()
 
-    def on_quit(icon, item):
-        icon.stop()
-        pill.root.after(0, pill.root.destroy)
+        # Start local HTTP control server on 127.0.0.1:48198 for seamless Electron UI triggers
+        start_daemon_control_server(daemon, port=48198)
+
+        # Pre-warm AntigravityFlow dashboard in background for instant opening
+        prewarm_ui()
+
+        # Wire pill buttons
+        pill.on_cancel = daemon.cancel_session
+        pill.on_confirm = daemon.stop_session
+
+        # Hook dual-mode keyboard listener
+        keyboard.hook(daemon.hotkey_mgr.handle_event)
+
+        def on_open_ui(icon, item):
+            open_ui()
+
+        def on_reload(icon, item):
+            daemon.reload_config()
+
+        def on_quit(icon, item):
+            icon.stop()
+            pill.root.after(0, pill.root.destroy)
+            try:
+                for p in psutil.process_iter(['name', 'cmdline']):
+                    cmd = ' '.join(p.info['cmdline'] or [])
+                    if 'electron' in (p.info['name'] or '').lower() and 'AntigravityFlow' in cmd:
+                        p.kill()
+            except Exception:
+                pass
+            os._exit(0)
+
+        menu = pystray.Menu(
+            pystray.MenuItem("🎙️ AntigravityFlow", lambda: None, enabled=False),
+            pystray.MenuItem(f"Dictate: Hold {daemon.ptt_hotkey.upper()} / Tap {daemon.toggle_hotkey.upper()}", lambda: None, enabled=False),
+            pystray.MenuItem(f"AntigravityFlow AI: Hold {daemon.ai_ptt_hotkey.upper()} / Tap {daemon.ai_toggle_hotkey.upper()}", lambda: None, enabled=False),
+            pystray.MenuItem(f"Quick Paste: Tap {daemon.paste_last_hotkey.upper()}", lambda: None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("✨ AntigravityFlow Dashboard", on_open_ui, default=True),
+            pystray.MenuItem("🔄 Reload Config", on_reload),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("❌ Exit", on_quit)
+        )
+
+        daemon.tray_icon = pystray.Icon("AntigravityFlow", create_tray_image(), f"AntigravityFlow (Dictate: {daemon.ptt_hotkey.upper()}, AI: {daemon.ai_ptt_hotkey.upper()})", menu)
+        daemon.tray_icon.run_detached()
+
+        print(f"\n[+] AntigravityFlow Dual-Lane Engine Active")
+        print(f"[>] Dictation: Hold [{daemon.ptt_hotkey.upper()}] to speak & paste, Tap [{daemon.toggle_hotkey.upper()}] for hands-free.")
+        print(f"[>] AntigravityFlow AI: Hold [{daemon.ai_ptt_hotkey.upper()}] to speak to AI, Tap [{daemon.ai_toggle_hotkey.upper()}] for hands-free AI.")
+        print(f"[>] Quick-Paste: Tap [{daemon.paste_last_hotkey.upper()}] to instantly paste last dictation.")
+
+        pill.root.mainloop()
+    except Exception as e:
+        import traceback
+        err_msg = traceback.format_exc()
         try:
-            for p in psutil.process_iter(['name', 'cmdline']):
-                cmd = ' '.join(p.info['cmdline'] or [])
-                if 'electron' in (p.info['name'] or '').lower() and 'AntigravityFlow' in cmd:
-                    p.kill()
+            with open(DAEMON_OUT_LOG, "a", encoding="utf-8") as f:
+                f.write(f"\n[FATAL DAEMON CRASH]:\n{err_msg}\n")
         except Exception:
             pass
-        os._exit(0)
-
-    menu = pystray.Menu(
-        pystray.MenuItem("🎙️ AntigravityFlow", lambda: None, enabled=False),
-        pystray.MenuItem(f"Dictate: Hold {daemon.ptt_hotkey.upper()} / Tap {daemon.toggle_hotkey.upper()}", lambda: None, enabled=False),
-        pystray.MenuItem(f"AntigravityFlow AI: Hold {daemon.ai_ptt_hotkey.upper()} / Tap {daemon.ai_toggle_hotkey.upper()}", lambda: None, enabled=False),
-        pystray.MenuItem(f"Quick Paste: Tap {daemon.paste_last_hotkey.upper()}", lambda: None, enabled=False),
-        pystray.Menu.SEPARATOR,
-        pystray.MenuItem("✨ AntigravityFlow Dashboard", on_open_ui, default=True),
-        pystray.MenuItem("🔄 Reload Config", on_reload),
-        pystray.Menu.SEPARATOR,
-        pystray.MenuItem("❌ Exit", on_quit)
-    )
-
-    daemon.tray_icon = pystray.Icon("AntigravityFlow", create_tray_image(), f"AntigravityFlow (Dictate: {daemon.ptt_hotkey.upper()}, AI: {daemon.ai_ptt_hotkey.upper()})", menu)
-    daemon.tray_icon.run_detached()
-
-    print(f"\n[+] AntigravityFlow Dual-Lane Engine Active")
-    print(f"[>] Dictation: Hold [{daemon.ptt_hotkey.upper()}] to speak & paste, Tap [{daemon.toggle_hotkey.upper()}] for hands-free.")
-    print(f"[>] AntigravityFlow AI: Hold [{daemon.ai_ptt_hotkey.upper()}] to speak to AI, Tap [{daemon.ai_toggle_hotkey.upper()}] for hands-free AI.")
-    print(f"[>] Quick-Paste: Tap [{daemon.paste_last_hotkey.upper()}] to instantly paste last dictation.")
-
-    pill.root.mainloop()
+        sys.exit(1)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1].lower()
+        if cmd == "quota":
+            import quota_service
+            res = quota_service.get_quota_summary()
+            print(json.dumps(res, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd == "retranscribe":
+            import retranscribe
+            rec_id = int(sys.argv[2])
+            res = retranscribe.retranscribe(rec_id)
+            print(json.dumps({"success": True, "data": res}, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("vocab-load", "vocab-get"):
+            import formatter
+            print(json.dumps({"success": True, "data": formatter.load_vocabulary()}, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("macro-get", "macros-get"):
+            print(json.dumps({"success": True, "data": db.get_macros()}, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("macro-save", "macros-save"):
+            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
+            m = json.loads(raw_input)
+            res = db.save_macro(
+                m.get("trigger_keyword", m.get("trigger", "")),
+                m.get("expansion_text", m.get("expansion", "")),
+                m.get("description", ""),
+                m.get("category", "General"),
+                m.get("id")
+            )
+            print(json.dumps(res, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("macro-delete", "macros-delete"):
+            rec_id = int(sys.argv[2])
+            res = db.delete_macro(rec_id)
+            print(json.dumps({"success": bool(res)}, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("macro-expand", "macros-expand"):
+            raw_input = sys.argv[2] if len(sys.argv) > 2 else '""'
+            try:
+                t = json.loads(raw_input)
+            except Exception:
+                t = raw_input
+            exp = db.expand_macro_text(t)
+            print(json.dumps({"success": True, "expanded": exp}, ensure_ascii=False))
+            sys.exit(0)
+        elif cmd in ("query", "models", "search", "exec", "screenshot", "paste", "refine", "tts-synth", "tts-demo", "tts-voices"):
+            import assistant_service
+            sys.argv.pop(0)  # shift so assistant_service receives subcommand as sys.argv[1]
+            sys.argv.insert(0, "assistant_service")
+            assistant_service.main()
+            sys.exit(0)
     main()
