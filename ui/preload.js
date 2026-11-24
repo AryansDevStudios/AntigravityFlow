@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.invoke('window-minimize'),
   maximize: () => ipcRenderer.invoke('window-maximize'),
   close: () => ipcRenderer.invoke('window-close'),
+  quitApp: () => ipcRenderer.invoke('app-quit'),
 
   // History & Config
   getHistory: () => ipcRenderer.invoke('get-history'),

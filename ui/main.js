@@ -103,7 +103,11 @@ function spawnDaemonProcess() {
   }
 }
 
+let daemonSupervisorInterval = null;
+let isAppQuitting = false;
+
 function ensureDaemonRunning() {
+  if (isAppQuitting) return;
   const pingReq = http.request({
     hostname: '127.0.0.1',
     port: 48198,
@@ -114,11 +118,11 @@ function ensureDaemonRunning() {
     // Daemon is healthy
   });
   pingReq.on('error', () => {
-    spawnDaemonProcess();
+    if (!isAppQuitting) spawnDaemonProcess();
   });
   pingReq.on('timeout', () => {
     pingReq.destroy();
-    spawnDaemonProcess();
+    if (!isAppQuitting) spawnDaemonProcess();
   });
   pingReq.end();
 }
@@ -183,13 +187,34 @@ if (!gotTheLock) {
     } catch (_) {}
   });
 
+  app.on('before-quit', () => {
+    isAppQuitting = true;
+    if (daemonSupervisorInterval) {
+      clearInterval(daemonSupervisorInterval);
+      daemonSupervisorInterval = null;
+    }
+    try {
+      const postReq = http.request({
+        hostname: '127.0.0.1',
+        port: 48198,
+        path: '/shutdown',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 500
+      });
+      postReq.on('error', () => {});
+      postReq.write('{}');
+      postReq.end();
+    } catch (_) {}
+  });
+
   app.whenReady().then(() => {
     // Tells Windows Shell to use our black and gold emblem for the taskbar icon
     app.setAppUserModelId('com.antigravityflow.app');
 
     // Continuous background daemon supervisor
     ensureDaemonRunning();
-    setInterval(ensureDaemonRunning, 10000);
+    daemonSupervisorInterval = setInterval(ensureDaemonRunning, 10000);
 
     // Sync single unified Windows Task Manager startup registry entry
     let autostartSetting = true;
@@ -586,6 +611,10 @@ ipcMain.handle('window-close', () => {
     // Hide window instead of cold-quitting: next opening is instantaneous (< 30ms)!
     mainWindow.hide();
   }
+});
+ipcMain.handle('app-quit', () => {
+  isAppQuitting = true;
+  app.quit();
 });
 
 // History & Config

@@ -78,6 +78,9 @@ class FloatingPill:
         self.photo_img = None
         self.is_visible = False
         self.anim_job = None
+        self.text = ""
+        self._last_active_time = time.time()
+        self._show_time = time.time()
 
     def set_mode(self, mode: str):
         self.mode = mode
@@ -94,6 +97,18 @@ class FloatingPill:
 
     def set_state(self, state: str):
         self.state = state
+        self._last_active_time = time.time()
+        if state == "idle":
+            self.hover_cancel = False
+            self.hover_confirm = False
+
+    def set_text(self, text: str = ""):
+        self.text = text
+        self._last_active_time = time.time()
+
+    def reset_and_hide(self):
+        self.state = "idle"
+        self.hide()
 
     def set_display_affinity(self, exclude: bool):
         """Dynamically set WDA_EXCLUDEFROMCAPTURE (0x11) right before capture, and 0x00 after."""
@@ -150,6 +165,8 @@ class FloatingPill:
 
     def set_volume(self, vol: float):
         self.volume_level = max(0.0, min(1.0, vol))
+        if vol > 0.05:
+            self._last_active_time = time.time()
 
     def _render_pill(self):
         S = self.SCALE
@@ -275,6 +292,16 @@ class FloatingPill:
         try:
             if not self.root or not self.root.winfo_exists():
                 return
+
+            now = time.time()
+            # Safety watchdog: prevent pill from sticking on screen
+            if self.state == "processing" and (now - self._last_active_time > 8.0):
+                self.reset_and_hide()
+                return
+            elif self.state == "recording" and (now - self._last_active_time > 45.0):
+                self.reset_and_hide()
+                return
+
             rendered = self._render_pill()
             self.photo_img = ImageTk.PhotoImage(rendered)
             self.canvas.delete("all")
@@ -286,6 +313,8 @@ class FloatingPill:
     def show(self):
         try:
             if self.root and self.root.winfo_exists():
+                self._show_time = time.time()
+                self._last_active_time = time.time()
                 self.root.deiconify()
                 if not self.is_visible:
                     self.is_visible = True
@@ -296,6 +325,7 @@ class FloatingPill:
     def hide(self):
         try:
             self.is_visible = False
+            self.state = "idle"
             if self.anim_job and self.root and self.root.winfo_exists():
                 try:
                     self.root.after_cancel(self.anim_job)

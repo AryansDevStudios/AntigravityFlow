@@ -306,6 +306,13 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.end_headers()
                 self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
                 return
+            elif self.path == "/shutdown":
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"status": "shutting_down"}')
+                threading.Thread(target=daemon_instance.shutdown, daemon=True).start()
+                return
             elif self.path == "/assistant/quota":
                 import quota_service
                 res = quota_service.get_quota_summary()
@@ -342,6 +349,13 @@ def start_daemon_control_server(daemon_instance, port=48198):
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
                     self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
+                    return
+                elif self.path == "/shutdown":
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(b'{"status": "shutting_down"}')
+                    threading.Thread(target=daemon_instance.shutdown, daemon=True).start()
                     return
                 elif self.path == "/assistant/query":
                     import assistant_service
@@ -1070,9 +1084,8 @@ class DictationDaemon:
                 play_sound("error", self.enable_sound)
                 if self.pill:
                     self.pill.root.after(0, lambda: [
-                        self.pill.show(),
-                        self.pill.set_text("Waiting for Antigravity..."),
-                        self.pill.root.after(2500, self.pill.hide)
+                        self.pill.set_state("idle"),
+                        self.pill.hide()
                     ])
                 return
 
@@ -1282,164 +1295,172 @@ class DictationDaemon:
             if self.active_session_type == "ai":
                 threading.Thread(target=notify_assistant_bridge, args=("voice-state", "", "idle"), daemon=True).start()
 
-            # 2. 500ms background listening window to capture trailing words/syllables
-            # Visual cue happened immediately at t=0ms, while mic continues capturing for 500ms
-            time.sleep(0.50)
+            try:
+                # 2. 500ms background listening window to capture trailing words/syllables
+                # Visual cue happened immediately at t=0ms, while mic continues capturing for 500ms
+                time.sleep(0.50)
 
-            # 3. Stop microphone immediately (100% Privacy - Mic is OFF)
-            self.stop_requested.set()
-            self.is_recording = False
-            if self.input_stream:
-                try:
-                    self.input_stream.stop()
-                    self.input_stream.close()
-                except Exception:
-                    pass
-                self.input_stream = None
-
-            # 4. Inject 4 frames (160ms) of comfort trailing silence to cleanly resolve final phonemes
-            silence_frame = b'\x00' * 1280
-            for _ in range(4):
-                self.audio_queue.put(silence_frame)
-
-            # 5. Sentinel in queue to let sender_worker finish
-            self.audio_queue.put(None)
-
-            # 6. Wait for sender_worker to flush chunks (< 200ms)
-            self.sender_done_event.wait(timeout=1.2)
-
-            # 7. Dispatch /EndAudioSession
-            if self.session_id:
-                end_path = "/exa.language_server_pb.LanguageServerService/EndAudioSession"
-                end_bytes = make_grpc_web_frame(json.dumps({"sessionId": self.session_id}).encode("utf-8"))
-                try:
-                    conn = http.client.HTTPSConnection('127.0.0.1', self.port, context=ctx, timeout=2.0)
-                    conn.request("POST", end_path, body=end_bytes, headers=self.headers)
-                    res = conn.getresponse()
-                    res.read()
-                    conn.close()
-                except Exception as e:
-                    print(f"[Daemon] EndAudioSession error: {e}")
-
-            # 8. Wait for Google stream to complete (~150-200ms)
-            if not self.stream_done_event.wait(timeout=2.0):
-                if self.stream_response:
+                # 3. Stop microphone immediately (100% Privacy - Mic is OFF)
+                self.stop_requested.set()
+                self.is_recording = False
+                if self.input_stream:
                     try:
-                        self.stream_response.close()
+                        self.input_stream.stop()
+                        self.input_stream.close()
                     except Exception:
                         pass
+                    self.input_stream = None
 
-            self.update_tray_tooltip("AntigravityFlow: Transcribing... ⏳")
+                # 4. Inject 4 frames (160ms) of comfort trailing silence to cleanly resolve final phonemes
+                silence_frame = b'\x00' * 1280
+                for _ in range(4):
+                    self.audio_queue.put(silence_frame)
 
-            duration = max(0.3, time.time() - self.start_time)
-            recorded_pcm = bytes(self.session_pcm_bytes)
-            category = db.categorize_app(self.active_app_at_start)
-            self.accumulator.finalize_current()
-            raw_text = self.accumulator.get_full_text().strip()
-            raw_words = len(raw_text.split()) if raw_text else 0
+                # 5. Sentinel in queue to let sender_worker finish
+                self.audio_queue.put(None)
 
-            # 9. Intelligent Zero-Loss Fallback & Discrepancy Recovery:
-            needs_recovery = False
-            if not raw_text and len(recorded_pcm) > 8000:
-                needs_recovery = True
-            elif duration >= 4.5 and len(recorded_pcm) > 144000:
-                expected_min_words = int(duration * 0.7)
-                if raw_words < expected_min_words:
-                    needs_recovery = True
+                # 6. Wait for sender_worker to flush chunks (< 200ms)
+                self.sender_done_event.wait(timeout=1.2)
 
-            if needs_recovery:
-                print(f"[Daemon] Activating zero-loss recovery (duration: {duration:.1f}s, streamed words: {raw_words})...")
-                cascade_id = self.cached_cascade_id if self.enable_context_cascade else ""
-                pre_ctx = get_precursor_context()
-                recovered_text = batch_transcriber.transcribe_audio_batch(
-                    pcm_data=recorded_pcm,
-                    port=self.port,
-                    csrf_token=self.csrf_token,
-                    cascade_id=cascade_id,
-                    pre_cursor_text=pre_ctx,
-                    category=category,
-                    timeout=5.0
-                )
-                recovered_words = len(recovered_text.split()) if recovered_text else 0
-                if recovered_text and recovered_words >= raw_words:
-                    raw_text = recovered_text
+                # 7. Dispatch /EndAudioSession
+                if self.session_id and self.port:
+                    end_path = "/exa.language_server_pb.LanguageServerService/EndAudioSession"
+                    end_bytes = make_grpc_web_frame(json.dumps({"sessionId": self.session_id}).encode("utf-8"))
+                    try:
+                        conn = http.client.HTTPSConnection('127.0.0.1', self.port, context=ctx, timeout=2.0)
+                        conn.request("POST", end_path, body=end_bytes, headers=self.headers)
+                        res = conn.getresponse()
+                        res.read()
+                        conn.close()
+                    except Exception as e:
+                        print(f"[Daemon] EndAudioSession error: {e}")
 
-            final_text = raw_text.strip() if raw_text else ""
-
-            if final_text:
-                # 1. Apply Custom Vocabulary & Acronym Formatting
-                final_text = format_transcript(final_text, category)
-
-                # 2. Speech Macro & Snippet Expansion Engine
-                macro_expanded = db.expand_macro_text(final_text)
-                if macro_expanded != final_text:
-                    print(f"[Daemon] Expanded speech macro: '{final_text}' -> '{macro_expanded[:60]}...'")
-                    final_text = macro_expanded
-
-                is_ai_lane = (self.active_session_type == "ai")
-                active_win = (getattr(self, "active_window_title", "") or "").lower()
-                is_assistant_focus = "gemini assistant" in active_win or "antigravity" in active_win
-
-                # DUAL-LANE INTELLIGENCE:
-                # If session_type is 'ai', ALWAYS route to Floating Gemini Assistant!
-                if is_ai_lane:
-                    print(f"[Daemon] Instantaneous routing to AntigravityFlow AI Assistant: '{final_text}'")
-                    threading.Thread(target=notify_assistant_bridge, args=("query", final_text), daemon=True).start()
-                    db.save_dictation(
-                        text=final_text,
-                        duration=duration,
-                        app_name=self.active_app_at_start,
-                        pcm_bytes=recorded_pcm,
-                        window_title=getattr(self, "active_window_title", ""),
-                        session_type="ai"
-                    )
-                else:
-                    # Direct writing / coding / dictation lane: execute and paste to foreground window
-                    if self.enable_ai_polish:
+                # 8. Wait for Google stream to complete (~150-200ms)
+                if not self.stream_done_event.wait(timeout=2.0):
+                    if self.stream_response:
                         try:
-                            preset = "generative" if is_ai_lane else getattr(self, "ai_preset_mode", "flow")
-                            prompt = ""
-                            if not is_ai_lane and preset == "custom":
-                                prompt = self.ai_system_prompt
+                            self.stream_response.close()
+                        except Exception:
+                            pass
 
-                            tooltip_text = "AntigravityFlow: AI Executing... ⚡🤖" if is_ai_lane else "AntigravityFlow: AI Polishing... 🤖"
-                            self.update_tray_tooltip(tooltip_text)
+                self.update_tray_tooltip("AntigravityFlow: Transcribing... ⏳")
 
-                            polished = llm_refiner.polish_with_gemini(
-                                final_text,
-                                model=self.ai_model,
-                                preset_mode=preset,
-                                system_prompt=prompt,
-                                app_name=self.active_app_at_start,
-                                window_title=getattr(self, "active_window_title", ""),
-                                system_ctx=getattr(self, "active_system_ctx", None),
-                                config=self.cfg
-                            )
-                            if polished and polished.strip():
-                                final_text = polished.strip()
-                        except Exception as err:
-                            print(f"[Daemon] AI Polish/Execution fallback: {err}")
+                duration = max(0.3, time.time() - self.start_time)
+                recorded_pcm = bytes(self.session_pcm_bytes)
+                category = db.categorize_app(self.active_app_at_start)
+                self.accumulator.finalize_current()
+                raw_text = self.accumulator.get_full_text().strip()
+                raw_words = len(raw_text.split()) if raw_text else 0
 
-                    # Save as last dictated text for instant Alt+V replay
-                    self.last_dictated_text = final_text
+                # 9. Intelligent Zero-Loss Fallback & Discrepancy Recovery:
+                needs_recovery = False
+                if not raw_text and len(recorded_pcm) > 8000:
+                    needs_recovery = True
+                elif duration >= 4.5 and len(recorded_pcm) > 144000:
+                    expected_min_words = int(duration * 0.7)
+                    if raw_words < expected_min_words:
+                        needs_recovery = True
 
-                    # Save dictation & encrypted audio recording with window title for categorization
-                    db.save_dictation(
-                        text=final_text,
-                        duration=duration,
-                        app_name=self.active_app_at_start,
-                        pcm_bytes=recorded_pcm,
-                        window_title=getattr(self, "active_window_title", ""),
-                        session_type=self.active_session_type
+                if needs_recovery and self.port and self.csrf_token:
+                    print(f"[Daemon] Activating zero-loss recovery (duration: {duration:.1f}s, streamed words: {raw_words})...")
+                    cascade_id = self.cached_cascade_id if self.enable_context_cascade else ""
+                    pre_ctx = get_precursor_context()
+                    recovered_text = batch_transcriber.transcribe_audio_batch(
+                        pcm_data=recorded_pcm,
+                        port=self.port,
+                        csrf_token=self.csrf_token,
+                        cascade_id=cascade_id,
+                        pre_cursor_text=pre_ctx,
+                        category=category,
+                        timeout=5.0
                     )
-                    # Paste cleanly with Win+V exclusion flags (zero clipboard pollution)
-                    paste_all_at_once(final_text)
+                    recovered_words = len(recovered_text.split()) if recovered_text else 0
+                    if recovered_text and recovered_words >= raw_words:
+                        raw_text = recovered_text
 
-            # 10. Hide Floating Pill peacefully AFTER pasting is complete!
-            if self.pill:
-                self.pill.root.after(0, lambda: [self.pill.set_state("idle"), self.pill.hide()])
+                final_text = raw_text.strip() if raw_text else ""
 
-            self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
+                if final_text:
+                    # 1. Apply Custom Vocabulary & Acronym Formatting
+                    final_text = format_transcript(final_text, category)
+
+                    # 2. Speech Macro & Snippet Expansion Engine
+                    macro_expanded = db.expand_macro_text(final_text)
+                    if macro_expanded != final_text:
+                        print(f"[Daemon] Expanded speech macro: '{final_text}' -> '{macro_expanded[:60]}...'")
+                        final_text = macro_expanded
+
+                    is_ai_lane = (self.active_session_type == "ai")
+
+                    # DUAL-LANE INTELLIGENCE:
+                    # If session_type is 'ai', ALWAYS route to Floating Gemini Assistant!
+                    if is_ai_lane:
+                        print(f"[Daemon] Instantaneous routing to AntigravityFlow AI Assistant: '{final_text}'")
+                        threading.Thread(target=notify_assistant_bridge, args=("query", final_text), daemon=True).start()
+                        db.save_dictation(
+                            text=final_text,
+                            duration=duration,
+                            app_name=self.active_app_at_start,
+                            pcm_bytes=recorded_pcm,
+                            window_title=getattr(self, "active_window_title", ""),
+                            session_type="ai"
+                        )
+                    else:
+                        # Direct writing / coding / dictation lane: execute and paste to foreground window
+                        if self.enable_ai_polish:
+                            try:
+                                preset = getattr(self, "ai_preset_mode", "flow")
+                                prompt = ""
+                                if preset == "custom":
+                                    prompt = self.ai_system_prompt
+
+                                tooltip_text = "AntigravityFlow: AI Polishing... 🤖"
+                                self.update_tray_tooltip(tooltip_text)
+
+                                polished = llm_refiner.polish_with_gemini(
+                                    final_text,
+                                    model=self.ai_model,
+                                    preset_mode=preset,
+                                    system_prompt=prompt,
+                                    app_name=self.active_app_at_start,
+                                    window_title=getattr(self, "active_window_title", ""),
+                                    system_ctx=getattr(self, "active_system_ctx", None),
+                                    config=self.cfg
+                                )
+                                if polished and polished.strip():
+                                    final_text = polished.strip()
+                            except Exception as err:
+                                print(f"[Daemon] AI Polish/Execution fallback: {err}")
+
+                        # Save as last dictated text for instant Alt+V replay
+                        self.last_dictated_text = final_text
+
+                        # Save dictation & encrypted audio recording with window title for categorization
+                        db.save_dictation(
+                            text=final_text,
+                            duration=duration,
+                            app_name=self.active_app_at_start,
+                            pcm_bytes=recorded_pcm,
+                            window_title=getattr(self, "active_window_title", ""),
+                            session_type=self.active_session_type
+                        )
+                        # Paste cleanly with Win+V exclusion flags (zero clipboard pollution)
+                        paste_all_at_once(final_text)
+            except Exception as e:
+                print(f"[Daemon] Error during stop_session processing: {e}")
+            finally:
+                self.stop_requested.set()
+                self.is_recording = False
+                if self.input_stream:
+                    try:
+                        self.input_stream.stop()
+                        self.input_stream.close()
+                    except Exception:
+                        pass
+                    self.input_stream = None
+                if self.pill:
+                    self.pill.root.after(0, lambda: [self.pill.set_state("idle"), self.pill.hide()])
+                self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
 
     def cancel_session(self):
         with self.session_lock:
@@ -1482,6 +1503,43 @@ class DictationDaemon:
             self.accumulator.reset()
             self.dsp.reset()
             self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
+
+    def shutdown(self):
+        """Clean shutdown of daemon services, tray icon, floating pill, and child processes."""
+        print("[Daemon] Initiating clean shutdown sequence...")
+        try:
+            if self.tray_icon:
+                self.tray_icon.stop()
+        except Exception:
+            pass
+        try:
+            if self.pill and self.pill.root:
+                self.pill.root.after(0, self.pill.root.destroy)
+        except Exception:
+            pass
+        try:
+            llm_refiner.terminate_spawned_language_server()
+        except Exception:
+            pass
+        try:
+            current_pid = os.getpid()
+            for p in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    if p.pid == current_pid:
+                        continue
+                    pname = (p.info.get('name') or '').lower()
+                    pcmd = ' '.join(p.info.get('cmdline') or []).lower()
+                    if pname == 'antigravityflow.exe':
+                        p.kill()
+                    elif 'electron.exe' in pname and 'antigravityflow' in pcmd:
+                        p.kill()
+                    elif pname == 'antigravityflowdaemon.exe':
+                        p.kill()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        os._exit(0)
 
     def reload_config(self):
         self.cfg = db.load_config()
@@ -1575,6 +1633,26 @@ def open_ui():
     else:
         subprocess.Popen("npx electron .", shell=True, cwd=UI_DIR)
 
+_DAEMON_MUTEX = None
+
+def acquire_single_instance_mutex():
+    """Acquires a global Windows named mutex to atomically prevent multiple daemon instances."""
+    global _DAEMON_MUTEX
+    if os.name == 'nt':
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            mutex_name = "Global\\AntigravityFlow_Daemon_SingleInstance_Mutex"
+            mutex = kernel32.CreateMutexW(None, False, mutex_name)
+            last_error = kernel32.GetLastError()
+            if last_error == 183:  # ERROR_ALREADY_EXISTS
+                return False
+            _DAEMON_MUTEX = mutex
+            return True
+        except Exception:
+            return True
+    return True
+
 def check_existing_instance():
     """Checks if an existing AntigravityFlow daemon is already running and serving on port 48198."""
     for endpoint in ("http://127.0.0.1:48198/status", "http://127.0.0.1:48198/health"):
@@ -1589,6 +1667,10 @@ def check_existing_instance():
 
 def main():
     try:
+        if not acquire_single_instance_mutex():
+            print("[+] Another AntigravityFlow daemon instance is already active. Exiting cleanly.")
+            sys.exit(0)
+
         if check_existing_instance():
             print("[+] AntigravityFlow daemon is already running on port 48198. Exiting cleanly.")
             sys.exit(0)
@@ -1619,16 +1701,7 @@ def main():
             daemon.reload_config()
 
         def on_quit(icon, item):
-            icon.stop()
-            pill.root.after(0, pill.root.destroy)
-            try:
-                for p in psutil.process_iter(['name', 'cmdline']):
-                    cmd = ' '.join(p.info['cmdline'] or [])
-                    if 'electron' in (p.info['name'] or '').lower() and 'AntigravityFlow' in cmd:
-                        p.kill()
-            except Exception:
-                pass
-            os._exit(0)
+            daemon.shutdown()
 
         menu = pystray.Menu(
             pystray.MenuItem("🎙️ AntigravityFlow", lambda: None, enabled=False),

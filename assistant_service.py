@@ -209,10 +209,35 @@ def capture_screen(save_path: str = None) -> dict:
         return {"success": False, "error": str(e)}
 
 def execute_system_command(command: str, shell: str = "powershell") -> dict:
-    """Runs unrestricted PowerShell or CMD commands and returns stdout, stderr, and execution time."""
+    """Runs unrestricted PowerShell or CMD commands and returns stdout, stderr, and execution time.
+    Automatically handles interactive GUI apps with Start-Process to prevent synchronous pipeline hangs."""
     start_time = time.time()
+    clean_cmd = (command or "").strip()
+    if not clean_cmd:
+        return {"success": False, "stdout": "", "stderr": "Empty command", "exit_code": 1, "duration": 0.0, "command": ""}
+
+    # Normalize interactive GUI binaries so they execute non-blocking
+    gui_apps = (
+        "notepad", "notepad.exe", "explorer", "explorer.exe", "code", "code.cmd", "code.exe",
+        "calc", "calc.exe", "mspaint", "mspaint.exe", "taskmgr", "taskmgr.exe", "chrome", "msedge"
+    )
+
+    tokens = clean_cmd.split(None, 1)
+    first_token = tokens[0].lower() if tokens else ""
+    first_base = os.path.basename(first_token)
+
+    if first_base in gui_apps and not clean_cmd.lower().startswith(("start-process", "start ", "& ")):
+        arg = tokens[1].strip() if len(tokens) > 1 else ""
+        if shell == "powershell":
+            if arg:
+                clean_cmd = f"Start-Process {first_token} -ArgumentList '{arg.replace(\"'\", \"''\")}'"
+            else:
+                clean_cmd = f"Start-Process {first_token}"
+        else:
+            clean_cmd = f"start \"\" {clean_cmd}"
+
     try:
-        shell_cmd = ["powershell.exe", "-NoProfile", "-Command", command] if shell == "powershell" else ["cmd.exe", "/c", command]
+        shell_cmd = ["powershell.exe", "-NoProfile", "-Command", clean_cmd] if shell == "powershell" else ["cmd.exe", "/c", clean_cmd]
         res = subprocess.run(shell_cmd, capture_output=True, text=True, timeout=15.0)
         dur = round(time.time() - start_time, 2)
         return {
@@ -221,7 +246,7 @@ def execute_system_command(command: str, shell: str = "powershell") -> dict:
             "stderr": res.stderr.strip(),
             "exit_code": res.returncode,
             "duration": dur,
-            "command": command
+            "command": clean_cmd
         }
     except subprocess.TimeoutExpired:
         return {
@@ -230,7 +255,7 @@ def execute_system_command(command: str, shell: str = "powershell") -> dict:
             "stderr": "Command timed out after 15 seconds.",
             "exit_code": -1,
             "duration": 15.0,
-            "command": command
+            "command": clean_cmd
         }
     except Exception as e:
         return {
@@ -239,7 +264,7 @@ def execute_system_command(command: str, shell: str = "powershell") -> dict:
             "stderr": str(e),
             "exit_code": 1,
             "duration": round(time.time() - start_time, 2),
-            "command": command
+            "command": clean_cmd
         }
 
 def execute_mcp_tool(tool_name: str, arguments: dict = None) -> dict:
@@ -338,7 +363,9 @@ def execute_mcp_tool(tool_name: str, arguments: dict = None) -> dict:
         elif tool_name == "write_file":
             fpath = os.path.expandvars(os.path.expanduser(args.get("path", "")))
             content = args.get("content", "")
-            os.makedirs(os.path.dirname(os.path.abspath(fpath)), exist_ok=True)
+            parent_dir = os.path.dirname(os.path.abspath(fpath))
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
             with open(fpath, "w", encoding="utf-8") as f:
                 f.write(content)
             return {
@@ -347,6 +374,21 @@ def execute_mcp_tool(tool_name: str, arguments: dict = None) -> dict:
                 "path": fpath,
                 "bytes_written": len(content.encode("utf-8")),
                 "duration": round(time.time() - start_time, 2)
+            }
+
+        elif tool_name in ("open_file", "launch_app"):
+            target = os.path.expandvars(os.path.expanduser(args.get("path") or args.get("app") or args.get("target", "")))
+            if not target:
+                return {"success": False, "tool": tool_name, "error": "Path or application name required"}
+            res = execute_system_command(f"Start-Process '{target}'")
+            return {
+                "success": res["success"],
+                "tool": tool_name,
+                "target": target,
+                "stdout": res["stdout"],
+                "stderr": res["stderr"],
+                "exit_code": res["exit_code"],
+                "duration": res["duration"]
             }
 
         elif tool_name == "get_system_info":
@@ -1012,15 +1054,16 @@ def query_gemini_assistant(
     mcp_instruction = (
         "\n--- MODEL CONTEXT PROTOCOL (MCP) & SYSTEM TOOL CAPABILITIES ---\n"
         "You have direct access to deterministic system tools via MCP. When you need to inspect files, search directories, "
-        "read or write files, check system status, or run commands, output either a ```call_mcp block with JSON arguments, or a ```execute_powershell block:\n"
+        "read or write files, open apps, check system status, or run commands, output either a ```call_mcp block with JSON arguments, or a ```execute_powershell block:\n"
         "1. Search Files: ```call_mcp\n{\"tool\": \"search_files\", \"arguments\": {\"path\": \"...\", \"pattern\": \"*.pdf\"}}\n```\n"
         "2. List Directory: ```call_mcp\n{\"tool\": \"list_directory\", \"arguments\": {\"path\": \"...\"}}\n```\n"
         "3. Read File: ```call_mcp\n{\"tool\": \"read_file\", \"arguments\": {\"path\": \"...\", \"max_bytes\": 50000}}\n```\n"
         "4. Write File: ```call_mcp\n{\"tool\": \"write_file\", \"arguments\": {\"path\": \"...\", \"content\": \"...\"}}\n```\n"
-        "5. System Info: ```call_mcp\n{\"tool\": \"get_system_info\", \"arguments\": {}}\n```\n"
-        "6. Fetch URL: ```call_mcp\n{\"tool\": \"fetch_url\", \"arguments\": {\"url\": \"https://...\"}}\n```\n"
-        "7. Terminal: ```execute_powershell\n<command>\n```\n"
-        "Output ONLY the tool block when a tool is required. The system will execute it and return the result for your next turn.\n"
+        "5. Launch App / Open File: ```call_mcp\n{\"tool\": \"launch_app\", \"arguments\": {\"path\": \"notepad.exe\"}}\n```\n"
+        "6. System Info: ```call_mcp\n{\"tool\": \"get_system_info\", \"arguments\": {}}\n```\n"
+        "7. Fetch URL: ```call_mcp\n{\"tool\": \"fetch_url\", \"arguments\": {\"url\": \"https://...\"}}\n```\n"
+        "8. Terminal / PowerShell: ```execute_powershell\n<command>\n```\n"
+        "Output ONLY the tool block when an action or tool is required. The system will execute it and return the verified result for your next turn.\n"
         "--- END MCP CAPABILITIES ---\n"
     )
     envelope_parts = [instruction.strip(), mcp_instruction, "\n"]
@@ -1088,20 +1131,23 @@ def query_gemini_assistant(
         if not resp_text:
             return {"success": False, "error": "Empty model response"}
 
-        # Autonomous Multi-Step Execution Loop (up to 4 sequential steps)
+        # Autonomous Multi-Step Execution Loop (up to 6 sequential steps)
         steps_executed = []
         current_resp = resp_text
         current_ctx_prompt = full_prompt
 
         import re
-        for step_idx in range(1, 5):
+        action_verbs = ("create", "make", "write", "open", "launch", "run", "execute", "delete", "remove", "save", "start", "kill", "search", "list", "check", "find", "count")
+        user_wants_action = any(re.search(r'\b' + v + r'\b', clean_prompt.lower()) for v in action_verbs)
+
+        for step_idx in range(1, 7):
             is_tool_call = False
             tool_type = ""
             tool_name = ""
             tool_args = {}
             cmd = ""
 
-            # Check for MCP call: ```call_mcp ... ``` or ```mcp ... ```
+            # 1. Check for MCP call: ```call_mcp ... ``` or ```mcp ... ```
             mcp_match = re.search(r"```(?:call_mcp|mcp)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
             if mcp_match:
                 raw_json = mcp_match.group(1).strip()
@@ -1115,22 +1161,76 @@ def query_gemini_assistant(
                 except Exception:
                     pass
 
-            # Check for PowerShell call if not MCP
+            # 2. Check for execute_powershell / execute_command / execute_cmd call
             if not is_tool_call:
-                ps_match = re.search(r"```(?:execute_powershell|powershell)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
-                if ps_match:
-                    raw_match = ps_match.group(0).lower()
-                    candidate_cmd = ps_match.group(1).strip()
-                    if "execute_powershell" in raw_match:
+                exec_match = re.search(r"```(?:execute_powershell|execute_command|execute_cmd|run_command)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
+                if exec_match:
+                    candidate_cmd = exec_match.group(1).strip()
+                    if candidate_cmd:
                         is_tool_call = True
                         tool_type = "powershell"
                         cmd = candidate_cmd
-                    elif current_resp.strip().startswith("```") and current_resp.strip().endswith("```"):
-                        inquiry_keywords = ("search", "count", "how many", "find", "check", "list", "what is", "where is", "size of", "show me")
-                        if any(k in clean_prompt.lower() for k in inquiry_keywords):
-                            is_tool_call = True
-                            tool_type = "powershell"
-                            cmd = candidate_cmd
+
+            # 3. Check for actionable ```powershell, ```pwsh, ```cmd, or ```bash blocks
+            if not is_tool_call:
+                ps_match = re.search(r"```(?:powershell|pwsh|cmd|bash|bat)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
+                if ps_match:
+                    candidate_cmd = ps_match.group(1).strip()
+                    action_triggers = (
+                        "new-item", "set-content", "add-content", "start-process", "get-childitem", "get-content",
+                        "remove-item", "get-process", "stop-process", "notepad", "explorer", "echo ", "mkdir ", "dir ",
+                        "type ", "cat ", "ls ", "python ", "pip ", "curl ", "invoke-webrequest"
+                    )
+                    candidate_lower = candidate_cmd.lower()
+                    if user_wants_action or any(t in candidate_lower for t in action_triggers):
+                        is_tool_call = True
+                        tool_type = "powershell"
+                        cmd = candidate_cmd
+
+            # 4. Anti-Hallucination Guardrail:
+            # If no tool call detected on step 1, but user requested an action, and model claimed it did it
+            if not is_tool_call and step_idx == 1 and user_wants_action and len(steps_executed) == 0:
+                claim_patterns = [
+                    r"\bi (have|already) (created|made|written|opened|launched|executed|saved|deleted|started)\b",
+                    r"\bi've (created|made|written|opened|launched|executed|saved|deleted|started)\b",
+                    r"\b(created|saved|written) the file\b",
+                    r"\bopened (notepad|file explorer|explorer|the application)\b"
+                ]
+                has_hallucinated_claim = any(re.search(pat, current_resp.lower()) for pat in claim_patterns)
+                if has_hallucinated_claim:
+                    nudge_prompt = (
+                        f"{current_ctx_prompt}\n\n"
+                        f"ASSISTANT: {current_resp}\n\n"
+                        f"[SYSTEM ENFORCEMENT - ANTI-HALLUCINATION GUARDRAIL]\n"
+                        f"You stated that you performed an action, but you did NOT execute any tool block. "
+                        f"In AntigravityFlow, you MUST execute the action first using ```execute_powershell or ```call_mcp. "
+                        f"Emit ONLY the required tool block now to perform the user's requested action.\n"
+                        f"ASSISTANT:"
+                    )
+                    nudge_resp, nudge_thinking = call_model_with_cascade(nudge_prompt, target_model)
+                    if nudge_resp:
+                        current_resp = nudge_resp
+                        if nudge_thinking and not thinking_text:
+                            thinking_text = nudge_thinking
+
+                        mcp_match2 = re.search(r"```(?:call_mcp|mcp)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
+                        if mcp_match2:
+                            try:
+                                payload = json.loads(mcp_match2.group(1).strip())
+                                tool_name = payload.get("tool", "")
+                                tool_args = payload.get("arguments", {})
+                                if tool_name:
+                                    is_tool_call = True
+                                    tool_type = "mcp"
+                            except Exception:
+                                pass
+                        if not is_tool_call:
+                            exec_match2 = re.search(r"```(?:execute_powershell|execute_command|powershell|pwsh|cmd)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
+                            if exec_match2:
+                                cmd = exec_match2.group(1).strip()
+                                if cmd:
+                                    is_tool_call = True
+                                    tool_type = "powershell"
 
             if not is_tool_call:
                 break
