@@ -12,27 +12,27 @@ _appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
 _log_dir = os.path.join(_appdata, "AntigravityFlow")
 os.makedirs(_log_dir, exist_ok=True)
 DAEMON_OUT_LOG = os.path.join(_log_dir, "daemon_stdout.log")
+CRASH_LOG = os.path.join(_log_dir, "daemon_crash.log")
 
-if sys.stdout is None:
+def _has_valid_win_fd(fd_num: int) -> bool:
+    if os.name != 'nt':
+        return True
     try:
-        sys.stdout = open(1, 'w', encoding='utf-8', buffering=1, errors='replace')
+        import msvcrt
+        h = msvcrt.get_osfhandle(fd_num)
+        return h not in (0, -1, 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
     except Exception:
-        try:
-            sys.stdout = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
-        except Exception:
-            sys.stdout = open(os.devnull, 'w', encoding='utf-8')
-elif hasattr(sys.stdout, 'reconfigure'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
-    except Exception:
-        pass
+        return False
 
 if sys.stderr is None:
-    try:
-        sys.stderr = open(2, 'w', encoding='utf-8', buffering=1, errors='replace')
-    except Exception:
+    if _has_valid_win_fd(2):
         try:
-            sys.stderr = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1)
+            sys.stderr = open(2, 'w', encoding='utf-8', buffering=1, errors='replace')
+        except Exception:
+            pass
+    if sys.stderr is None:
+        try:
+            sys.stderr = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1, errors='replace')
         except Exception:
             sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 elif hasattr(sys.stderr, 'reconfigure'):
@@ -40,6 +40,38 @@ elif hasattr(sys.stderr, 'reconfigure'):
         sys.stderr.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
     except Exception:
         pass
+
+if sys.stdout is None:
+    if _has_valid_win_fd(1):
+        try:
+            sys.stdout = open(1, 'w', encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+    if sys.stdout is None:
+        try:
+            sys.stdout = open(DAEMON_OUT_LOG, 'a', encoding='utf-8', buffering=1, errors='replace')
+        except Exception:
+            sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+elif hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+_CLI_SUBCOMMANDS = {
+    "quota", "retranscribe", "vocab-load", "vocab-get",
+    "history-get", "history-delete", "history-clear",
+    "macro-get", "macros-get", "macro-save", "macros-save",
+    "macro-delete", "macros-delete", "macro-expand", "macros-expand",
+    "query", "models", "search", "exec", "screenshot", "paste", "refine",
+    "tts-synth", "tts-demo", "tts-voices"
+}
+_IS_CLI_MODE = len(sys.argv) > 1 and sys.argv[1].lower() in _CLI_SUBCOMMANDS
+_CLI_JSON_STDOUT = sys.stdout
+if _IS_CLI_MODE:
+    # Keep stdout purely for structured JSON output; route all diagnostic print() calls to stderr
+    sys._CLI_JSON_STDOUT = _CLI_JSON_STDOUT
+    sys.stdout = sys.stderr
 
 import queue
 import re
@@ -70,12 +102,14 @@ import system_context
 import prompts
 import traceback
 
-CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daemon_crash.log")
-
 def log_uncaught_exception(exctype, value, tb):
     err_msg = "".join(traceback.format_exception(exctype, value, tb))
-    sys.stdout.write(f"\n[FATAL EXCEPTION] {err_msg}\n")
-    sys.stdout.flush()
+    try:
+        if sys.stderr:
+            sys.stderr.write(f"\n[FATAL EXCEPTION] {err_msg}\n")
+            sys.stderr.flush()
+    except Exception:
+        pass
     try:
         with open(CRASH_LOG, "a", encoding="utf-8") as f:
             f.write(f"\n--- {time.ctime()} ---\n{err_msg}\n")
@@ -270,9 +304,9 @@ def is_conversational_query(text: str) -> bool:
     return False
 
 def start_daemon_control_server(daemon_instance, port=48198):
-    """Starts a local HTTP server for Electron to trigger or toggle dictation,
+    """Starts a multi-threaded local HTTP server for Electron to trigger or toggle dictation,
     or accelerate assistant queries in-process with zero cold start."""
-    from http.server import HTTPServer, BaseHTTPRequestHandler
+    from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
     class DaemonControlHandler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
             pass
@@ -283,6 +317,13 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "data": macros}, ensure_ascii=False).encode('utf-8'))
+                return
+            elif self.path == "/assistant/history":
+                items = db.get_history(limit=500)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "data": items}, ensure_ascii=False).encode('utf-8'))
                 return
             elif self.path == "/assistant/models":
                 import assistant_service
@@ -301,10 +342,17 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.wfile.write(json.dumps({"success": True, "voices": voices}, ensure_ascii=False).encode('utf-8'))
                 return
             elif self.path in ("/status", "/health"):
+                status_payload = {
+                    "status": "ok",
+                    "app": "AntigravityFlow",
+                    "ls_connected": bool(daemon_instance.port and daemon_instance.csrf_token),
+                    "ls_port": daemon_instance.port,
+                    "recording": bool(daemon_instance.is_recording)
+                }
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
+                self.wfile.write(json.dumps(status_payload).encode('utf-8'))
                 return
             elif self.path == "/shutdown":
                 self.send_response(200)
@@ -345,10 +393,24 @@ def start_daemon_control_server(daemon_instance, port=48198):
             try:
                 data = json.loads(body.decode('utf-8') or '{}')
                 if self.path in ("/status", "/health"):
+                    status_payload = {
+                        "status": "ok",
+                        "app": "AntigravityFlow",
+                        "ls_connected": bool(daemon_instance.port and daemon_instance.csrf_token),
+                        "ls_port": daemon_instance.port,
+                        "recording": bool(daemon_instance.is_recording)
+                    }
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(b'{"status": "ok", "app": "AntigravityFlow"}')
+                    self.wfile.write(json.dumps(status_payload).encode('utf-8'))
+                    return
+                elif self.path == "/reload-config":
+                    threading.Thread(target=daemon_instance.reload_config, kwargs={"connect_async": True}, daemon=True).start()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(b'{"success": true}')
                     return
                 elif self.path == "/shutdown":
                     self.send_response(200)
@@ -356,6 +418,28 @@ def start_daemon_control_server(daemon_instance, port=48198):
                     self.end_headers()
                     self.wfile.write(b'{"status": "shutting_down"}')
                     threading.Thread(target=daemon_instance.shutdown, daemon=True).start()
+                    return
+                elif self.path == "/assistant/history":
+                    items = db.get_history(limit=500)
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "data": items}, ensure_ascii=False).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/history/delete":
+                    item_id = data.get("id")
+                    ok = db.delete_dictation(int(item_id)) if item_id is not None else False
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": bool(ok)}).encode('utf-8'))
+                    return
+                elif self.path == "/assistant/history/clear":
+                    ok = db.clear_all_history()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": bool(ok)}).encode('utf-8'))
                     return
                 elif self.path == "/assistant/query":
                     import assistant_service
@@ -365,7 +449,8 @@ def start_daemon_control_server(daemon_instance, port=48198):
                         model=data.get("model"),
                         system_instruction=data.get("system_instruction") or data.get("system_prompt"),
                         screenshot_info=data.get("screenshot_info"),
-                        enable_web_search=data.get("enable_web_search") or data.get("web_search", False)
+                        enable_web_search=data.get("enable_web_search") or data.get("web_search", False),
+                        mode=data.get("mode")
                     )
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
@@ -439,7 +524,8 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 elif self.path == "/tts/demo":
                     import edge_tts_service
                     res = edge_tts_service.get_demo_audio(
-                        voice=data.get("voice", "en-IN-NeerjaNeural")
+                        voice=data.get("voice", "en-IN-NeerjaNeural"),
+                        rate=data.get("rate", "+0%")
                     )
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
@@ -487,7 +573,7 @@ def start_daemon_control_server(daemon_instance, port=48198):
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"success": True, "data": item}, ensure_ascii=False).encode('utf-8'))
+                    self.wfile.write(json.dumps({"success": bool(item), "data": item}, ensure_ascii=False).encode('utf-8'))
                     return
                 elif self.path == "/assistant/quota":
                     import quota_service
@@ -519,14 +605,16 @@ def start_daemon_control_server(daemon_instance, port=48198):
                 self.wfile.write(json.dumps({"success": True, "recording": daemon_instance.is_recording}).encode())
             except Exception as e:
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode())
 
     try:
-        HTTPServer.allow_reuse_address = True
-        server = HTTPServer(('127.0.0.1', port), DaemonControlHandler)
+        ThreadingHTTPServer.allow_reuse_address = True
+        ThreadingHTTPServer.daemon_threads = True
+        server = ThreadingHTTPServer(('127.0.0.1', port), DaemonControlHandler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
-        print(f"[Daemon] Local Control Server listening on 127.0.0.1:{port}")
+        print(f"[Daemon] Local Control Server listening on 127.0.0.1:{port} (multi-threaded)")
     except Exception as e:
         print(f"[Daemon] Local Control Server error: {e}")
 
@@ -634,6 +722,33 @@ class HotkeyManager:
                 mapped.add(k)
         return mapped
 
+    def _blocked_keys_for(self, active_keys: set) -> set:
+        """Returns modifier/superset keys from other enabled combos that should prevent false triggers."""
+        other_combos = []
+        if self.mode_setting in ("both", "toggle") and self.dictate_toggle_keys:
+            other_combos.append(self.dictate_toggle_keys)
+        if self.mode_setting in ("both", "push_to_talk") and self.dictate_ptt_keys:
+            other_combos.append(self.dictate_ptt_keys)
+        if self.enable_ai_hotkey:
+            if self.ai_mode in ("both", "toggle") and self.ai_toggle_keys:
+                other_combos.append(self.ai_toggle_keys)
+            if self.ai_mode in ("both", "hold") and self.ai_ptt_keys:
+                other_combos.append(self.ai_ptt_keys)
+            if self.ai_alias_keys:
+                other_combos.append(self.ai_alias_keys)
+        if self.paste_last_keys:
+            other_combos.append(self.paste_last_keys)
+
+        modifiers = {"windows", "alt", "ctrl", "shift"}
+        blocked = set()
+        for c in other_combos:
+            if c == active_keys:
+                continue
+            blocked.update((c & modifiers) - active_keys)
+            if active_keys < c:
+                blocked.update(c - active_keys)
+        return blocked
+
     def handle_event(self, event):
         # 0. Temporarily disable dictation trigger while user is recording new keys in settings or actively pasting
         if self.is_paused or os.path.exists(KEY_RECORDING_LOCK) or getattr(system_context, "IS_PASTING", False):
@@ -673,15 +788,7 @@ class HotkeyManager:
 
             # Quick-Paste Last Dictation check (e.g. Alt+V) - Absolute Top Priority
             if is_new_press and self.paste_last_keys and self.paste_last_keys.issubset(self.currently_pressed):
-                # Verify Windows key is not physically pressed
-                win_physically_down = False
-                try:
-                    u32 = ctypes.windll.user32
-                    win_physically_down = bool((u32.GetAsyncKeyState(0x5B) & 0x8000) or (u32.GetAsyncKeyState(0x5C) & 0x8000))
-                except Exception:
-                    win_physically_down = "windows" in self.currently_pressed
-
-                if not win_physically_down:
+                if not any(k in self.currently_pressed for k in self._blocked_keys_for(self.paste_last_keys)):
                     self.currently_pressed.clear()
                     if self.on_paste_last:
                         threading.Thread(target=self.on_paste_last, daemon=True).start()
@@ -700,6 +807,7 @@ class HotkeyManager:
                     self.current_session_type = "ai"
                     if self.current_session_mode == "ptt":
                         self.current_session_mode = "ai_ptt" if self.ai_mode in ("both", "hold") else "ai_toggle"
+                        self.ai_ptt_press_time = time.time()
                     else:
                         self.current_session_mode = "ai_toggle"
                     self.ai_toggle_active_press = True
@@ -763,10 +871,10 @@ class HotkeyManager:
 
             # F. Idle -> Start recording
             if not self.is_recording:
-                # 1. AI Assistant Hands-Free Toggle (e.g. Win + Ctrl + H)
+                # 1. AI Assistant Hands-Free Toggle (skip when ai_toggle_keys == ai_ptt_keys in 'both' mode so PTT hold/tap works)
                 if self.enable_ai_hotkey and self.ai_mode in ("both", "toggle"):
-                    if self.ai_toggle_keys and self.ai_toggle_keys.issubset(self.currently_pressed):
-                        if is_new_press and not self.ai_toggle_active_press:
+                    if self.ai_toggle_keys and (self.ai_mode == "toggle" or self.ai_toggle_keys != self.ai_ptt_keys) and self.ai_toggle_keys.issubset(self.currently_pressed):
+                        if is_new_press and not self.ai_toggle_active_press and not any(k in self.currently_pressed for k in self._blocked_keys_for(self.ai_toggle_keys)):
                             self.is_recording = True
                             self.current_session_type = "ai"
                             self.current_session_mode = "ai_toggle"
@@ -775,21 +883,10 @@ class HotkeyManager:
                                 threading.Thread(target=self.on_start, args=("ai_toggle", "ai"), daemon=True).start()
                             return
 
-                # 2. AI Assistant Shortcut Alias (e.g. Win + Ctrl + A)
-                if self.enable_ai_hotkey and self.ai_alias_keys and self.ai_alias_keys.issubset(self.currently_pressed):
-                    if is_new_press and not self.ai_toggle_active_press:
-                        self.is_recording = True
-                        self.current_session_type = "ai"
-                        self.current_session_mode = "ai_ptt" if self.ai_mode in ("both", "hold") else "ai_toggle"
-                        self.ai_toggle_active_press = True
-                        if self.on_start:
-                            threading.Thread(target=self.on_start, args=(self.current_session_mode, "ai"), daemon=True).start()
-                        return
-
-                # 3. AI Assistant Push-to-Talk Hold (e.g. Win + Ctrl)
+                # 2. AI Assistant Push-to-Talk Hold (e.g. Win + Ctrl)
                 if self.enable_ai_hotkey and self.ai_mode in ("both", "hold"):
                     if self.ai_ptt_keys and self.ai_ptt_keys.issubset(self.currently_pressed):
-                        if not any(k in self.currently_pressed for k in ("h", "a", "alt", "v")):
+                        if not any(k in self.currently_pressed for k in self._blocked_keys_for(self.ai_ptt_keys)):
                             self.ai_ptt_press_time = time.time()
                             self.is_recording = True
                             self.current_session_type = "ai"
@@ -798,10 +895,24 @@ class HotkeyManager:
                                 threading.Thread(target=self.on_start, args=("ai_ptt", "ai"), daemon=True).start()
                             return
 
+                # 3. AI Assistant Shortcut Alias (e.g. Win + Ctrl + A) when distinct from ai_ptt/ai_toggle
+                if self.enable_ai_hotkey and self.ai_alias_keys and self.ai_alias_keys != self.ai_ptt_keys and self.ai_alias_keys != self.ai_toggle_keys:
+                    if self.ai_alias_keys.issubset(self.currently_pressed):
+                        if is_new_press and not self.ai_toggle_active_press and not any(k in self.currently_pressed for k in self._blocked_keys_for(self.ai_alias_keys)):
+                            self.is_recording = True
+                            self.current_session_type = "ai"
+                            self.current_session_mode = "ai_ptt" if self.ai_mode in ("both", "hold") else "ai_toggle"
+                            if self.current_session_mode == "ai_ptt":
+                                self.ai_ptt_press_time = time.time()
+                            self.ai_toggle_active_press = True
+                            if self.on_start:
+                                threading.Thread(target=self.on_start, args=(self.current_session_mode, "ai"), daemon=True).start()
+                            return
+
                 # 4. Dictation Hands-Free Toggle (e.g. Win + Alt + H)
                 if self.mode_setting in ("both", "toggle"):
                     if self.dictate_toggle_keys and self.dictate_toggle_keys.issubset(self.currently_pressed):
-                        if is_new_press and not self.toggle_active_press:
+                        if is_new_press and not self.toggle_active_press and not any(k in self.currently_pressed for k in self._blocked_keys_for(self.dictate_toggle_keys)):
                             self.is_recording = True
                             self.current_session_type = "dictate"
                             self.current_session_mode = "toggle"
@@ -810,10 +921,10 @@ class HotkeyManager:
                                 threading.Thread(target=self.on_start, args=("toggle", "dictate"), daemon=True).start()
                             return
 
-                # 5. Dictation Push-to-Talk Hold (e.g. Win + Alt)
+                # 5. Dictation Push-to-Talk Hold (e.g. Win + Alt or Ctrl + Space)
                 if self.mode_setting in ("both", "push_to_talk"):
                     if self.dictate_ptt_keys and self.dictate_ptt_keys.issubset(self.currently_pressed):
-                        if not any(k in self.currently_pressed for k in ("h", "ctrl", "v")):
+                        if not any(k in self.currently_pressed for k in self._blocked_keys_for(self.dictate_ptt_keys)):
                             self.is_recording = True
                             self.current_session_type = "dictate"
                             self.current_session_mode = "ptt"
@@ -831,7 +942,7 @@ class HotkeyManager:
                     if press_dur < 0.32:
                         # Quick tap (< 320ms): Summon assistant and focus prompt for typing!
                         if self.on_cancel:
-                            self.on_cancel()
+                            threading.Thread(target=self.on_cancel, daemon=True).start()
                         threading.Thread(target=notify_assistant_bridge, args=("summon", ""), daemon=True).start()
                     else:
                         if self.on_stop:
@@ -858,7 +969,7 @@ class HotkeyManager:
 # 4. Core Dictation Engine: Real-Time gRPC-Web Audio Streaming
 # ---------------------------------------------------------------------------
 class DictationDaemon:
-    def __init__(self, pill_widget: FloatingPill = None):
+    def __init__(self, pill_widget: FloatingPill = None, defer_connect: bool = False):
         self.cfg = db.load_config()
         self.enable_sound = self.cfg.get("enable_sound", True)
         self.enable_context_cascade = self.cfg.get("enable_context_cascade", True)
@@ -873,7 +984,7 @@ class DictationDaemon:
 
         self.pill = pill_widget
         self.is_recording = False
-        self.session_lock = threading.Lock()
+        self.session_lock = threading.RLock()
 
         self.audio_queue = queue.Queue()
         self.accumulator = TranscriptAccumulator()
@@ -924,7 +1035,8 @@ class DictationDaemon:
         self.input_stream = None
 
         # Safe connection initialization after all attributes are loaded
-        self.ensure_connected(auto_start=True)
+        if not defer_connect:
+            self.ensure_connected(auto_start=True)
         threading.Thread(target=self._connection_watcher, daemon=True, name="LSWatcher").start()
 
         # Context cascade cache (polled periodically in background)
@@ -1081,7 +1193,18 @@ class DictationDaemon:
 
             if not self.ensure_connected(auto_start=True):
                 print("[Daemon] Cannot start dictation: Language server is not running.")
+                self.hotkey_mgr.is_recording = False
+                self.hotkey_mgr.current_session_mode = None
                 play_sound("error", self.enable_sound)
+                if self.pill:
+                    self.pill.root.after(0, lambda: [
+                        self.pill.set_state("idle"),
+                        self.pill.hide()
+                    ])
+                return
+
+            # Guard against race where user released PTT shortcut before server connection finished
+            if mode in ("ptt", "ai_ptt") and not self.hotkey_mgr.is_recording:
                 if self.pill:
                     self.pill.root.after(0, lambda: [
                         self.pill.set_state("idle"),
@@ -1467,6 +1590,8 @@ class DictationDaemon:
             if not self.is_recording:
                 return
             self.stop_requested.set()
+            if self.active_session_type == "ai":
+                threading.Thread(target=notify_assistant_bridge, args=("voice-state", "", "idle"), daemon=True).start()
             if self.stream_response:
                 try:
                     self.stream_response.close()
@@ -1508,6 +1633,22 @@ class DictationDaemon:
         """Clean shutdown of daemon services, tray icon, floating pill, and child processes."""
         print("[Daemon] Initiating clean shutdown sequence...")
         try:
+            self.stop_requested.set()
+            self.is_recording = False
+            if self.input_stream:
+                try:
+                    self.input_stream.stop()
+                    self.input_stream.close()
+                except Exception:
+                    pass
+                self.input_stream = None
+        except Exception:
+            pass
+        try:
+            keyboard.unhook_all()
+        except Exception:
+            pass
+        try:
             if self.tray_icon:
                 self.tray_icon.stop()
         except Exception:
@@ -1541,7 +1682,7 @@ class DictationDaemon:
             pass
         os._exit(0)
 
-    def reload_config(self):
+    def reload_config(self, connect_async: bool = False):
         self.cfg = db.load_config()
         self.toggle_hotkey = self.cfg.get("toggle_hotkey", self.cfg.get("hotkey", "windows+alt+h"))
         self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "windows+alt")
@@ -1568,7 +1709,10 @@ class DictationDaemon:
         # Sync Windows Startup
         set_windows_autostart(self.start_on_login)
 
-        self.ensure_connected(auto_start=True)
+        if connect_async:
+            threading.Thread(target=lambda: self.ensure_connected(auto_start=True), daemon=True).start()
+        else:
+            self.ensure_connected(auto_start=True)
 
         self.enable_ai_hotkey = self.cfg.get("enable_ai_hotkey", True)
         self.ai_ptt_hotkey = self.cfg.get("ai_ptt_hotkey", "windows+ctrl")
@@ -1628,8 +1772,17 @@ def open_ui():
     except Exception:
         pass
 
+    if getattr(sys, "frozen", False):
+        candidate = os.path.abspath(os.path.join(os.path.dirname(sys.executable), "..", "..", "AntigravityFlow.exe"))
+        if os.path.exists(candidate):
+            subprocess.Popen([candidate], cwd=os.path.dirname(candidate))
+            return
     if os.path.exists(ELECTRON_EXE):
         subprocess.Popen([ELECTRON_EXE, "."], cwd=UI_DIR)
+        return
+    local_programs = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "AntigravityFlow", "AntigravityFlow.exe")
+    if os.path.exists(local_programs):
+        subprocess.Popen([local_programs], cwd=os.path.dirname(local_programs))
     else:
         subprocess.Popen("npx electron .", shell=True, cwd=UI_DIR)
 
@@ -1665,6 +1818,18 @@ def check_existing_instance():
             pass
     return False
 
+def safe_write_json(obj):
+    """Safely writes single-line JSON to CLI stdout without raising OSError/BrokenPipeError on closed pipes."""
+    target = getattr(sys, "_CLI_JSON_STDOUT", None) or _CLI_JSON_STDOUT or sys.stdout
+    if target is None:
+        return
+    try:
+        payload = json.dumps(obj, ensure_ascii=False)
+        target.write(payload + "\n")
+        target.flush()
+    except (OSError, BrokenPipeError, ValueError):
+        pass
+
 def main():
     try:
         if not acquire_single_instance_mutex():
@@ -1678,18 +1843,18 @@ def main():
         pill = FloatingPill()
         pill.hide()
 
-        daemon = DictationDaemon(pill_widget=pill)
-        daemon.reload_config()
+        daemon = DictationDaemon(pill_widget=pill, defer_connect=True)
 
-        # Start local HTTP control server on 127.0.0.1:48198 for seamless Electron UI triggers
+        # Start local HTTP control server immediately on 127.0.0.1:48198 before connecting to LS
         start_daemon_control_server(daemon, port=48198)
+        daemon.reload_config(connect_async=True)
 
         # Pre-warm AntigravityFlow dashboard in background for instant opening
         prewarm_ui()
 
-        # Wire pill buttons
-        pill.on_cancel = daemon.cancel_session
-        pill.on_confirm = daemon.stop_session
+        # Wire pill buttons cleanly off the Tkinter UI thread so UI never blocks
+        pill.on_cancel = lambda: threading.Thread(target=daemon.cancel_session, daemon=True).start()
+        pill.on_confirm = lambda: threading.Thread(target=daemon.stop_session, daemon=True).start()
 
         # Hook dual-mode keyboard listener
         keyboard.hook(daemon.hotkey_mgr.handle_event)
@@ -1698,10 +1863,10 @@ def main():
             open_ui()
 
         def on_reload(icon, item):
-            daemon.reload_config()
+            threading.Thread(target=daemon.reload_config, kwargs={"connect_async": True}, daemon=True).start()
 
         def on_quit(icon, item):
-            daemon.shutdown()
+            threading.Thread(target=daemon.shutdown, daemon=True).start()
 
         menu = pystray.Menu(
             pystray.MenuItem("🎙️ AntigravityFlow", lambda: None, enabled=False),
@@ -1737,54 +1902,76 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         cmd = sys.argv[1].lower()
-        if cmd == "quota":
-            import quota_service
-            res = quota_service.get_quota_summary()
-            print(json.dumps(res, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd == "retranscribe":
-            import retranscribe
-            rec_id = int(sys.argv[2])
-            res = retranscribe.retranscribe(rec_id)
-            print(json.dumps({"success": True, "data": res}, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("vocab-load", "vocab-get"):
-            import formatter
-            print(json.dumps({"success": True, "data": formatter.load_vocabulary()}, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("macro-get", "macros-get"):
-            print(json.dumps({"success": True, "data": db.get_macros()}, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("macro-save", "macros-save"):
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            m = json.loads(raw_input)
-            res = db.save_macro(
-                m.get("trigger_keyword", m.get("trigger", "")),
-                m.get("expansion_text", m.get("expansion", "")),
-                m.get("description", ""),
-                m.get("category", "General"),
-                m.get("id")
-            )
-            print(json.dumps(res, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("macro-delete", "macros-delete"):
-            rec_id = int(sys.argv[2])
-            res = db.delete_macro(rec_id)
-            print(json.dumps({"success": bool(res)}, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("macro-expand", "macros-expand"):
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else '""'
+        try:
+            if cmd == "quota":
+                import quota_service
+                res = quota_service.get_quota_summary()
+                safe_write_json(res)
+                sys.exit(0)
+            elif cmd == "retranscribe":
+                import retranscribe
+                rec_id = int(sys.argv[2])
+                res = retranscribe.retranscribe(rec_id)
+                safe_write_json({"success": bool(res), "data": res} if res else {"success": False, "error": "Retranscription failed or recording not found."})
+                sys.exit(0)
+            elif cmd in ("history-get", "history-load"):
+                safe_write_json({"success": True, "data": db.get_history()})
+                sys.exit(0)
+            elif cmd == "history-delete":
+                rec_id = int(sys.argv[2])
+                ok = db.delete_dictation(rec_id)
+                safe_write_json({"success": bool(ok)})
+                sys.exit(0)
+            elif cmd == "history-clear":
+                ok = db.clear_all_history()
+                safe_write_json({"success": bool(ok)})
+                sys.exit(0)
+            elif cmd in ("vocab-load", "vocab-get"):
+                import formatter
+                safe_write_json({"success": True, "data": formatter.load_vocabulary()})
+                sys.exit(0)
+            elif cmd in ("macro-get", "macros-get"):
+                safe_write_json({"success": True, "data": db.get_macros()})
+                sys.exit(0)
+            elif cmd in ("macro-save", "macros-save"):
+                raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
+                m = json.loads(raw_input)
+                res = db.save_macro(
+                    m.get("trigger_keyword", m.get("trigger", "")),
+                    m.get("expansion_text", m.get("expansion", "")),
+                    m.get("description", ""),
+                    m.get("category", "General"),
+                    m.get("id")
+                )
+                safe_write_json(res)
+                sys.exit(0)
+            elif cmd in ("macro-delete", "macros-delete"):
+                rec_id = int(sys.argv[2])
+                res = db.delete_macro(rec_id)
+                safe_write_json({"success": bool(res)})
+                sys.exit(0)
+            elif cmd in ("macro-expand", "macros-expand"):
+                raw_input = sys.argv[2] if len(sys.argv) > 2 else '""'
+                try:
+                    t = json.loads(raw_input)
+                except Exception:
+                    t = raw_input
+                exp = db.expand_macro_text(t)
+                safe_write_json({"success": True, "expanded": exp})
+                sys.exit(0)
+            elif cmd in ("query", "models", "search", "exec", "screenshot", "paste", "refine", "tts-synth", "tts-demo", "tts-voices"):
+                import assistant_service
+                sys.argv.pop(0)  # shift so assistant_service receives subcommand as sys.argv[1]
+                sys.argv.insert(0, "assistant_service")
+                assistant_service.main()
+                sys.exit(0)
+        except Exception as e:
+            err_msg = traceback.format_exc()
             try:
-                t = json.loads(raw_input)
+                with open(CRASH_LOG, "a", encoding="utf-8") as f:
+                    f.write(f"\n--- {time.ctime()} CLI '{cmd}' error ---\n{err_msg}\n")
             except Exception:
-                t = raw_input
-            exp = db.expand_macro_text(t)
-            print(json.dumps({"success": True, "expanded": exp}, ensure_ascii=False))
-            sys.exit(0)
-        elif cmd in ("query", "models", "search", "exec", "screenshot", "paste", "refine", "tts-synth", "tts-demo", "tts-voices"):
-            import assistant_service
-            sys.argv.pop(0)  # shift so assistant_service receives subcommand as sys.argv[1]
-            sys.argv.insert(0, "assistant_service")
-            assistant_service.main()
-            sys.exit(0)
+                pass
+            safe_write_json({"success": False, "error": str(e)})
+            sys.exit(1)
     main()

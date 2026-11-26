@@ -54,6 +54,25 @@
       --accent-warm-soft: rgba(217, 119, 6, 0.12);
     }
 
+    html.light .prose-assistant h1,
+    html.light .prose-assistant h2,
+    html.light .prose-assistant h3,
+    html.light .prose-assistant h4,
+    html.light .prose-assistant strong {
+      color: var(--text-main);
+    }
+    html.light .prose-assistant a {
+      color: #b45309;
+    }
+    html.light .prose-assistant code {
+      background: rgba(0, 0, 0, 0.06);
+      color: #b45309;
+    }
+    html.light .prose-assistant th {
+      color: #b45309;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -133,6 +152,7 @@
       .branding-icon { display: none !important; }
       #assistant-model { max-width: 60px !important; }
       #btn-clear-chat { display: none !important; }
+      #btn-web-search { display: none !important; }
       #btn-prompt-mic, #btn-snap-screen, #btn-send-assistant {
         width: 1.35rem !important;
         height: 1.35rem !important;
@@ -141,6 +161,11 @@
     @media (max-height: 250px) {
       .welcome-icon { display: none !important; }
       #chat-empty-state { padding-top: 2px !important; padding-bottom: 2px !important; }
+    }
+
+    #chat-stream {
+      overflow-x: hidden !important;
+      max-width: 100%;
     }
 
     /* Top Drag Handle Notch */
@@ -181,12 +206,27 @@
     .sound-bar:nth-child(4) { animation-delay: 0.45s; background: #fde68a; }
     .sound-bar:nth-child(5) { animation-delay: 0.6s; background: #f59e0b; }
 
-    /* Editorial Typography & Spacing */
+    /* Editorial Typography & Strict Overflow Guard (Zero Horizontal Page Scroll) */
     .prose-assistant {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       font-size: 0.84rem;
       line-height: 1.65;
       color: var(--text-main);
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .prose-assistant p,
+    .prose-assistant li,
+    .prose-assistant h1,
+    .prose-assistant h2,
+    .prose-assistant h3,
+    .prose-assistant h4,
+    .prose-assistant blockquote {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
       word-break: break-word;
     }
     .prose-assistant p {
@@ -241,24 +281,77 @@
       color: #fbbf24;
       text-decoration: none;
       border-bottom: 1px dotted rgba(251, 191, 36, 0.4);
+      overflow-wrap: anywhere;
+      word-break: break-word;
       transition: color 0.15s, border-color 0.15s;
     }
     .prose-assistant a:hover {
       color: #fde68a;
       border-bottom-color: #fde68a;
     }
+    .prose-assistant img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* Confined Table Wrapper: Wide Markdown Tables Scroll Internally Without Breaking Chat Width */
+    .table-scroll-wrapper {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      margin: 0.55rem 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.16);
+    }
+    .prose-assistant table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+      line-height: 1.4;
+    }
+    .prose-assistant th,
+    .prose-assistant td {
+      padding: 0.35rem 0.55rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      text-align: left;
+      vertical-align: top;
+      max-width: 240px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .prose-assistant th {
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.04);
+      color: #fbbf24;
+    }
+    .prose-assistant th:last-child,
+    .prose-assistant td:last-child {
+      border-right: none;
+    }
 
     /* Option 3 Warm Studio Code Block Styling & Soft Wrap (NO Horizontal Scrollbars) */
+    .code-block-wrapper {
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
     .prose-assistant pre {
       background: transparent !important;
       border: none !important;
       border-radius: 0 !important;
       padding: 0.75rem 0.85rem !important;
       margin: 0 !important;
+      max-width: 100% !important;
       font-family: "JetBrains Mono", Consolas, Monaco, "Courier New", monospace !important;
       font-size: 0.82rem !important;
       line-height: 1.55 !important;
       white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
       word-break: break-word !important;
       overflow-x: hidden !important;
     }
@@ -269,6 +362,8 @@
       padding: 0.15rem 0.35rem;
       border-radius: 0.25rem;
       font-size: 0.83em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .prose-assistant pre code {
       background: transparent !important;
@@ -277,18 +372,22 @@
       border-radius: 0 !important;
       font-size: inherit !important;
       white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
       word-break: break-word !important;
     }
 
-    /* KaTeX Math Styling: Exactly +15% scaling, crystal-clear readability */
+    /* KaTeX Math Styling: Bounded Display Scroll, Clean Wrapping */
     .katex {
-      font-size: 1.15em !important;
+      font-size: 1.12em !important;
       text-rendering: auto;
+      max-width: 100%;
     }
     .katex-display {
-      font-size: 1.15em !important;
+      font-size: 1.12em !important;
       margin: 0.75rem 0 !important;
       padding: 0.35rem 0.5rem !important;
+      max-width: 100%;
+      box-sizing: border-box;
       overflow-x: auto;
       overflow-y: hidden;
       border-radius: 8px;
@@ -297,22 +396,23 @@
     }
     .katex-display > .katex {
       white-space: normal;
+      max-width: 100%;
     }
 
-    /* Resize Handle */
+    /* Resize Handle (Sized compactly so it never overlaps Send button) */
     .resize-handle {
       position: absolute;
-      bottom: 2px;
-      right: 2px;
-      width: 16px;
-      height: 16px;
+      bottom: 1px;
+      right: 1px;
+      width: 12px;
+      height: 12px;
       cursor: nwse-resize;
       z-index: 50;
-      opacity: 0.3;
+      opacity: 0.35;
       transition: opacity 0.2s;
     }
     .resize-handle:hover {
-      opacity: 0.85;
+      opacity: 0.9;
     }
     .resize-handle svg {
       width: 100%;
@@ -324,13 +424,13 @@
 <body class="flex flex-col justify-end">
 
   <!-- Main Floating Card -->
-  <div id="gemini-card" class="assistant-card flex flex-col h-full w-full overflow-hidden transition-all duration-300">
+  <div id="gemini-card" class="assistant-card flex flex-col h-full w-full min-w-0 max-w-full overflow-hidden transition-all duration-300">
     
     <!-- Top Drag & Controls Header (Single Row, Ultra-Compact) -->
-    <div class="drag-region px-2 py-1 border-b flex items-center justify-between gap-1 select-none shrink-0" style="background: var(--header-bg); border-color: var(--card-border);">
+    <div class="drag-region px-2 py-1 border-b flex items-center justify-between gap-1 select-none shrink-0 min-w-0" style="background: var(--header-bg); border-color: var(--card-border);">
       
       <!-- Left: Branding -->
-      <div class="flex items-center gap-1.5 shrink-0 overflow-hidden min-w-0">
+      <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
         <div class="branding-icon w-4 h-4 rounded-md bg-gradient-to-tr from-amber-600 to-amber-700 flex items-center justify-center text-[9px] text-amber-100 font-bold shrink-0">
           ✦
         </div>
@@ -338,7 +438,7 @@
       </div>
 
       <!-- Right: Model & Controls (Strictly Single Row) -->
-      <div class="no-drag flex items-center gap-1 shrink-0 flex-nowrap">
+      <div class="no-drag flex items-center gap-1 shrink-0 min-w-0 flex-nowrap">
         
         <!-- AI Model Selector -->
         <select id="assistant-model" class="border font-mono text-[9px] font-medium rounded-lg px-1.5 py-0.5 focus:outline-none cursor-pointer transition shadow-sm max-w-[105px] truncate" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="Select AI intelligence model">
@@ -372,32 +472,32 @@
     </div>
 
     <!-- Collapsible Policy Panel -->
-    <div id="policy-panel" class="hidden px-4 py-3 border-b select-none space-y-2.5 transition-all text-xs" style="background: var(--header-bg); border-color: var(--card-border);">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs font-bold flex items-center gap-1" style="color: var(--text-main);"><span class="text-amber-400">✦</span> System Policy</span>
-          <span id="active-policy-badge" class="text-[9px] font-mono font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">GENERAL</span>
+    <div id="policy-panel" class="hidden px-3 py-2.5 border-b select-none space-y-2.5 transition-all text-xs max-h-[60vh] overflow-y-auto overflow-x-hidden min-w-0 custom-scroll" style="background: var(--header-bg); border-color: var(--card-border);">
+      <div class="flex items-center justify-between gap-2 min-w-0">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="text-xs font-bold flex items-center gap-1 truncate" style="color: var(--text-main);"><span class="text-amber-400">✦</span> System Policy</span>
+          <span id="active-policy-badge" class="text-[9px] font-mono font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full shrink-0">GENERAL</span>
         </div>
-        <button id="btn-close-policy" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer transition">✕</button>
+        <button id="btn-close-policy" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer transition shrink-0">✕</button>
       </div>
 
       <!-- Preset Pills -->
-      <div class="grid grid-cols-4 gap-1.5 text-[10px]">
-        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-left transition cursor-pointer" data-mode="general" id="preset-btn-general">
-          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🌿</span> General</div>
-          <div class="text-[8px] text-slate-400 mt-0.5">Automation &amp; Math</div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 text-left transition cursor-pointer min-w-0" data-mode="general" id="preset-btn-general">
+          <div class="font-bold flex items-center gap-1 truncate" style="color: var(--text-main);"><span>🌿</span> General</div>
+          <div class="text-[8px] text-slate-400 mt-0.5 truncate">Automation &amp; Math</div>
         </button>
-        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="developer" id="preset-btn-developer">
-          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>⚡</span> DevOps</div>
-          <div class="text-[8px] text-slate-400 mt-0.5">Code &amp; Shell First</div>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer min-w-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="developer" id="preset-btn-developer">
+          <div class="font-bold flex items-center gap-1 truncate" style="color: var(--text-main);"><span>⚡</span> DevOps</div>
+          <div class="text-[8px] text-slate-400 mt-0.5 truncate">Code &amp; Shell First</div>
         </button>
-        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="concise" id="preset-btn-concise">
-          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🎯</span> Direct</div>
-          <div class="text-[8px] text-slate-400 mt-0.5">Zero Preamble</div>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer min-w-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="concise" id="preset-btn-concise">
+          <div class="font-bold flex items-center gap-1 truncate" style="color: var(--text-main);"><span>🎯</span> Direct</div>
+          <div class="text-[8px] text-slate-400 mt-0.5 truncate">Zero Preamble</div>
         </button>
-        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="custom" id="preset-btn-custom">
-          <div class="font-bold flex items-center gap-1" style="color: var(--text-main);"><span>🛠️</span> Custom</div>
-          <div class="text-[8px] text-slate-400 mt-0.5">User Rules</div>
+        <button type="button" class="btn-asst-preset p-1.5 rounded-xl border text-left transition cursor-pointer min-w-0" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" data-mode="custom" id="preset-btn-custom">
+          <div class="font-bold flex items-center gap-1 truncate" style="color: var(--text-main);"><span>🛠️</span> Custom</div>
+          <div class="text-[8px] text-slate-400 mt-0.5 truncate">User Rules</div>
         </button>
       </div>
 
@@ -405,60 +505,60 @@
       <textarea id="policy-system-prompt" rows="3" class="w-full border rounded-xl p-2.5 font-mono text-[10px] leading-relaxed resize-none custom-scroll focus:outline-none" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main);" placeholder="System instructions for the AI assistant..."></textarea>
 
       <!-- Autonomous Execution Toggle -->
-      <div class="flex items-center justify-between p-2 rounded-xl border border-white/10 bg-black/25">
-        <div class="flex items-center gap-2">
-          <span class="text-amber-400 text-xs">⚡</span>
-          <div>
-            <div class="text-[10px] font-semibold text-slate-200">Autonomous Command &amp; Tool Execution</div>
-            <div class="text-[8px] text-slate-400">Allow AI to run PowerShell commands, open applications, and modify files</div>
+      <div class="flex items-center justify-between gap-2 p-2 rounded-xl border border-white/10 bg-black/25 min-w-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-amber-400 text-xs shrink-0">⚡</span>
+          <div class="min-w-0">
+            <div class="text-[10px] font-semibold text-slate-200 truncate">Autonomous Command &amp; Tool Execution</div>
+            <div class="text-[8px] text-slate-400 leading-snug">Allow AI to run PowerShell commands, open applications, and modify files</div>
           </div>
         </div>
-        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+        <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-1">
           <input id="policy-enable-commands" type="checkbox" class="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer" checked>
         </label>
       </div>
 
-      <div class="flex items-center justify-between text-[10px]">
+      <div class="flex items-center justify-between gap-2 text-[10px] flex-wrap">
         <button id="btn-reset-policy" type="button" class="text-slate-400 hover:text-amber-400 underline cursor-pointer">↺ Reset to Preset Default</button>
-        <button id="btn-save-policy" type="button" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer">Save &amp; Apply</button>
+        <button id="btn-save-policy" type="button" class="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg shadow-sm transition cursor-pointer shrink-0">Save &amp; Apply</button>
       </div>
     </div>
 
     <!-- Scrollable Chat Stream -->
-    <div id="chat-stream" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-2 text-xs" style="color: var(--text-main);">
+    <div id="chat-stream" class="flex-1 min-w-0 w-full overflow-y-auto overflow-x-hidden custom-scroll p-2 space-y-2 text-xs" style="color: var(--text-main);">
       
       <!-- Welcome Empty State (Minimalist & Compact) -->
-      <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85">
+      <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85 px-2">
         <div class="welcome-icon w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xs text-amber-300">
           ✦
         </div>
         <div class="text-[11px] font-semibold tracking-tight" style="color: var(--text-main);">AntigravityFlow AI</div>
-        <div class="text-[9px]" style="color: var(--text-muted);">
-          Hold <kbd class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">Win+Ctrl</kbd> to speak or type below
+        <div class="text-[9px] break-words" style="color: var(--text-muted);">
+          Hold <kbd id="empty-state-hotkey-badge" class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">Win+Ctrl</kbd> to speak or type below
         </div>
       </div>
 
     </div>
 
     <!-- Screenshot Preview Tray (when attached) -->
-    <div id="screenshot-tray" class="hidden px-2 py-1.5 border-t flex items-center justify-between" style="background: var(--header-bg); border-color: var(--card-border);">
-      <div class="flex items-center gap-2">
-        <img id="screenshot-thumb" class="w-10 h-6 object-cover rounded-md border border-amber-500/40 shadow-sm" src="" alt="Screen">
-        <span class="text-[9px] text-amber-300 font-medium flex items-center gap-1">
-          <span id="screenshot-tray-label">📷 Screen Attached</span>
-          <span id="screenshot-res" class="text-slate-400 font-mono text-[8px]"></span>
+    <div id="screenshot-tray" class="hidden px-2 py-1.5 border-t flex items-center justify-between gap-2 min-w-0" style="background: var(--header-bg); border-color: var(--card-border);">
+      <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+        <img id="screenshot-thumb" class="w-10 h-6 object-cover rounded-md border border-amber-500/40 shadow-sm shrink-0 cursor-pointer" src="" alt="Screen" title="Click to preview attached image">
+        <span class="text-[9px] text-amber-300 font-medium flex items-center gap-1 min-w-0 truncate">
+          <span id="screenshot-tray-label" class="truncate">📷 Screen Attached</span>
+          <span id="screenshot-res" class="text-slate-400 font-mono text-[8px] shrink-0"></span>
         </span>
       </div>
-      <button id="btn-remove-screenshot" class="text-slate-400 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded transition" title="Remove screenshot">✕</button>
+      <button id="btn-remove-screenshot" class="text-slate-400 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded transition shrink-0 cursor-pointer" title="Remove screenshot">✕</button>
     </div>
 
     <!-- Active Voice Equalizer Bar (Transforms during live recording) -->
-    <div id="voice-indicator-bar" class="hidden px-3 py-1.5 border-t flex items-center justify-between select-none" style="background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.25);">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-        <span class="text-[11px] font-semibold text-amber-300">Listening to voice... release to submit</span>
+    <div id="voice-indicator-bar" class="hidden px-3 py-1.5 border-t flex items-center justify-between gap-2 select-none min-w-0" style="background: rgba(245, 158, 11, 0.10); border-color: rgba(245, 158, 11, 0.25);">
+      <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+        <span class="text-[11px] font-semibold text-amber-300 truncate">Listening to voice... release to submit</span>
       </div>
-      <div class="flex items-center gap-1 h-4">
+      <div class="flex items-center gap-1 h-4 shrink-0">
         <div class="sound-bar"></div>
         <div class="sound-bar"></div>
         <div class="sound-bar"></div>
@@ -468,19 +568,19 @@
     </div>
 
     <!-- Live TTS Speaking Status Pill & Barge-in Controls -->
-    <div id="tts-speaking-pill" class="hidden px-3 py-1 border-t items-center justify-between text-[10px] select-none" style="background: rgba(245, 158, 11, 0.12); border-color: var(--card-border);">
-      <div class="flex items-center gap-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-        <span id="tts-speaking-text" class="text-amber-300 font-medium text-[11px]">Speaking...</span>
+    <div id="tts-speaking-pill" class="hidden px-3 py-1 border-t items-center justify-between gap-2 text-[10px] select-none min-w-0" style="background: rgba(245, 158, 11, 0.12); border-color: var(--card-border);">
+      <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+        <span id="tts-speaking-text" class="text-amber-300 font-medium text-[11px] truncate">Speaking...</span>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1 shrink-0">
         <button id="btn-tts-pause" type="button" class="hover:text-white px-1.5 py-0.5 rounded font-mono text-[9px] cursor-pointer" style="background: var(--ctrl-bg);">⏸ Pause</button>
         <button id="btn-tts-stop" type="button" class="hover:text-rose-400 px-1.5 py-0.5 rounded font-mono text-[9px] cursor-pointer" style="background: var(--ctrl-bg);">⏹ Stop (Esc)</button>
       </div>
     </div>
 
     <!-- Bottom Input Area (Sleek & Ultra-Compact) -->
-    <div class="px-2 py-1 border-t flex items-end gap-1 shrink-0" style="background: var(--header-bg); border-color: var(--card-border);">
+    <div class="px-2 pr-3 py-1 border-t flex items-end gap-1 shrink-0 min-w-0" style="background: var(--header-bg); border-color: var(--card-border);">
       
       <!-- Mic Button -->
       <button id="btn-prompt-mic" type="button" class="w-6 h-6 mb-0.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center transition shadow-sm cursor-pointer shrink-0" title="Hold Win+Ctrl or click to dictate">
@@ -492,9 +592,14 @@
         <span class="text-[10px]">📷</span>
       </button>
 
+      <!-- Live Web Search Toggle -->
+      <button id="btn-web-search" type="button" class="w-6 h-6 mb-0.5 rounded-lg border flex items-center justify-center transition shadow-sm cursor-pointer shrink-0 opacity-75 hover:opacity-100" style="background: var(--ctrl-bg); border-color: var(--ctrl-border); color: var(--text-main);" title="Force Live Web Search (Off)">
+        <span class="text-[10px]">🌐</span>
+      </button>
+
       <!-- Prompt Input (Auto-growing textarea with Shift+Enter newlines) -->
       <div class="flex-1 min-w-0 relative flex items-center">
-        <textarea id="assistant-input" rows="1" placeholder="Ask AI (Shift+Enter for newline)..." class="w-full border rounded-lg px-2 py-1 text-[11px] leading-snug focus:outline-none focus:border-amber-500/50 transition font-medium resize-none overflow-y-auto max-h-24 custom-scroll" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main); height: 26px;"></textarea>
+        <textarea id="assistant-input" rows="1" placeholder="Ask AI (Shift+Enter for newline)..." class="w-full min-w-0 border rounded-lg px-2 py-1 text-[11px] leading-snug focus:outline-none focus:border-amber-500/50 transition font-medium resize-none overflow-y-auto max-h-24 custom-scroll" style="background: var(--input-bg); border-color: var(--input-border); color: var(--text-main); height: 26px;"></textarea>
       </div>
 
       <!-- Send Button -->
@@ -504,13 +609,21 @@
     </div>
 
     <!-- Corner Resize Handle -->
-    <div class="resize-handle no-drag" title="Drag to resize window">
+    <div id="assistant-resize-handle" class="resize-handle no-drag" title="Drag to resize window">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="22" y1="16" x2="16" y2="22"></line>
         <line x1="22" y1="10" x2="10" y2="22"></line>
       </svg>
     </div>
 
+  </div>
+
+  <!-- In-App Image Attachment Lightbox -->
+  <div id="image-preview-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="relative max-w-full max-h-full flex flex-col items-center gap-2">
+      <img id="image-preview-modal-img" src="" alt="Preview" class="max-w-full max-h-[80vh] rounded-xl border border-amber-500/30 shadow-2xl object-contain">
+      <button id="btn-close-image-modal" type="button" class="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-semibold cursor-pointer">Close Preview (Esc)</button>
+    </div>
   </div>
 
   <script>
@@ -520,7 +633,41 @@
     let isProcessing = false;
     let activeMode = 'general';
     let activeSystemInstruction = '';
+    let savedPresets = {};
     let currentThemeSetting = 'auto';
+    let ttsAutoSpeakVoice = true;
+    let isScreenVisionEnabled = true;
+    let isWebSearchEnabled = false;
+    let configuredAiHotkey = 'Win+Ctrl';
+
+    function normalizeTtsRate(rate) {
+      let s = String(rate || '+0%').trim();
+      if (!s) return '+0%';
+      if (!s.endsWith('%')) {
+        if (/^[+-]?\d+$/.test(s)) {
+          const n = parseInt(s, 10);
+          const clamped = Math.max(-80, Math.min(150, n));
+          return `${clamped >= 0 ? '+' : ''}${clamped}%`;
+        }
+        return '+0%';
+      }
+      return s;
+    }
+
+    function formatHotkeyLabel(combo) {
+      if (!combo) return 'Win+Ctrl';
+      return String(combo)
+        .split('+')
+        .map(p => {
+          const s = p.trim().toLowerCase();
+          if (s === 'windows' || s === 'win') return 'Win';
+          if (s === 'ctrl') return 'Ctrl';
+          if (s === 'alt') return 'Alt';
+          if (s === 'shift') return 'Shift';
+          return s.charAt(0).toUpperCase() + s.slice(1);
+        })
+        .join('+');
+    }
 
     // System Prompts Presets
     const ASST_PRESETS = {
@@ -553,11 +700,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     // DOM Elements
     const geminiCard = document.getElementById('gemini-card');
     const chatStream = document.getElementById('chat-stream');
-    const emptyState = document.getElementById('chat-empty-state');
     const inputField = document.getElementById('assistant-input');
     const btnSend = document.getElementById('btn-send-assistant');
     const btnPromptMic = document.getElementById('btn-prompt-mic');
     const btnSnap = document.getElementById('btn-snap-screen');
+    const btnWebSearch = document.getElementById('btn-web-search');
     const screenshotTray = document.getElementById('screenshot-tray');
     const screenshotThumb = document.getElementById('screenshot-thumb');
     const screenshotRes = document.getElementById('screenshot-res');
@@ -578,6 +725,43 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     const ttsSpeakingText = document.getElementById('tts-speaking-text');
     const btnTtsPause = document.getElementById('btn-tts-pause');
     const btnTtsStop = document.getElementById('btn-tts-stop');
+    const resizeHandleEl = document.getElementById('assistant-resize-handle');
+    const imagePreviewModal = document.getElementById('image-preview-modal');
+    const imagePreviewModalImg = document.getElementById('image-preview-modal-img');
+    const btnCloseImageModal = document.getElementById('btn-close-image-modal');
+
+    function hideEmptyState() {
+      const el = document.getElementById('chat-empty-state');
+      if (el) el.classList.add('hidden');
+    }
+
+    function openImagePreview(dataUrl) {
+      if (!imagePreviewModal || !imagePreviewModalImg || !dataUrl) return;
+      imagePreviewModalImg.src = dataUrl;
+      imagePreviewModal.classList.remove('hidden');
+    }
+
+    function closeImagePreview() {
+      if (!imagePreviewModal) return;
+      imagePreviewModal.classList.add('hidden');
+      if (imagePreviewModalImg) imagePreviewModalImg.src = '';
+    }
+
+    if (btnCloseImageModal) {
+      btnCloseImageModal.addEventListener('click', closeImagePreview);
+    }
+    if (imagePreviewModal) {
+      imagePreviewModal.addEventListener('click', (e) => {
+        if (e.target === imagePreviewModal) closeImagePreview();
+      });
+    }
+    if (screenshotThumb) {
+      screenshotThumb.addEventListener('click', () => {
+        if (currentScreenshot && currentScreenshot.data_url) {
+          openImagePreview(currentScreenshot.data_url);
+        }
+      });
+    }
 
     // =========================================================================
     // Edge TTS Online Speech Engine with Streaming Pipeline Queue
@@ -678,7 +862,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
               const res = await window.api.synthesizeSpeech({
                 text: textToSpeak,
                 voice: this.selectedVoice,
-                rate: this.rate
+                rate: normalizeTtsRate(this.rate)
               });
 
               if (res && res.success) {
@@ -711,7 +895,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             const res = await window.api.synthesizeSpeech({
               text: nextText,
               voice: this.selectedVoice,
-              rate: this.rate
+              rate: normalizeTtsRate(this.rate)
             });
             if (res && res.success) {
               this.prefetchAudioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
@@ -755,24 +939,23 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       speakFullText(text) {
         this.cancel();
         if (!this.enabled || !text) return;
-        const cleaned = this.cleanChunk(text);
-        if (!cleaned || cleaned.length < 2) return;
+
+        const rawParas = String(text).split(/\r?\n\s*\r?\n/);
+        const fullCleaned = this.cleanChunk(text);
+        if (!fullCleaned || fullCleaned.length < 2) return;
 
         // If the entire message is within typical speech length (<= 1500 chars),
         // synthesize the entire message in a single audio call for completely fluid, natural speech.
-        if (cleaned.length <= 1500) {
-          this.enqueue(cleaned);
+        if (fullCleaned.length <= 1500) {
+          this.enqueue(fullCleaned);
           return;
         }
 
-        // For exceptionally long messages (> 1500 chars), group by major paragraphs (~900-1200 chars)
-        // rather than individual sentences, preserving natural cadence and minimizing pauses.
-        const chunks = [];
-        const paragraphs = cleaned.split(/(?<=\n)\s*\n/);
+        // Group by major paragraphs BEFORE collapsing newlines, keeping natural cadence.
+        let chunks = [];
         let currentChunk = '';
-
-        for (const p of paragraphs) {
-          const pt = p.trim();
+        for (const p of rawParas) {
+          const pt = this.cleanChunk(p);
           if (!pt) continue;
           if (currentChunk && (currentChunk.length + pt.length) > 1000) {
             chunks.push(currentChunk);
@@ -783,9 +966,10 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         }
         if (currentChunk) chunks.push(currentChunk);
 
-        // Fallback sentence-grouping if no paragraph breaks exist
-        if (chunks.length <= 1 && cleaned.length > 1500) {
-          const sentences = cleaned.match(/[^.!?\n]+[.!?\n]+/g) || [cleaned];
+        // Fallback sentence-grouping if no paragraph breaks produced multiple chunks
+        if (chunks.length <= 1) {
+          chunks = [];
+          const sentences = fullCleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [fullCleaned];
           let sChunk = '';
           for (const s of sentences) {
             const st = s.trim();
@@ -820,6 +1004,12 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     btnTtsStop.addEventListener('click', () => {
       ttsQueue.cancel();
     });
+
+    function scrollToBottom() {
+      if (chatStream) {
+        chatStream.scrollTop = chatStream.scrollHeight;
+      }
+    }
 
     // =========================================================================
     // Auto-Grow Window Size
@@ -866,6 +1056,36 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           throwOnError: false
         });
       } catch (_) {}
+    }
+
+    function parseMarkdownWithMath(rawText) {
+      if (!rawText) return '';
+      if (!window.marked) return escapeHtml(rawText).replace(/\n/g, '<br>');
+      const codeTokens = [];
+      const mathTokens = [];
+      let protectedText = String(rawText).replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (m) => {
+        const idx = codeTokens.push(m) - 1;
+        return `%%AGCODE${idx}%%`;
+      });
+      protectedText = protectedText.replace(/(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$(?!\s)([^\$\n]+?)(?<!\s)\$)/g, (m) => {
+        const idx = mathTokens.push(m) - 1;
+        return `%%AGMATH${idx}%%`;
+      });
+      protectedText = protectedText.replace(/%%AGCODE(\d+)%%/g, (_, idx) => codeTokens[Number(idx)] || '');
+      let html = window.marked.parse(protectedText);
+      html = html.replace(/%%AGMATH(\d+)%%/g, (_, idx) => escapeHtml(mathTokens[Number(idx)] || ''));
+      return html;
+    }
+
+    function enhanceTables(container) {
+      if (!container) return;
+      container.querySelectorAll('table').forEach(table => {
+        if (table.parentElement && table.parentElement.classList.contains('table-scroll-wrapper')) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-scroll-wrapper custom-scroll';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      });
     }
 
     function highlightCode(rawCode, lang) {
@@ -931,21 +1151,21 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
         // Option 3 Code Card Wrapper
         const wrapper = document.createElement('div');
-        wrapper.className = "code-block-wrapper my-2 rounded-xl overflow-hidden border border-white/[0.08] shadow-md";
+        wrapper.className = "code-block-wrapper my-2 max-w-full min-w-0 rounded-xl overflow-hidden border border-white/[0.08] shadow-md";
         wrapper.style.background = "var(--code-bg)";
 
         const header = document.createElement('div');
-        header.className = "flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] select-none text-[10px]";
+        header.className = "flex items-center justify-between flex-wrap gap-1 min-w-0 px-3 py-1.5 border-b border-white/[0.06] select-none text-[10px]";
         header.style.background = "rgba(255, 255, 255, 0.03)";
 
         const isShell = ['powershell', 'ps1', 'bash', 'sh', 'cmd', 'shell', 'terminal'].includes(lang);
 
         header.innerHTML = `
-          <div class="flex items-center gap-1.5 font-mono">
-            <span class="w-2 h-2 rounded-full bg-amber-400/80"></span>
-            <span class="text-amber-300 font-semibold uppercase tracking-wider text-[9px]">${escapeHtml(lang)}</span>
+          <div class="flex items-center gap-1.5 font-mono min-w-0">
+            <span class="w-2 h-2 rounded-full bg-amber-400/80 shrink-0"></span>
+            <span class="text-amber-300 font-semibold uppercase tracking-wider text-[9px] truncate">${escapeHtml(lang)}</span>
           </div>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 shrink-0">
             <button class="btn-copy-code px-2 py-0.5 rounded-md border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition font-mono text-[9px] cursor-pointer flex items-center gap-1">
               <span>📋 Copy</span>
             </button>
@@ -1007,29 +1227,29 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     }
 
     function appendUserMessage(text, screenshot = null) {
-      if (emptyState) emptyState.classList.add('hidden');
+      hideEmptyState();
 
       const bubble = document.createElement('div');
-      bubble.className = "group relative flex flex-col items-end space-y-1 w-full";
+      bubble.className = "group relative flex flex-col items-end space-y-1 w-full min-w-0 max-w-full";
 
       let imgHtml = '';
       if (screenshot && screenshot.data_url) {
-        const lbl = screenshot.label || 'Attached Image';
+        const lbl = escapeHtml(screenshot.label || 'Attached Image');
         imgHtml = `
-          <div class="mb-1.5 flex items-center gap-2 p-1.5 rounded-xl border border-amber-500/30 bg-amber-950/20">
-            <img src="${screenshot.data_url}" class="w-16 h-10 object-cover rounded-lg border border-amber-500/40 cursor-pointer shadow-sm" onclick="window.open('${screenshot.data_url}')" title="Click to view image">
-            <div class="text-[9px] font-mono text-amber-200">
-              <div class="font-semibold">${lbl}</div>
-              <div class="text-slate-400">${screenshot.width || ''}x${screenshot.height || ''}</div>
+          <div class="mb-1.5 flex items-center gap-2 p-1.5 rounded-xl border border-amber-500/30 bg-amber-950/20 min-w-0 max-w-full overflow-hidden">
+            <img src="${screenshot.data_url}" class="btn-view-attachment w-16 h-10 object-cover rounded-lg border border-amber-500/40 cursor-pointer shadow-sm shrink-0" title="Click to view image">
+            <div class="text-[9px] font-mono text-amber-200 min-w-0">
+              <div class="font-semibold truncate">${lbl}</div>
+              <div class="text-slate-400">${escapeHtml(String(screenshot.width || ''))}x${escapeHtml(String(screenshot.height || ''))}</div>
             </div>
           </div>
         `;
       }
 
       bubble.innerHTML = `
-        <div class="max-w-[85%] rounded-2xl rounded-tr-sm px-3.5 py-2.5 shadow-sm text-xs leading-relaxed relative" style="background: var(--bubble-user); border: 1px solid var(--bubble-user-border); color: var(--text-main);">
+        <div class="max-w-[85%] min-w-0 overflow-hidden rounded-2xl rounded-tr-sm px-3.5 py-2.5 shadow-sm text-xs leading-relaxed relative" style="background: var(--bubble-user); border: 1px solid var(--bubble-user-border); color: var(--text-main);">
           ${imgHtml}
-          <div class="font-medium whitespace-pre-wrap select-text">${escapeHtml(text)}</div>
+          <div class="font-medium whitespace-pre-wrap break-words [overflow-wrap:anywhere] select-text">${escapeHtml(text)}</div>
         </div>
         <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-1">
           <button class="btn-copy-user-msg text-[9px] px-2 py-0.5 rounded-md border font-mono text-slate-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="Copy message">
@@ -1037,6 +1257,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           </button>
         </div>
       `;
+
+      const thumbImg = bubble.querySelector('.btn-view-attachment');
+      if (thumbImg && screenshot && screenshot.data_url) {
+        thumbImg.addEventListener('click', () => openImagePreview(screenshot.data_url));
+      }
 
       const copyBtn = bubble.querySelector('.btn-copy-user-msg');
       if (copyBtn) {
@@ -1050,28 +1275,28 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
 
       chatStream.appendChild(bubble);
-      chatStream.scrollTop = chatStream.scrollHeight;
+      scrollToBottom();
       autoGrowWindow();
     }
 
     function createStreamingAssistantBubble() {
-      if (emptyState) emptyState.classList.add('hidden');
+      hideEmptyState();
 
       const bubble = document.createElement('div');
-      bubble.className = "group relative flex flex-col items-start space-y-1.5 w-full";
+      bubble.className = "group relative flex flex-col items-start space-y-1.5 w-full min-w-0 max-w-full";
       const cardId = "asst-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
 
       bubble.innerHTML = `
-        <div class="flex items-center justify-between w-full text-[10px] text-slate-400 pl-1">
-          <div class="flex items-center gap-1.5">
-            <span class="font-bold text-amber-400">AntigravityFlow AI</span>
+        <div class="flex items-center justify-between flex-wrap gap-1 w-full min-w-0 text-[10px] text-slate-400 pl-1">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-bold text-amber-400 truncate">AntigravityFlow AI</span>
             <span>•</span>
-            <span class="bubble-badge font-mono text-[9px] text-amber-400/80 flex items-center gap-1">
+            <span class="bubble-badge font-mono text-[9px] text-amber-400/80 flex items-center gap-1 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
               <span>THINKING</span>
             </span>
           </div>
-          <div class="bubble-actions flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div class="bubble-actions flex items-center gap-1.5 flex-wrap shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <button class="btn-listen-bubble text-slate-400 hover:text-amber-300 transition text-[10px] cursor-pointer" data-target="${cardId}">
               🔊 Listen
             </button>
@@ -1083,10 +1308,10 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             </button>
           </div>
         </div>
-        <div id="${cardId}" class="prose-assistant rounded-2xl rounded-tl-sm p-3.5 w-full text-xs leading-relaxed shadow-sm" style="background: var(--bubble-asst); border: 1px solid var(--bubble-asst-border); color: var(--text-main);">
-          <div class="stream-thinking"></div>
-          <div class="stream-intel"></div>
-          <div class="stream-text-container min-h-[22px]">
+        <div id="${cardId}" class="prose-assistant rounded-2xl rounded-tl-sm p-3.5 w-full min-w-0 max-w-full overflow-x-hidden text-xs leading-relaxed shadow-sm" style="background: var(--bubble-asst); border: 1px solid var(--bubble-asst-border); color: var(--text-main);">
+          <div class="stream-thinking min-w-0 max-w-full"></div>
+          <div class="stream-intel min-w-0 max-w-full"></div>
+          <div class="stream-text-container min-h-[22px] min-w-0 max-w-full">
             <div class="thinking-loader flex items-center gap-2 text-amber-400 text-xs py-0.5">
               <div class="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
               <span class="font-medium animate-pulse">Thinking...</span>
@@ -1147,15 +1372,15 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           if (!thinkingText || !thinkingText.trim()) return;
           const cleanThinking = thinkingText.trim();
           thinkingEl.innerHTML = `
-            <div class="mb-2 p-2 rounded-xl border border-amber-500/25 text-[10px]" style="background: var(--code-bg);">
-              <details class="cursor-pointer group">
-                <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-0.5">
-                  <span class="flex items-center gap-1.5">
-                    <span class="text-amber-400">🧠</span> Thinking Process
+            <div class="mb-2 p-2 rounded-xl border border-amber-500/25 text-[10px] min-w-0 max-w-full overflow-hidden" style="background: var(--code-bg);">
+              <details class="cursor-pointer group min-w-0 max-w-full">
+                <summary class="font-semibold text-amber-300 flex items-center justify-between gap-2 select-none py-0.5 min-w-0">
+                  <span class="flex items-center gap-1.5 min-w-0 truncate">
+                    <span class="text-amber-400 shrink-0">🧠</span> <span class="truncate">Thinking Process</span>
                   </span>
-                  <span class="text-[9px] font-mono text-amber-400 group-open:rotate-180 transition-transform">▼</span>
+                  <span class="text-[9px] font-mono text-amber-400 group-open:rotate-180 transition-transform shrink-0">▼</span>
                 </summary>
-                <div class="mt-2 text-slate-300 font-mono text-[9px] whitespace-pre-wrap leading-relaxed border-t border-white/[0.06] pt-2 max-h-48 overflow-y-auto custom-scroll">
+                <div class="mt-2 text-slate-300 font-mono text-[9px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed border-t border-white/[0.06] pt-2 max-h-48 overflow-y-auto overflow-x-hidden custom-scroll">
                   ${escapeHtml(cleanThinking)}
                 </div>
               </details>
@@ -1168,12 +1393,12 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           const hasScreenStep = steps && steps.some(s => s.type === 'screen_vision');
           if (screenIntel && (screenIntel.app_name || screenIntel.window_title) && !hasScreenStep) {
             html += `
-              <div class="mb-2 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between text-[9px] font-mono text-amber-300" style="background: rgba(245, 158, 11, 0.1);">
-                <span class="flex items-center gap-1.5 font-medium truncate">
-                  <span>🖥️</span>
+              <div class="mb-2 px-2.5 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between gap-2 text-[9px] font-mono text-amber-300 min-w-0 max-w-full overflow-hidden" style="background: rgba(245, 158, 11, 0.1);">
+                <span class="flex items-center gap-1.5 font-medium min-w-0 flex-1 truncate">
+                  <span class="shrink-0">🖥️</span>
                   <span class="truncate">Screen: <b>${escapeHtml(screenIntel.app_name || 'Desktop')}</b> ${screenIntel.window_title ? `— ${escapeHtml(screenIntel.window_title)}` : ''}</span>
                 </span>
-                <span class="text-slate-400 shrink-0 ml-2">Native 1080p</span>
+                <span class="text-slate-400 shrink-0">Vision</span>
               </div>
             `;
           }
@@ -1191,17 +1416,17 @@ Your objective is minimum tokens, maximum signal, and direct execution.
               summaryTitle = `<span class="text-rose-400">🛡️ Blocked 1 command</span> <span class="text-slate-400 font-normal text-[9px]">(Disabled in Settings)</span>`;
             } else if (cmdCount === 1 && steps.length === 1) {
               const cmdPreview = steps[0].command ? steps[0].command.slice(0, 32) : 'PowerShell';
-              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed 1 command</span> <span class="text-slate-400 font-mono text-[9px] truncate max-w-[130px]">(${escapeHtml(cmdPreview)})</span>`;
+              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed 1 command</span> <span class="text-slate-400 font-mono text-[9px] truncate">(${escapeHtml(cmdPreview)})</span>`;
             } else if (cmdCount > 1 && steps.length === cmdCount) {
               summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed ${cmdCount} commands</span>`;
             } else if (readCount === 1 && steps.length === 1) {
               const fname = (steps[0].target || '').split(/[\\/]/).pop() || 'file';
-              summaryTitle = `<span class="text-blue-400">📄</span> <span>Read file:</span> <span class="text-blue-200 font-mono text-[9px] truncate max-w-[140px]">${escapeHtml(fname)}</span>`;
+              summaryTitle = `<span class="text-blue-400">📄</span> <span>Read file:</span> <span class="text-blue-200 font-mono text-[9px] truncate">${escapeHtml(fname)}</span>`;
             } else if (writeCount === 1 && steps.length === 1) {
               const fname = (steps[0].target || '').split(/[\\/]/).pop() || 'file';
-              summaryTitle = `<span class="text-emerald-400">✍️</span> <span>Wrote file:</span> <span class="text-emerald-200 font-mono text-[9px] truncate max-w-[140px]">${escapeHtml(fname)}</span>`;
+              summaryTitle = `<span class="text-emerald-400">✍️</span> <span>Wrote file:</span> <span class="text-emerald-200 font-mono text-[9px] truncate">${escapeHtml(fname)}</span>`;
             } else if (screenCount === 1 && steps.length === 1) {
-              summaryTitle = `<span class="text-fuchsia-400">📷</span> <span>Analyzed active screen</span> <span class="text-slate-400 text-[9px]">(${escapeHtml(steps[0].target || 'Desktop')})</span>`;
+              summaryTitle = `<span class="text-fuchsia-400">📷</span> <span>Analyzed active screen</span> <span class="text-slate-400 text-[9px] truncate">(${escapeHtml(steps[0].target || 'Desktop')})</span>`;
             } else {
               const tags = [];
               if (cmdCount > 0) tags.push(`${cmdCount} cmd`);
@@ -1211,27 +1436,27 @@ Your objective is minimum tokens, maximum signal, and direct execution.
               if (launchCount > 0) tags.push(`${launchCount} launch`);
               if (screenCount > 0) tags.push(`screen`);
               if (blockedCount > 0) tags.push(`${blockedCount} blocked`);
-              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed ${steps.length} actions</span> <span class="text-slate-400 font-mono text-[8.5px]">(${tags.join(', ')})</span>`;
+              summaryTitle = `<span class="text-amber-400">⚡</span> <span>Executed ${steps.length} actions</span> <span class="text-slate-400 font-mono text-[8.5px] truncate">(${tags.join(', ')})</span>`;
             }
 
             const totalDur = steps.reduce((acc, s) => acc + (parseFloat(s.duration) || 0), 0);
             const durDisplay = totalDur > 0 ? `${totalDur.toFixed(2)}s` : '';
 
             html += `
-              <div class="mb-2 rounded-xl border border-amber-500/30 overflow-hidden" style="background: var(--code-bg);">
-                <details class="cursor-pointer group">
-                  <summary class="font-semibold text-amber-300 flex items-center justify-between select-none py-1.5 px-2.5 transition hover:bg-amber-500/10 text-[10px]">
-                    <div class="flex items-center gap-1.5 truncate">
+              <div class="mb-2 rounded-xl border border-amber-500/30 overflow-hidden min-w-0 max-w-full" style="background: var(--code-bg);">
+                <details class="cursor-pointer group min-w-0 max-w-full">
+                  <summary class="font-semibold text-amber-300 flex items-center justify-between gap-2 select-none py-1.5 px-2.5 transition hover:bg-amber-500/10 text-[10px] min-w-0">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1 truncate">
                       ${summaryTitle}
                     </div>
-                    <div class="flex items-center gap-2 shrink-0 ml-2 font-mono text-[9px] text-slate-400">
+                    <div class="flex items-center gap-1.5 shrink-0 font-mono text-[9px] text-slate-400">
                       ${durDisplay ? `<span class="text-slate-500">${durDisplay}</span>` : ''}
                       <span class="px-1.5 py-0.5 rounded border border-white/10 bg-black/40 text-amber-400 group-open:hidden">Details ▼</span>
                       <span class="px-1.5 py-0.5 rounded border border-white/10 bg-black/40 text-amber-400 hidden group-open:inline">Hide ▲</span>
                     </div>
                   </summary>
 
-                  <div class="p-2 space-y-2 border-t border-white/[0.06] font-mono text-[9px]">
+                  <div class="p-2 space-y-2 border-t border-white/[0.06] font-mono text-[9px] min-w-0 max-w-full overflow-hidden">
                     ${steps.map((s, idx) => {
                       let badge = '';
                       let icon = '⚡';
@@ -1264,51 +1489,51 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
                       const isSuccess = s.exit_code === 0 || s.exit_code === '0';
                       const statusPill = stype === 'blocked' ? '<span class="text-rose-400">Blocked by Policy</span>' :
-                        (s.exit_code !== undefined ? (isSuccess ? '<span class="text-emerald-400">✓ Exit 0</span>' : `<span class="text-rose-400">✕ Exit ${s.exit_code}</span>`) : '');
+                        (s.exit_code !== undefined ? (isSuccess ? '<span class="text-emerald-400">✓ Exit 0</span>' : `<span class="text-rose-400">✕ Exit ${escapeHtml(String(s.exit_code))}</span>`) : '');
 
                       return `
-                        <div class="p-2 rounded-xl border ${borderColor} bg-black/40 space-y-1.5">
-                          <div class="flex items-center justify-between text-[10px]">
-                            <div class="flex items-center gap-1.5 font-semibold text-slate-200">
-                              <span>${icon}</span>
-                              <span>Step ${s.step || idx+1}</span>
+                        <div class="p-2 rounded-xl border ${borderColor} bg-black/40 space-y-1.5 min-w-0 max-w-full overflow-hidden">
+                          <div class="flex items-center justify-between flex-wrap gap-1 text-[10px] min-w-0">
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-200 min-w-0">
+                              <span class="shrink-0">${icon}</span>
+                              <span class="shrink-0">Step ${escapeHtml(String(s.step || idx+1))}</span>
                               ${badge}
                             </div>
-                            <div class="flex items-center gap-2 text-[9px] font-mono">
+                            <div class="flex items-center gap-2 text-[9px] font-mono shrink-0">
                               ${statusPill}
-                              ${s.duration ? `<span class="text-slate-500">${s.duration}s</span>` : ''}
+                              ${s.duration ? `<span class="text-slate-500">${escapeHtml(String(s.duration))}s</span>` : ''}
                             </div>
                           </div>
 
                           ${s.command ? `
-                            <div class="flex items-center justify-between bg-black/60 rounded px-2 py-1 border border-white/5 font-mono text-[9px] text-amber-300 select-text overflow-x-auto">
-                              <span class="truncate" title="${escapeHtml(s.command)}">${escapeHtml(s.command)}</span>
+                            <div class="flex items-center justify-between bg-black/60 rounded px-2 py-1 border border-white/5 font-mono text-[9px] text-amber-300 select-text min-w-0 max-w-full overflow-hidden">
+                              <span class="min-w-0 flex-1 truncate" title="${escapeHtml(s.command)}">${escapeHtml(s.command)}</span>
                               <button type="button" class="ml-2 text-slate-400 hover:text-white shrink-0 cursor-pointer" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('span').title); this.textContent='✓'; setTimeout(()=>this.textContent='📋',1200);" title="Copy Command">📋</button>
                             </div>
                           ` : ''}
 
                           ${s.target && !s.command ? `
-                            <div class="text-slate-300 font-mono text-[9px] truncate" title="${escapeHtml(s.target)}">Target: <span class="text-amber-200">${escapeHtml(s.target)}</span></div>
+                            <div class="text-slate-300 font-mono text-[9px] truncate min-w-0 max-w-full" title="${escapeHtml(s.target)}">Target: <span class="text-amber-200">${escapeHtml(s.target)}</span></div>
                           ` : ''}
 
                           ${s.preview ? `
-                            <div class="mt-1">
+                            <div class="mt-1 min-w-0 max-w-full">
                               <div class="text-[8px] text-slate-400 uppercase tracking-wider mb-0.5">Content Preview:</div>
-                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-24 overflow-y-auto select-text custom-scroll">${escapeHtml(s.preview)}</pre>
+                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-24 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] select-text custom-scroll">${escapeHtml(s.preview)}</pre>
                             </div>
                           ` : ''}
 
                           ${s.stdout ? `
-                            <div class="mt-1">
+                            <div class="mt-1 min-w-0 max-w-full">
                               <div class="text-[8px] text-slate-400 uppercase tracking-wider mb-0.5">Output:</div>
-                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-28 overflow-y-auto select-text custom-scroll">${escapeHtml(s.stdout)}</pre>
+                              <pre class="p-1.5 rounded bg-black/60 border border-white/5 text-slate-300 font-mono text-[8px] max-h-28 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] select-text custom-scroll">${escapeHtml(s.stdout)}</pre>
                             </div>
                           ` : ''}
 
                           ${s.stderr ? `
-                            <div class="mt-1">
+                            <div class="mt-1 min-w-0 max-w-full">
                               <div class="text-[8px] text-rose-400 uppercase tracking-wider mb-0.5">Diagnostics / Warning:</div>
-                              <pre class="p-1.5 rounded bg-rose-950/30 border border-rose-500/20 text-rose-300 font-mono text-[8px] max-h-24 overflow-y-auto select-text custom-scroll">${escapeHtml(s.stderr)}</pre>
+                              <pre class="p-1.5 rounded bg-rose-950/30 border border-rose-500/20 text-rose-300 font-mono text-[8px] max-h-24 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] select-text custom-scroll">${escapeHtml(s.stderr)}</pre>
                             </div>
                           ` : ''}
                         </div>
@@ -1332,27 +1557,32 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             let displayedText = "";
 
             textContainerEl.innerHTML = `
-              <span class="streamed-tokens font-sans"></span><span class="streaming-cursor inline-block w-1.5 h-3.5 bg-amber-400 animate-pulse ml-0.5 rounded-sm align-middle"></span>
+              <span class="streamed-tokens font-sans break-words [overflow-wrap:anywhere] inline-block max-w-full"></span><span class="streaming-cursor inline-block w-1.5 h-3.5 bg-amber-400 animate-pulse ml-0.5 rounded-sm align-middle"></span>
             `;
 
             const tokensEl = textContainerEl.querySelector('.streamed-tokens');
 
             function finalizeDisplay() {
               if (streamTimer) clearInterval(streamTimer);
-              const parsedHtml = window.marked ? window.marked.parse(rawText) : rawText;
+              const parsedHtml = parseMarkdownWithMath(rawText);
 
               let citationsHtml = '';
               if (citations && citations.length > 0) {
                 citationsHtml = `
-                  <div class="pt-2 border-t border-white/[0.06] mt-2 space-y-1">
+                  <div class="pt-2 border-t border-white/[0.06] mt-2 space-y-1 min-w-0 max-w-full overflow-hidden">
                     <span class="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Web Sources:</span>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      ${citations.map((c, i) => `
-                        <a href="${c.url}" target="_blank" class="px-2 py-0.5 rounded-md border text-amber-300 font-mono text-[9px] transition flex items-center gap-1 no-underline" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="${c.title}">
-                          <span>[${i+1}]</span>
-                          <span class="truncate max-w-[140px]">${c.title}</span>
+                    <div class="flex items-center gap-1.5 flex-wrap min-w-0 max-w-full">
+                      ${citations.map((c, i) => {
+                        const rawUrl = String((c && c.url) || '');
+                        const safeUrl = (rawUrl.startsWith('https://') || rawUrl.startsWith('http://')) ? rawUrl : '#';
+                        const safeTitle = escapeHtml((c && (c.title || c.url)) || 'Source');
+                        return `
+                        <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="px-2 py-0.5 rounded-md border text-amber-300 font-mono text-[9px] transition flex items-center gap-1 no-underline min-w-0 max-w-full" style="background: var(--ctrl-bg); border-color: var(--ctrl-border);" title="${safeTitle}">
+                          <span class="shrink-0">[${i+1}]</span>
+                          <span class="truncate min-w-0">${safeTitle}</span>
                         </a>
-                      `).join('')}
+                      `;
+                      }).join('')}
                     </div>
                   </div>
                 `;
@@ -1362,10 +1592,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
               badgeEl.innerHTML = `<span>AI_RESPONSE</span>`;
 
               renderMath(textContainerEl);
+              enhanceTables(textContainerEl);
               enhanceCodeBlocks(textContainerEl);
               wireButtons(rawText);
 
-              chatStream.scrollTop = chatStream.scrollHeight;
+              scrollToBottom();
               autoGrowWindow();
 
               // Start Text-to-Speech only AFTER the complete message has arrived and rendered in the app
@@ -1382,7 +1613,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
                 displayedText += batch;
                 tokensEl.textContent = displayedText;
                 tokenIndex += 2;
-                chatStream.scrollTop = chatStream.scrollHeight;
+                scrollToBottom();
               } else {
                 finalizeDisplay();
               }
@@ -1394,12 +1625,12 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           ttsQueue.cancel();
           badgeEl.innerHTML = `<span class="text-rose-400">ERROR</span>`;
           textContainerEl.innerHTML = `
-            <div class="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
+            <div class="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs break-words [overflow-wrap:anywhere]">
               ⚠️ ${escapeHtml(errMsg)}
             </div>
           `;
           wireButtons(`Error: ${errMsg}`);
-          chatStream.scrollTop = chatStream.scrollHeight;
+          scrollToBottom();
           autoGrowWindow();
         }
       };
@@ -1424,6 +1655,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       let activeScreenshot = currentScreenshot;
       currentScreenshot = null;
       if (screenshotTray) screenshotTray.classList.add('hidden');
+      inputField.placeholder = "Ask AI (Shift+Enter for newline)...";
 
       // Frame 0 visual feedback: instant user bubble & thinking indicator
       appendUserMessage(rawText, activeScreenshot);
@@ -1431,8 +1663,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
       conversationHistory.push({ role: 'user', content: rawText });
 
-      // Parallel native 1080p capture if screen question detected
-      if (!activeScreenshot && isScreenQuery(rawText)) {
+      // Parallel native screen capture if screen question detected and vision policy allows
+      if (!activeScreenshot && isScreenVisionEnabled && isScreenQuery(rawText)) {
         if (window.api && window.api.captureScreenshot) {
           try {
             const autoSnap = await window.api.captureScreenshot();
@@ -1456,8 +1688,10 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             prompt: rawText,
             history: conversationHistory.slice(-8),
             model: targetModelId,
+            mode: activeMode,
             screenshot_info: activeScreenshot,
-            system_instruction: (activeMode === 'custom' && activeSystemInstruction) ? activeSystemInstruction : undefined
+            system_instruction: activeSystemInstruction || undefined,
+            enable_web_search: isWebSearchEnabled
           });
 
           if (res.success && res.response) {
@@ -1471,8 +1705,9 @@ Your objective is minimum tokens, maximum signal, and direct execution.
                 res.steps || []
               );
             }
-            // Auto-speak ONLY if the query was spoken via voice
-            await streamer.streamText(res.response, res.citations || [], res.steps || [], res.screen_intel, isVoice);
+            // Auto-speak ONLY if voice query AND auto-speak setting enabled
+            const shouldSpeak = Boolean(isVoice && ttsAutoSpeakVoice && ttsQueue.enabled);
+            await streamer.streamText(res.response, res.citations || [], res.steps || [], res.screen_intel, shouldSpeak);
           } else {
             streamer.error(res.error || 'Failed to get response.');
           }
@@ -1513,6 +1748,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           const res = await window.api.captureScreenshot();
           if (res && res.success && res.data_url) {
             setAttachedImage(res.data_url, res.width, res.height, 'Screen Attached');
+          } else if (res && res.error) {
+            appendAssistantMessage(`*Screenshot unavailable:* ${escapeHtml(res.error)}`);
           }
         } catch (err) {
           console.error('[ScreenCapture] Capture error:', err);
@@ -1524,6 +1761,21 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
     btnSnap.addEventListener('click', takeScreenshot);
 
+    if (btnWebSearch) {
+      btnWebSearch.addEventListener('click', () => {
+        isWebSearchEnabled = !isWebSearchEnabled;
+        if (isWebSearchEnabled) {
+          btnWebSearch.classList.add('border-amber-500/60', 'bg-amber-500/20', 'text-amber-300', 'opacity-100');
+          btnWebSearch.classList.remove('opacity-75');
+          btnWebSearch.title = 'Force Live Web Search (On)';
+        } else {
+          btnWebSearch.classList.remove('border-amber-500/60', 'bg-amber-500/20', 'text-amber-300', 'opacity-100');
+          btnWebSearch.classList.add('opacity-75');
+          btnWebSearch.title = 'Force Live Web Search (Off)';
+        }
+      });
+    }
+
     btnRemoveScreenshot.addEventListener('click', () => {
       currentScreenshot = null;
       screenshotTray.classList.add('hidden');
@@ -1533,6 +1785,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     // Seamless Clipboard Image Attachment (Ctrl+V / Paste)
     async function handleClipboardPaste(e) {
       const clipboardData = e.clipboardData || window.clipboardData;
+      const textData = clipboardData ? clipboardData.getData('text') : '';
       let handledImage = false;
 
       // 1. Check browser clipboard items for image blob (e.g. Snipping tool, copy image from web)
@@ -1551,6 +1804,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
                 tempImg.onload = () => {
                   setAttachedImage(dataUrl, tempImg.naturalWidth, tempImg.naturalHeight, 'Pasted Screenshot');
                 };
+                tempImg.onerror = () => console.warn('[Paste] Failed to decode clipboard image');
                 tempImg.src = dataUrl;
               };
               reader.readAsDataURL(file);
@@ -1560,30 +1814,26 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         }
       }
 
-      // 2. If no image found in browser clipboard items, check native OS clipboard image via IPC
-      if (!handledImage && window.api && window.api.readClipboardImage) {
-        const textData = clipboardData ? clipboardData.getData('text') : '';
-        // If there is no text being pasted or user pressed Ctrl+V without active text
-        if (!textData) {
-          try {
-            const clipRes = await window.api.readClipboardImage();
-            if (clipRes && clipRes.success && clipRes.data_url) {
-              e.preventDefault();
-              setAttachedImage(clipRes.data_url, clipRes.width, clipRes.height, 'Clipboard Image');
-              return;
-            }
-          } catch (_) {}
-        }
+      // 2. If no image found in browser clipboard items and no plain text being pasted, check native OS clipboard image via IPC
+      if (!handledImage && !textData && window.api && window.api.readClipboardImage) {
+        try {
+          const clipRes = await window.api.readClipboardImage();
+          if (clipRes && clipRes.success && clipRes.data_url) {
+            e.preventDefault();
+            setAttachedImage(clipRes.data_url, clipRes.width, clipRes.height, 'Clipboard Image');
+            return;
+          }
+        } catch (_) {}
       }
     }
 
-    inputField.addEventListener('paste', handleClipboardPaste);
     document.addEventListener('paste', handleClipboardPaste);
 
     // Global shortcut Ctrl+V when window is focused even if input textarea is not focused
     window.addEventListener('keydown', async (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-        if (document.activeElement !== inputField && window.api && window.api.readClipboardImage) {
+        const ae = document.activeElement;
+        if (ae !== inputField && ae !== policyPromptText && window.api && window.api.readClipboardImage) {
           try {
             const clipRes = await window.api.readClipboardImage();
             if (clipRes && clipRes.success && clipRes.data_url) {
@@ -1613,12 +1863,56 @@ Your objective is minimum tokens, maximum signal, and direct execution.
             tempImg.onload = () => {
               setAttachedImage(dataUrl, tempImg.naturalWidth, tempImg.naturalHeight, file.name || 'Dropped Image');
             };
+            tempImg.onerror = () => console.warn('[Drop] Failed to decode dropped image');
             tempImg.src = dataUrl;
           };
           reader.readAsDataURL(file);
         }
       }
     });
+
+    // Interactive Bottom-Right Resize Handle
+    if (resizeHandleEl && window.api && window.api.resizeAssistant && window.api.getAssistantBounds) {
+      let resizing = false;
+      let startX = 0;
+      let startY = 0;
+      let startW = 380;
+      let startH = 420;
+      let rafPending = false;
+      let latestW = 380;
+      let latestH = 420;
+
+      resizeHandleEl.addEventListener('mousedown', async (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startX = e.screenX;
+        startY = e.screenY;
+        const b = await window.api.getAssistantBounds();
+        startW = (b && b.width) ? b.width : window.innerWidth;
+        startH = (b && b.height) ? b.height : window.innerHeight;
+        resizing = true;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!resizing) return;
+        latestW = Math.min(Math.max(startW + (e.screenX - startX), 200), 960);
+        latestH = Math.min(Math.max(startH + (e.screenY - startY), 200), 960);
+        if (!rafPending) {
+          rafPending = true;
+          requestAnimationFrame(() => {
+            rafPending = false;
+            if (resizing) {
+              window.api.resizeAssistant({ width: latestW, height: latestH }).catch(() => {});
+            }
+          });
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        resizing = false;
+      });
+    }
 
     btnSend.addEventListener('click', () => submitQuery(null, { isVoice: false }));
 
@@ -1654,9 +1948,13 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
     });
 
-    // Close on Escape (cancels speech on first, hides on second)
+    // Close on Escape (lightbox -> speech -> hide)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (imagePreviewModal && !imagePreviewModal.classList.contains('hidden')) {
+          closeImagePreview();
+          return;
+        }
         if (ttsQueue.isPlaying || ttsQueue.isPaused) {
           ttsQueue.cancel();
           return;
@@ -1677,13 +1975,13 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       conversationHistory.length = 0;
       ttsQueue.cancel();
       chatStream.innerHTML = `
-        <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85">
+        <div id="chat-empty-state" class="flex flex-col items-center justify-center h-full py-2 text-center space-y-1 select-none opacity-85 px-2">
           <div class="welcome-icon w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-xs text-amber-300">
             ✦
           </div>
           <div class="text-[11px] font-semibold tracking-tight" style="color: var(--text-main);">AntigravityFlow AI</div>
-          <div class="text-[9px]" style="color: var(--text-muted);">
-            Hold <kbd class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">Win+Ctrl</kbd> to speak or type below
+          <div class="text-[9px] break-words" style="color: var(--text-muted);">
+            Hold <kbd id="empty-state-hotkey-badge" class="px-1 py-0.2 rounded font-mono text-[8px] bg-amber-900/30 border border-amber-400/30 text-amber-300">${escapeHtml(configuredAiHotkey)}</kbd> to speak or type below
           </div>
         </div>
       `;
@@ -1731,43 +2029,56 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       });
     }
 
-    // Theme Synchronization
-    async function syncTheme() {
+    let lastLoadedConfig = null;
+
+    async function loadNormalizedConfig() {
+      if (!window.api || !window.api.getConfig) return {};
       try {
-        let theme = 'auto';
-        if (window.api && window.api.getConfig) {
-          const cfg = await window.api.getConfig();
-          if (cfg && cfg.theme) theme = cfg.theme;
+        const res = await window.api.getConfig();
+        if (res && typeof res === 'object' && 'data' in res && res.data && typeof res.data === 'object') {
+          return res.data;
         }
-        currentThemeSetting = theme;
+        return (res && typeof res === 'object') ? res : {};
+      } catch (_) {
+        return {};
+      }
+    }
 
-        const applyTheme = (isDark) => {
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-          } else {
-            document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('dark');
-          }
-        };
-
-        if (theme === 'dark') {
-          applyTheme(true);
-        } else if (theme === 'light') {
-          applyTheme(false);
-        } else {
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          applyTheme(prefersDark);
-        }
-      } catch (_) {}
+    function applyThemeSetting(theme) {
+      currentThemeSetting = theme || 'auto';
+      const applyTheme = (isDark) => {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+      };
+      if (currentThemeSetting === 'dark') {
+        applyTheme(true);
+      } else if (currentThemeSetting === 'light') {
+        applyTheme(false);
+      } else {
+        applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      }
     }
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (currentThemeSetting === 'auto') {
+      if (currentThemeSetting === 'auto' || currentThemeSetting === 'system') {
         document.documentElement.classList.toggle('dark', e.matches);
         document.documentElement.classList.toggle('light', !e.matches);
       }
     });
+
+    function setActivePresetUI(mode) {
+      activeMode = mode || 'general';
+      document.querySelectorAll('.btn-asst-preset').forEach(b => {
+        b.classList.remove('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
+        b.classList.add('border-white/10');
+      });
+      const activeBtn = document.getElementById(`preset-btn-${activeMode}`);
+      if (activeBtn) {
+        activeBtn.classList.add('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
+        activeBtn.classList.remove('border-white/10');
+      }
+      if (activePolicyBadge) activePolicyBadge.textContent = activeMode.toUpperCase();
+    }
 
     // Dynamic Models Catalog & Persistent Memory
     function updateThinkingLevelVisibility() {
@@ -1777,6 +2088,75 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       } else {
         thinkingLevelSelect.classList.add('hidden');
       }
+    }
+
+    function applyModelSelectionFromConfig(cfg) {
+      if (!cfg) return;
+      if (cfg.ai_assistant_thinking_level) {
+        thinkingLevelSelect.value = cfg.ai_assistant_thinking_level;
+      }
+      if (cfg.ai_assistant_model) {
+        if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(cfg.ai_assistant_model)) {
+          modelSelect.value = 'gemini-3.8-flash';
+          if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M318') thinkingLevelSelect.value = 'high';
+          else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M319') thinkingLevelSelect.value = 'medium';
+          else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M320') thinkingLevelSelect.value = 'low';
+        } else {
+          const exists = Array.from(modelSelect.options).some(o => o.value === cfg.ai_assistant_model);
+          if (!exists && cfg.ai_assistant_model) {
+            const customOpt = document.createElement('option');
+            customOpt.value = cfg.ai_assistant_model;
+            customOpt.textContent = cfg.ai_assistant_model;
+            modelSelect.appendChild(customOpt);
+          }
+          modelSelect.value = cfg.ai_assistant_model;
+        }
+      }
+      updateThinkingLevelVisibility();
+    }
+
+    const policyEnableCmds = document.getElementById('policy-enable-commands');
+
+    function applyAssistantConfig(cfg) {
+      if (!cfg || typeof cfg !== 'object') return;
+      lastLoadedConfig = cfg;
+
+      applyThemeSetting(cfg.theme || 'auto');
+
+      if (cfg.tts_voice) ttsQueue.selectedVoice = cfg.tts_voice;
+      if (cfg.tts_enabled !== undefined) ttsQueue.enabled = cfg.tts_enabled !== false;
+      if (cfg.tts_rate !== undefined) ttsQueue.rate = normalizeTtsRate(cfg.tts_rate);
+      ttsAutoSpeakVoice = cfg.tts_auto_speak_voice !== false;
+
+      isScreenVisionEnabled = cfg.enable_screen_vision !== false;
+      if (btnSnap) {
+        btnSnap.classList.toggle('opacity-45', !isScreenVisionEnabled);
+        btnSnap.title = isScreenVisionEnabled
+          ? 'Capture screen for vision'
+          : 'Screen Vision disabled in Settings (click to check policy)';
+      }
+
+      configuredAiHotkey = formatHotkeyLabel(cfg.ai_ptt_hotkey || cfg.ai_toggle_hotkey || 'windows+ctrl');
+      const hotkeyBadge = document.getElementById('empty-state-hotkey-badge');
+      if (hotkeyBadge) hotkeyBadge.textContent = configuredAiHotkey;
+      if (btnPromptMic) btnPromptMic.title = `Hold ${configuredAiHotkey} or click to dictate`;
+
+      applyModelSelectionFromConfig(cfg);
+
+      activeMode = cfg.ai_assistant_mode || 'general';
+      savedPresets = (cfg.ai_assistant_presets && typeof cfg.ai_assistant_presets === 'object') ? { ...cfg.ai_assistant_presets } : {};
+      const resolvedPrompt =
+        cfg.ai_assistant_system_prompt ||
+        (activeMode === 'custom' ? cfg.ai_assistant_custom_prompt : null) ||
+        savedPresets[activeMode] ||
+        ASST_PRESETS[activeMode] ||
+        ASST_PRESETS.general;
+      activeSystemInstruction = resolvedPrompt;
+      if (policyPromptText) policyPromptText.value = resolvedPrompt;
+      if (policyEnableCmds && cfg.enable_system_commands !== undefined) {
+        policyEnableCmds.checked = cfg.enable_system_commands !== false;
+      }
+      setActivePresetUI(activeMode);
     }
 
     async function loadAvailableModels() {
@@ -1807,10 +2187,22 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
         modelSelect.appendChild(grpPrimary);
 
-        const grpAdv = document.createElement('optgroup');
-        grpAdv.label = `✨ Advanced Models (${res.totalCount || 22})`;
+        const recommendedIds = new Set([
+          'MODEL_GOOGLE_GEMINI_2_5_FLASH',
+          'MODEL_PLACEHOLDER_M50',
+          'MODEL_PLACEHOLDER_M318',
+          'MODEL_PLACEHOLDER_M319',
+          'MODEL_PLACEHOLDER_M320'
+        ]);
+        const advModels = (res.allModels || []).filter(m => {
+          const mid = m.modelId || m.key;
+          return mid && !recommendedIds.has(mid);
+        });
 
-        (res.allModels || []).forEach(m => {
+        const grpAdv = document.createElement('optgroup');
+        grpAdv.label = `✨ Advanced Models (${advModels.length})`;
+
+        advModels.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.modelId || m.key;
           const thinkBadge = m.supportsThinking ? " [Thinking]" : "";
@@ -1820,32 +2212,9 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
         modelSelect.appendChild(grpAdv);
 
-        const cfg = await window.api.getConfig();
-        if (cfg) {
-          if (cfg.ai_assistant_model) {
-            if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(cfg.ai_assistant_model)) {
-              modelSelect.value = 'gemini-3.8-flash';
-              if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M318') thinkingLevelSelect.value = 'high';
-              else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M319') thinkingLevelSelect.value = 'medium';
-              else if (cfg.ai_assistant_model === 'MODEL_PLACEHOLDER_M320') thinkingLevelSelect.value = 'low';
-            } else {
-              modelSelect.value = cfg.ai_assistant_model;
-            }
-          }
-          if (cfg.ai_assistant_thinking_level) {
-            thinkingLevelSelect.value = cfg.ai_assistant_thinking_level;
-          }
-          if (cfg.tts_voice) {
-            ttsQueue.selectedVoice = cfg.tts_voice;
-          }
-          if (cfg.tts_enabled !== undefined) {
-            ttsQueue.enabled = Boolean(cfg.tts_enabled);
-          }
-          if (cfg.tts_rate) {
-            ttsQueue.rate = cfg.tts_rate;
-          }
+        if (lastLoadedConfig) {
+          applyModelSelectionFromConfig(lastLoadedConfig);
         }
-        updateThinkingLevelVisibility();
       } catch (e) {
         console.error('Error loading models:', e);
       }
@@ -1890,19 +2259,10 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     });
 
     function selectPresetMode(mode) {
-      activeMode = mode;
-      document.querySelectorAll('.btn-asst-preset').forEach(b => {
-        b.classList.remove('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
-        b.classList.add('border-white/10');
-      });
-      const activeBtn = document.getElementById(`preset-btn-${mode}`);
-      if (activeBtn) {
-        activeBtn.classList.add('border-amber-500/40', 'bg-amber-500/15', 'shadow-sm');
-        activeBtn.classList.remove('border-white/10');
-      }
-      activePolicyBadge.textContent = mode.toUpperCase();
-      policyPromptText.value = ASST_PRESETS[mode] || ASST_PRESETS.general;
-      activeSystemInstruction = policyPromptText.value;
+      setActivePresetUI(mode);
+      const nextPrompt = savedPresets[mode] || ASST_PRESETS[mode] || ASST_PRESETS.general;
+      policyPromptText.value = nextPrompt;
+      activeSystemInstruction = nextPrompt;
     }
 
     document.querySelectorAll('.btn-asst-preset').forEach(btn => {
@@ -1916,7 +2276,6 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       activeSystemInstruction = policyPromptText.value;
     });
 
-    const policyEnableCmds = document.getElementById('policy-enable-commands');
     if (policyEnableCmds) {
       policyEnableCmds.addEventListener('change', async () => {
         if (window.api && window.api.saveConfig) {
@@ -1926,44 +2285,35 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     }
 
     btnSavePolicy.addEventListener('click', async () => {
-      activeSystemInstruction = policyPromptText.value.trim();
+      activeSystemInstruction = policyPromptText.value.trim() || ASST_PRESETS[activeMode] || ASST_PRESETS.general;
+      savedPresets[activeMode] = activeSystemInstruction;
       const allowCmds = policyEnableCmds ? policyEnableCmds.checked : true;
+      const payload = {
+        ai_assistant_mode: activeMode,
+        ai_assistant_system_prompt: activeSystemInstruction,
+        ai_assistant_presets: savedPresets,
+        enable_system_commands: allowCmds
+      };
+      if (activeMode === 'custom') {
+        payload.ai_assistant_custom_prompt = activeSystemInstruction;
+      }
       if (window.api && window.api.saveConfig) {
-        await window.api.saveConfig({
-          ai_assistant_mode: activeMode,
-          ai_assistant_system_prompt: activeSystemInstruction,
-          enable_system_commands: allowCmds
-        });
+        await window.api.saveConfig(payload);
       }
       policyPanel.classList.add('hidden');
     });
 
-    async function loadPolicySettings() {
-      try {
-        if (!window.api || !window.api.getConfig) return;
-        const cfg = await window.api.getConfig();
-        if (cfg) {
-          activeMode = cfg.ai_assistant_mode || 'general';
-          if (cfg.ai_assistant_system_prompt) {
-            activeSystemInstruction = cfg.ai_assistant_system_prompt;
-            policyPromptText.value = activeSystemInstruction;
-          } else {
-            activeSystemInstruction = ASST_PRESETS[activeMode] || ASST_PRESETS.general;
-            policyPromptText.value = activeSystemInstruction;
-          }
-          if (policyEnableCmds && cfg.enable_system_commands !== undefined) {
-            policyEnableCmds.checked = cfg.enable_system_commands !== false;
-          }
-          selectPresetMode(activeMode);
-        }
-      } catch (e) {
-        console.error('Error loading policy:', e);
-      }
+    if (window.api && window.api.onConfigUpdated) {
+      window.api.onConfigUpdated((cfg) => {
+        applyAssistantConfig(cfg);
+      });
     }
 
-    syncTheme();
-    loadAvailableModels();
-    loadPolicySettings();
+    (async function initAssistant() {
+      const cfg = await loadNormalizedConfig();
+      applyAssistantConfig(cfg);
+      await loadAvailableModels();
+    })();
   </script>
 </body>
 </html>

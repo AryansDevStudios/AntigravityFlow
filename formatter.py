@@ -182,7 +182,9 @@ def apply_vocabulary(text: str) -> str:
         if not p_str:
             continue
         replacement = str(vocab[phrase])
-        pattern = r'\b' + re.escape(p_str) + r'\b'
+        prefix = r'(?<!\w)' if p_str[0].isalnum() or p_str[0] == '_' else r'(?<!\S)'
+        suffix = r'(?!\w)' if p_str[-1].isalnum() or p_str[-1] == '_' else r'(?!\S)'
+        pattern = prefix + re.escape(p_str) + suffix
         text = re.sub(pattern, lambda m, r=replacement: r, text, flags=re.IGNORECASE)
     return text
 

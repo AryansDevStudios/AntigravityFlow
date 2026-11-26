@@ -14,6 +14,10 @@ vocab_file = os.path.join(base_dir, "data", "vocabulary.json")
 if os.path.exists(vocab_file):
     datas.append((vocab_file, "data"))
 
+avail_models_file = os.path.join(base_dir, "avail_models.json")
+if os.path.exists(avail_models_file):
+    datas.append((avail_models_file, "."))
+
 # Include PortAudio DLL for sounddevice if found (supports both 64-bit and 32-bit)
 try:
     import _sounddevice_data

@@ -2,8 +2,11 @@ import json
 import os
 import re
 import sqlite3
+import threading
 import time
 from datetime import datetime
+
+_DB_LOCK = threading.RLock()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_DATA = os.path.join(BASE_DIR, "data")
@@ -64,12 +67,12 @@ DEFAULT_CONFIG = {
     "ai_assistant_mode": "general",
     "ai_assistant_custom_prompt": PROMPT_ASSISTANT_CUSTOM,
     "ai_assistant_system_prompt": PROMPT_ASSISTANT_GENERAL,
-    "tts_service": "edge_tts",
+    "tts_service": "edge-tts",
     "tts_voice": "en-IN-NeerjaNeural",
     "tts_enabled": True,
     "tts_rate": "+0%",
     "tts_auto_speak_voice": True,
-    "theme": "system",
+    "theme": "auto",
     "screen_native_resolution": True
 }
 
@@ -162,32 +165,49 @@ def init_db():
                     (trig, exp, desc, cat)
                 )
 
-    # 2. Seamless Auto-Migration from history.json into SQLite if database is fresh
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+        """)
+
+    # 2. One-time Auto-Migration from history.json into SQLite on genuinely fresh DB
     cursor = conn.cursor()
+    cursor.execute("SELECT value FROM app_meta WHERE key = 'legacy_json_migrated'")
+    migrated_row = cursor.fetchone()
     cursor.execute("SELECT COUNT(*) FROM dictations")
     db_count = cursor.fetchone()[0]
 
-    if db_count == 0 and os.path.exists(HISTORY_PATH):
+    if migrated_row is None:
+        if db_count == 0 and os.path.exists(HISTORY_PATH):
+            try:
+                with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                    items = json.load(f)
+                with conn:
+                    for it in items:
+                        conn.execute("""
+                        INSERT OR REPLACE INTO dictations (
+                            id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
+                            app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            it.get("id"), it.get("timestamp", ""), it.get("time_str", ""), it.get("date_str", ""),
+                            it.get("text", ""), it.get("duration_seconds", 0.0), it.get("word_count", 0),
+                            it.get("wpm", 0), it.get("app_name", "Desktop"), it.get("window_title", ""),
+                            it.get("category", "AI Prompts"), it.get("session_type", "dictate"),
+                            it.get("audio_file", ""), it.get("words_corrected", 0), it.get("dictionary_fixes", 0)
+                        ))
+                print(f"[DB] Successfully migrated {len(items)} dictations into SQLite flow.db!")
+            except Exception as e:
+                print(f"[DB] Migration notice: {e}")
         try:
-            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
-                items = json.load(f)
             with conn:
-                for it in items:
-                    conn.execute("""
-                    INSERT OR REPLACE INTO dictations (
-                        id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
-                        app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        it.get("id"), it.get("timestamp", ""), it.get("time_str", ""), it.get("date_str", ""),
-                        it.get("text", ""), it.get("duration_seconds", 0.0), it.get("word_count", 0),
-                        it.get("wpm", 0), it.get("app_name", "Desktop"), it.get("window_title", ""),
-                        it.get("category", "AI Prompts"), it.get("session_type", "dictate"),
-                        it.get("audio_file", ""), it.get("words_corrected", 0), it.get("dictionary_fixes", 0)
-                    ))
-            print(f"[DB] Successfully migrated {len(items)} dictations into SQLite flow.db!")
-        except Exception as e:
-            print(f"[DB] Migration notice: {e}")
+                conn.execute(
+                    "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('legacy_json_migrated', '1')"
+                )
+        except Exception:
+            pass
     conn.close()
 
     # 3. Ensure fast user cache exists on disk for instant Electron loading
@@ -207,31 +227,36 @@ def init_db():
         except Exception:
             pass
 
+def _query_history_rows(limit=500) -> list:
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    SELECT id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
+           app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
+    FROM dictations
+    ORDER BY id DESC
+    LIMIT ?
+    """, (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 def sync_history_json():
     """Syncs the latest SQLite dictations to history.json for fast external readers."""
-    try:
-        items = get_history(limit=500)
-        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
-            json.dump(items, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
+    with _DB_LOCK:
+        try:
+            items = _query_history_rows(limit=500)
+            tmp_path = HISTORY_PATH + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(items, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, HISTORY_PATH)
+        except Exception:
+            pass
 
 def get_history(limit=500) -> list:
     init_db()
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("""
-        SELECT id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
-               app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
-        FROM dictations
-        ORDER BY id DESC
-        LIMIT ?
-        """, (limit,))
-        rows = cursor.fetchall()
-        items = [dict(r) for r in rows]
-        conn.close()
-        return items
+        return _query_history_rows(limit=limit)
     except Exception as e:
         print(f"[DB] get_history error: {e}")
         # Fallback to history.json if SQLite query fails
@@ -260,41 +285,44 @@ def get_user_profile() -> dict:
 
 def save_user_profile(user_data: dict):
     """Saves user identity and plan details to SQLite and disk cache."""
-    init_db()
-    try:
-        conn = get_db()
-        with conn:
-            conn.execute("""
-            UPDATE user_profile SET
-                user_name = ?,
-                user_email = ?,
-                plan_name = ?,
-                plan_badge = ?,
-                weekly_percent = ?,
-                five_hour_percent = ?,
-                weekly_reset = ?,
-                five_hour_reset = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = 1
-            """, (
-                user_data.get("name") or user_data.get("user_name", ""),
-                user_data.get("email") or user_data.get("user_email", ""),
-                user_data.get("planName") or user_data.get("plan_name", ""),
-                user_data.get("planBadge") or user_data.get("plan_badge", ""),
-                float(user_data.get("weekly_percent", 100.0)),
-                float(user_data.get("five_hour_percent", 100.0)),
-                str(user_data.get("weekly_reset", "Soon")),
-                str(user_data.get("five_hour_reset", "Soon"))
-            ))
-        conn.close()
-    except Exception as e:
-        print(f"[DB] save_user_profile error: {e}")
+    with _DB_LOCK:
+        init_db()
+        try:
+            conn = get_db()
+            with conn:
+                conn.execute("""
+                UPDATE user_profile SET
+                    user_name = ?,
+                    user_email = ?,
+                    plan_name = ?,
+                    plan_badge = ?,
+                    weekly_percent = ?,
+                    five_hour_percent = ?,
+                    weekly_reset = ?,
+                    five_hour_reset = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = 1
+                """, (
+                    user_data.get("name") or user_data.get("user_name", ""),
+                    user_data.get("email") or user_data.get("user_email", ""),
+                    user_data.get("planName") or user_data.get("plan_name", ""),
+                    user_data.get("planBadge") or user_data.get("plan_badge", ""),
+                    float(user_data.get("weekly_percent", 100.0)),
+                    float(user_data.get("five_hour_percent", 100.0)),
+                    str(user_data.get("weekly_reset", "Soon")),
+                    str(user_data.get("five_hour_reset", "Soon"))
+                ))
+            conn.close()
+        except Exception as e:
+            print(f"[DB] save_user_profile error: {e}")
 
-    try:
-        with open(USER_CACHE_PATH, "w", encoding="utf-8") as f:
-            json.dump(user_data, f, indent=2)
-    except Exception:
-        pass
+        try:
+            tmp_path = USER_CACHE_PATH + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(user_data, f, indent=2)
+            os.replace(tmp_path, USER_CACHE_PATH)
+        except Exception:
+            pass
 
 def categorize_app(app_name: str, window_title: str = "", text: str = "") -> str:
     app_lower = (app_name or "").lower()
@@ -378,140 +406,157 @@ def estimate_fixes(raw_word_count: int, text: str) -> dict:
 def save_dictation(text: str, duration: float, app_name: str = "", pcm_bytes: bytes = None, window_title: str = "", session_type: str = "dictate") -> dict:
     if not text.strip():
         return None
-    init_db()
+    with _DB_LOCK:
+        init_db()
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dictations")
-    new_id = cursor.fetchone()[0]
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM dictations")
+        new_id = cursor.fetchone()[0]
 
-    words = len(text.strip().split())
-    now = datetime.now()
-    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    time_str = now.strftime("%I:%M%p").lower()
-    if time_str.startswith("0"):
-        time_str = time_str[1:]
-    date_str = now.strftime("%Y-%m-%d")
+        words = len(text.strip().split())
+        now = datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        time_str = now.strftime("%I:%M%p").lower()
+        if time_str.startswith("0"):
+            time_str = time_str[1:]
+        date_str = now.strftime("%Y-%m-%d")
 
-    wpm = round((words / (duration / 60.0))) if duration > 0.5 else round(words * 20)
-    category = "AI Prompts" if session_type == "ai" else categorize_app(app_name, window_title, text.strip())
-    fixes = estimate_fixes(words, text.strip())
+        wpm = round((words / (duration / 60.0))) if duration > 0.5 else round(words * 20)
+        category = "AI Prompts" if session_type == "ai" else categorize_app(app_name, window_title, text.strip())
+        fixes = estimate_fixes(words, text.strip())
 
-    audio_file = ""
-    if pcm_bytes:
-        from crypto_audio import save_encrypted_recording
-        enc_filename = f"{new_id}.enc"
-        full_enc_path = os.path.join(RECORDINGS_DIR, enc_filename)
-        save_encrypted_recording(pcm_bytes, full_enc_path)
-        audio_file = f"recordings/{enc_filename}"
+        audio_file = ""
+        if pcm_bytes:
+            from crypto_audio import save_encrypted_recording
+            enc_filename = f"{new_id}.enc"
+            full_enc_path = os.path.join(RECORDINGS_DIR, enc_filename)
+            save_encrypted_recording(pcm_bytes, full_enc_path)
+            audio_file = f"recordings/{enc_filename}"
 
-    entry = {
-        "id": new_id,
-        "timestamp": now_str,
-        "time_str": time_str,
-        "date_str": date_str,
-        "text": text.strip(),
-        "duration_seconds": round(duration, 2),
-        "word_count": words,
-        "wpm": wpm,
-        "app_name": app_name or "Desktop",
-        "window_title": window_title or "",
-        "category": category,
-        "session_type": session_type,
-        "audio_file": audio_file,
-        "words_corrected": fixes["words_corrected"],
-        "dictionary_fixes": fixes["dictionary_fixes"]
-    }
+        entry = {
+            "id": new_id,
+            "timestamp": now_str,
+            "time_str": time_str,
+            "date_str": date_str,
+            "text": text.strip(),
+            "duration_seconds": round(duration, 2),
+            "word_count": words,
+            "wpm": wpm,
+            "app_name": app_name or "Desktop",
+            "window_title": window_title or "",
+            "category": category,
+            "session_type": session_type,
+            "audio_file": audio_file,
+            "words_corrected": fixes["words_corrected"],
+            "dictionary_fixes": fixes["dictionary_fixes"]
+        }
 
-    with conn:
-        conn.execute("""
-        INSERT INTO dictations (
-            id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
-            app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            entry["id"], entry["timestamp"], entry["time_str"], entry["date_str"], entry["text"],
-            entry["duration_seconds"], entry["word_count"], entry["wpm"], entry["app_name"],
-            entry["window_title"], entry["category"], entry["session_type"], entry["audio_file"],
-            entry["words_corrected"], entry["dictionary_fixes"]
-        ))
-    conn.close()
+        with conn:
+            conn.execute("""
+            INSERT INTO dictations (
+                id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
+                app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                entry["id"], entry["timestamp"], entry["time_str"], entry["date_str"], entry["text"],
+                entry["duration_seconds"], entry["word_count"], entry["wpm"], entry["app_name"],
+                entry["window_title"], entry["category"], entry["session_type"], entry["audio_file"],
+                entry["words_corrected"], entry["dictionary_fixes"]
+            ))
+        conn.close()
 
-    # Background async sync to history.json so file readers stay up to date
-    sync_history_json()
-    return entry
+        sync_history_json()
+        return entry
 
 def update_dictation_text(item_id: int, new_text: str) -> dict:
-    init_db()
-    words = len(new_text.strip().split())
-    fixes = estimate_fixes(words, new_text.strip())
+    with _DB_LOCK:
+        init_db()
+        words = len(new_text.strip().split())
+        fixes = estimate_fixes(words, new_text.strip())
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT duration_seconds FROM dictations WHERE id = ?", (item_id,))
-    row = cursor.fetchone()
-    if not row:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT duration_seconds FROM dictations WHERE id = ?", (item_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return None
+
+        dur = row[0] or 1.0
+        wpm = round((words / (dur / 60.0))) if dur > 0.5 else 90
+
+        with conn:
+            conn.execute("""
+            UPDATE dictations SET
+                text = ?,
+                word_count = ?,
+                wpm = ?,
+                words_corrected = ?,
+                dictionary_fixes = ?
+            WHERE id = ?
+            """, (new_text.strip(), words, wpm, fixes["words_corrected"], fixes["dictionary_fixes"], item_id))
+        cursor.execute("""
+        SELECT id, timestamp, time_str, date_str, text, duration_seconds, word_count, wpm,
+               app_name, window_title, category, session_type, audio_file, words_corrected, dictionary_fixes
+        FROM dictations WHERE id = ?
+        """, (item_id,))
+        updated_row = cursor.fetchone()
+        result = dict(updated_row) if updated_row else {"id": item_id, "text": new_text.strip(), "word_count": words, "wpm": wpm}
         conn.close()
-        return None
 
-    dur = row[0] or 1.0
-    wpm = round((words / (dur / 60.0))) if dur > 0.5 else 90
-
-    with conn:
-        conn.execute("""
-        UPDATE dictations SET
-            text = ?,
-            word_count = ?,
-            wpm = ?,
-            words_corrected = ?,
-            dictionary_fixes = ?
-        WHERE id = ?
-        """, (new_text.strip(), words, wpm, fixes["words_corrected"], fixes["dictionary_fixes"], item_id))
-    conn.close()
-
-    sync_history_json()
-    return {"id": item_id, "text": new_text.strip(), "word_count": words, "wpm": wpm}
+        sync_history_json()
+        return result
 
 def delete_dictation(item_id: int) -> bool:
-    init_db()
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT audio_file FROM dictations WHERE id = ?", (item_id,))
-    row = cursor.fetchone()
-    if row and row[0]:
-        audio_rel = row[0]
-        full_path = os.path.join(DATA_DIR, audio_rel)
-        if os.path.exists(full_path):
-            try:
-                os.remove(full_path)
-            except Exception:
-                pass
-
-    with conn:
-        conn.execute("DELETE FROM dictations WHERE id = ?", (item_id,))
-    conn.close()
-
-    sync_history_json()
-    return True
-
-def clear_all_history() -> bool:
-    init_db()
-    conn = get_db()
-    with conn:
-        conn.execute("DELETE FROM dictations;")
-    conn.close()
-
-    if os.path.exists(RECORDINGS_DIR):
-        for fname in os.listdir(RECORDINGS_DIR):
-            fpath = os.path.join(RECORDINGS_DIR, fname)
-            if os.path.isfile(fpath):
+    with _DB_LOCK:
+        init_db()
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT audio_file FROM dictations WHERE id = ?", (item_id,))
+        row = cursor.fetchone()
+        if row and row[0]:
+            audio_rel = row[0]
+            full_path = os.path.join(DATA_DIR, audio_rel)
+            if os.path.exists(full_path):
                 try:
-                    os.remove(fpath)
+                    os.remove(full_path)
+                except Exception:
+                    pass
+        else:
+            fallback_enc = os.path.join(RECORDINGS_DIR, f"{item_id}.enc")
+            if os.path.exists(fallback_enc):
+                try:
+                    os.remove(fallback_enc)
                 except Exception:
                     pass
 
-    sync_history_json()
-    return True
+        with conn:
+            conn.execute("DELETE FROM dictations WHERE id = ?", (item_id,))
+        conn.close()
+
+        sync_history_json()
+        return True
+
+def clear_all_history() -> bool:
+    with _DB_LOCK:
+        init_db()
+        conn = get_db()
+        with conn:
+            conn.execute("DELETE FROM dictations;")
+        conn.close()
+
+        if os.path.exists(RECORDINGS_DIR):
+            for fname in os.listdir(RECORDINGS_DIR):
+                fpath = os.path.join(RECORDINGS_DIR, fname)
+                if os.path.isfile(fpath):
+                    try:
+                        os.remove(fpath)
+                    except Exception:
+                        pass
+
+        sync_history_json()
+        return True
 
 def get_macros() -> list:
     """Returns all saved speech macros and snippets."""

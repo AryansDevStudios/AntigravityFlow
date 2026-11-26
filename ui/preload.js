@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('api', {
   getQuotaSummary: () => ipcRenderer.invoke('get-quota-summary'),
   getUserCache: () => ipcRenderer.invoke('get-user-cache'),
   getAvailableModels: () => ipcRenderer.invoke('get-available-models'),
+  getDaemonStatus: () => ipcRenderer.invoke('get-daemon-status'),
 
   // Speech Macros & Snippets Engine
   getMacros: () => ipcRenderer.invoke('get-macros'),
@@ -51,12 +52,13 @@ contextBridge.exposeInMainWorld('api', {
   pasteToActiveWindow: (text) => ipcRenderer.invoke('paste-to-active-window', text),
   // Edge TTS Online Speech Engine
   getTtsVoices: () => ipcRenderer.invoke('get-tts-voices'),
-  playTtsDemo: (voice) => ipcRenderer.invoke('play-tts-demo', voice),
+  playTtsDemo: (payload) => ipcRenderer.invoke('play-tts-demo', payload),
   synthesizeSpeech: (params) => ipcRenderer.invoke('synthesize-speech', params),
   getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
 
   // Event Listeners
   onAssistantVoiceQuery: (callback) => ipcRenderer.on('assistant-voice-query', (_, text) => callback(text)),
   onAssistantVoiceState: (callback) => ipcRenderer.on('assistant-voice-state', (_, state) => callback(state)),
-  onAssistantFocusPrompt: (callback) => ipcRenderer.on('assistant-focus-prompt', (_, data) => callback(data))
+  onAssistantFocusPrompt: (callback) => ipcRenderer.on('assistant-focus-prompt', (_, data) => callback(data)),
+  onConfigUpdated: (callback) => ipcRenderer.on('config-updated', (_, cfg) => callback(cfg))
 });

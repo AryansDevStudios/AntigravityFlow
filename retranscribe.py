@@ -1,65 +1,16 @@
 import json
 import os
-import ssl
 import sys
-import psutil
-import re
 
 import crypto_audio
 import db
 import batch_transcriber
 import context_peeker
+import formatter
 import llm_refiner
 
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
-
 def discover_server():
-    server_proc = None
-    for p in psutil.process_iter(['name', 'cmdline']):
-        if p.info['name'] == 'language_server.exe':
-            server_proc = p
-            break
-
-    if not server_proc:
-        raise RuntimeError("Antigravity language_server.exe is not running.")
-
-    cmd = ' '.join(server_proc.info['cmdline'] or [])
-    token_match = re.search(r'--csrf_token\s+([a-f0-9-]+)', cmd)
-    if not token_match:
-        raise RuntimeError("Could not find CSRF token.")
-    csrf_token = token_match.group(1)
-
-    ports = []
-    try:
-        conns = [c for c in psutil.net_connections(kind='tcp') if c.pid == server_proc.pid and c.status == 'LISTEN']
-        ports = [c.laddr.port for c in conns if c.laddr.ip in ('127.0.0.1', '::1', '0.0.0.0')]
-    except Exception:
-        pass
-
-    if not ports:
-        ports = [57071, 57072]
-
-    import urllib.request
-    active_port = None
-    for port in ports:
-        try:
-            req = urllib.request.Request(
-                f"https://127.0.0.1:{port}/",
-                headers={"x-codeium-csrf-token": csrf_token}
-            )
-            with urllib.request.urlopen(req, context=ctx, timeout=0.3) as res:
-                if res.status == 200:
-                    active_port = port
-                    break
-        except Exception:
-            continue
-
-    if not active_port:
-        raise RuntimeError(f"Could not connect via HTTPS to any port: {ports}")
-
-    return active_port, csrf_token
+    return llm_refiner.discover_server()
 
 def retranscribe(item_id: int):
     """Zero-Loss 1-Click Dashboard Retry (🔄 button) & Background Recovery.
@@ -81,13 +32,17 @@ def retranscribe(item_id: int):
     if cfg.get("enable_context_cascade", True):
         cascade_id = context_peeker.get_active_cascade_id(port, csrf_token)
 
-    # Determine app category from past record
+    # Determine app metadata from past record
     category = "Other Tasks"
+    app_name = "Desktop"
+    window_title = ""
     try:
         history = db.get_history()
         for h in history:
             if h.get("id") == item_id:
                 category = h.get("category", "Other Tasks")
+                app_name = h.get("app_name", "Desktop")
+                window_title = h.get("window_title", "")
                 break
     except Exception:
         pass
@@ -105,20 +60,28 @@ def retranscribe(item_id: int):
     if not final_text or not final_text.strip():
         raise RuntimeError("No transcription received from batch audio decoding.")
 
+    final_text = formatter.format_transcript(final_text.strip(), category)
+
     # AI Polish pass if enabled
     if cfg.get("enable_ai_polish", False):
         try:
+            preset_mode = cfg.get("ai_preset_mode", "flow")
+            sys_prompt = cfg.get("ai_system_prompt", "") if preset_mode == "custom" else ""
             polished = llm_refiner.polish_with_gemini(
                 final_text,
-                model=cfg.get("ai_model", "MODEL_PLACEHOLDER_M318"),
-                system_prompt=cfg.get("ai_system_prompt", "")
+                model=cfg.get("ai_model", "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE"),
+                preset_mode=preset_mode,
+                system_prompt=sys_prompt,
+                app_name=app_name,
+                window_title=window_title,
+                config=cfg
             )
             if polished and polished.strip():
                 final_text = polished.strip()
         except Exception as err:
             print(f"[Retranscribe] AI Polish fallback: {err}")
 
-    # Update database
+    # Update database and return full updated row
     updated = db.update_dictation_text(item_id, final_text)
     return updated
 

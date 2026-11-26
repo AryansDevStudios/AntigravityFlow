@@ -1,13 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog, screen, desktopCapturer, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen, desktopCapturer, clipboard, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const http = require('http');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
-
-process.on('uncaughtException', (err) => {
-  fs.writeFileSync(path.join(__dirname, 'crash.log'), String(err.stack || err));
-});
 
 const BASE_DIR = path.join(__dirname, '..');
 const APPDATA_DIR = process.env.APPDATA;
@@ -18,6 +15,13 @@ const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
 const VOCAB_PATH = path.join(DATA_DIR, 'vocabulary.json');
 const USER_CACHE_PATH = path.join(DATA_DIR, 'user_cache.json');
 const KEY_RECORDING_LOCK = path.join(DATA_DIR, '.key_recording');
+
+process.on('uncaughtException', (err) => {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(path.join(DATA_DIR, 'ui_crash.log'), `${new Date().toISOString()}\n${String(err && err.stack ? err.stack : err)}\n`);
+  } catch (_) {}
+});
 
 // Dedicated cache in user profile
 app.setPath('userData', path.join(app.getPath('appData'), 'AntigravityFlowUI'));
@@ -34,16 +38,6 @@ function decryptAudioBuffer(encBuffer) {
   const ciphertext = encBuffer.subarray(16);
   const decipher = crypto.createDecipheriv('aes-256-cbc', AES_KEY, iv);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-}
-
-function getDaemonExecutablePath() {
-  if (app.isPackaged) {
-    const embedded = path.join(process.resourcesPath, 'bin', 'AntigravityFlowDaemon.exe');
-    if (fs.existsSync(embedded)) return embedded;
-  }
-  const distExe = path.join(BASE_DIR, 'dist', 'AntigravityFlowDaemon.exe');
-  if (fs.existsSync(distExe)) return distExe;
-  return null;
 }
 
 function getPythonExecutable() {
@@ -72,7 +66,18 @@ function getBackendExecutable() {
     if (fs.existsSync(packagedDaemon)) return packagedDaemon;
   }
   const localDistDaemon = path.join(BASE_DIR, 'dist', 'AntigravityFlowDaemon.exe');
-  if (fs.existsSync(localDistDaemon)) return localDistDaemon;
+  if (fs.existsSync(localDistDaemon)) {
+    try {
+      const exeMtime = fs.statSync(localDistDaemon).mtimeMs;
+      const pySources = ['daemon.py', 'assistant_service.py', 'db.py', 'llm_refiner.py', 'edge_tts_service.py', 'quota_service.py', 'formatter.py', 'retranscribe.py'];
+      const hasNewerPy = pySources.some((f) => {
+        const p = path.join(BASE_DIR, f);
+        return fs.existsSync(p) && fs.statSync(p).mtimeMs > exeMtime;
+      });
+      if (hasNewerPy) return null;
+    } catch (_) {}
+    return localDistDaemon;
+  }
   return null;
 }
 
@@ -105,6 +110,56 @@ function spawnDaemonProcess() {
 
 let daemonSupervisorInterval = null;
 let isAppQuitting = false;
+const appBootTime = Date.now();
+
+function parseBackendJson(stdout) {
+  const trimmed = (stdout || '').trim();
+  if (!trimmed) throw new Error('Empty backend output');
+  try {
+    return JSON.parse(trimmed);
+  } catch (firstErr) {
+    const lines = trimmed.split(/\r?\n/);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (line.startsWith('{') || line.startsWith('[')) {
+        try {
+          return JSON.parse(line);
+        } catch (_) {}
+      }
+    }
+    throw firstErr;
+  }
+}
+
+function checkDaemonReadyOnce(timeoutMs = 450) {
+  return new Promise((resolve) => {
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port: 48198,
+      path: '/status',
+      method: 'GET',
+      timeout: timeoutMs
+    }, (res) => {
+      res.resume();
+      resolve(res.statusCode === 200);
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+    req.end();
+  });
+}
+
+async function waitForDaemonReady(maxWaitMs = 7500) {
+  if (isAppQuitting) return false;
+  if (await checkDaemonReadyOnce(350)) return true;
+  if (Date.now() - appBootTime > 15000) return false;
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline && !isAppQuitting) {
+    await new Promise(r => setTimeout(r, 300));
+    if (await checkDaemonReadyOnce(350)) return true;
+  }
+  return false;
+}
 
 function ensureDaemonRunning() {
   if (isAppQuitting) return;
@@ -115,7 +170,7 @@ function ensureDaemonRunning() {
     method: 'GET',
     timeout: 500
   }, (res) => {
-    // Daemon is healthy
+    res.resume();
   });
   pingReq.on('error', () => {
     if (!isAppQuitting) spawnDaemonProcess();
@@ -135,22 +190,44 @@ function runBackendCommand(subcommand, args = [], options = {}, callback) {
   const promise = new Promise((resolve, reject) => {
     const exe = getBackendExecutable();
     const finalArgs = [subcommand, ...args];
-    const opts = { maxBuffer: 15 * 1024 * 1024, windowsHide: true, ...options };
+    const { timeout: customTimeout, ...restOpts } = options || {};
+    const opts = { maxBuffer: 15 * 1024 * 1024, windowsHide: true, ...restOpts };
 
+    let targetBin = null;
+    let targetArgs = null;
     if (exe) {
-      execFile(exe, finalArgs, opts, (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        resolve(stdout);
-      });
+      targetBin = exe;
+      targetArgs = finalArgs;
     } else if (!app.isPackaged) {
-      const pythonExe = getPythonExecutable();
-      const daemonPy = path.join(BASE_DIR, 'daemon.py');
-      execFile(pythonExe, [daemonPy, ...finalArgs], opts, (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        resolve(stdout);
-      });
+      targetBin = getPythonExecutable();
+      targetArgs = [path.join(BASE_DIR, 'daemon.py'), ...finalArgs];
     } else {
-      reject(new Error('Backend daemon executable not found in application bundle.'));
+      return reject(new Error('Backend daemon executable not found in application bundle.'));
+    }
+
+    let settled = false;
+    let timer = null;
+    const child = execFile(targetBin, targetArgs, opts, (err, stdout, stderr) => {
+      if (timer) clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      if (err) return reject(new Error(stderr || err.message));
+      resolve(stdout);
+    });
+
+    if (customTimeout && customTimeout > 0) {
+      timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        if (child && child.pid) {
+          if (process.platform === 'win32') {
+            execFile('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
+          } else {
+            try { child.kill(); } catch (_) {}
+          }
+        }
+        reject(new Error(`Backend command '${subcommand}' timed out after ${customTimeout}ms`));
+      }, customTimeout);
     }
   });
 
@@ -187,12 +264,29 @@ if (!gotTheLock) {
     } catch (_) {}
   });
 
-  app.on('before-quit', () => {
+  let shutdownDispatched = false;
+  app.on('before-quit', (e) => {
     isAppQuitting = true;
     if (daemonSupervisorInterval) {
       clearInterval(daemonSupervisorInterval);
       daemonSupervisorInterval = null;
     }
+    if (shutdownDispatched) return;
+    e.preventDefault();
+    shutdownDispatched = true;
+
+    let done = false;
+    const finishQuit = () => {
+      if (done) return;
+      done = true;
+      try {
+        if (assistantWindow && !assistantWindow.isDestroyed()) assistantWindow.destroy();
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+      } catch (_) {}
+      app.exit(0);
+    };
+
+    const fallbackTimer = setTimeout(finishQuit, 400);
     try {
       const postReq = http.request({
         hostname: '127.0.0.1',
@@ -200,12 +294,32 @@ if (!gotTheLock) {
         path: '/shutdown',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        timeout: 500
+        timeout: 350
+      }, (res) => {
+        res.resume();
+        clearTimeout(fallbackTimer);
+        finishQuit();
       });
-      postReq.on('error', () => {});
+      postReq.on('error', () => {
+        if (process.platform === 'win32') {
+          execFile('taskkill', ['/IM', 'AntigravityFlowDaemon.exe', '/T', '/F'], { windowsHide: true }, () => {
+            clearTimeout(fallbackTimer);
+            finishQuit();
+          });
+        } else {
+          clearTimeout(fallbackTimer);
+          finishQuit();
+        }
+      });
+      postReq.on('timeout', () => {
+        postReq.destroy();
+      });
       postReq.write('{}');
       postReq.end();
-    } catch (_) {}
+    } catch (_) {
+      clearTimeout(fallbackTimer);
+      finishQuit();
+    }
   });
 
   app.whenReady().then(() => {
@@ -262,6 +376,13 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url).catch(() => {});
+    }
+    return { action: 'deny' };
+  });
 
   // Log renderer console warnings and errors
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
@@ -347,6 +468,19 @@ function createAssistantWindow() {
 
   assistantWindow.loadFile('assistant.html');
 
+  assistantWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      shell.openExternal(url).catch(() => {});
+    }
+    return { action: 'deny' };
+  });
+
+  assistantWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    if (level >= 2) {
+      console.error(`[Assistant Renderer Error] ${message} (${sourceId}:${line})`);
+    }
+  });
+
   // Debounced saving of assistant bounds
   let saveBoundsTimer = null;
   const debouncedSaveBounds = () => {
@@ -377,8 +511,9 @@ function createAssistantWindow() {
   });
 
   assistantWindow.on('close', (e) => {
-    e.preventDefault();
     debouncedSaveBounds();
+    if (isAppQuitting) return;
+    e.preventDefault();
     assistantWindow.hide();
   });
 }
@@ -416,6 +551,19 @@ function toggleAssistantWindow() {
 }
 
 async function captureCleanScreenshot() {
+  let nativeRes = true;
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}');
+      if (cfg.enable_screen_vision === false) {
+        return { success: false, error: 'Screen Vision is disabled by user policy in Settings.' };
+      }
+      if (cfg.screen_native_resolution === false) {
+        nativeRes = false;
+      }
+    }
+  } catch (_) {}
+
   const assistantWasVisible = assistantWindow && !assistantWindow.isDestroyed() && assistantWindow.isVisible();
   const mainWasVisible = mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
 
@@ -439,8 +587,13 @@ async function captureCleanScreenshot() {
       const primaryDisplay = screen.getPrimaryDisplay();
       const scale = primaryDisplay.scaleFactor || 1;
       const { width, height } = primaryDisplay.size;
-      const targetW = Math.round(width * scale);
-      const targetH = Math.round(height * scale);
+      const rawW = Math.round(width * scale);
+      const rawH = Math.round(height * scale);
+      const maxW = nativeRes ? 1920 : 1280;
+      const maxH = nativeRes ? 1080 : 720;
+      const ratio = Math.min(1, maxW / Math.max(1, rawW), maxH / Math.max(1, rawH));
+      const targetW = Math.max(320, Math.round(rawW * ratio));
+      const targetH = Math.max(240, Math.round(rawH * ratio));
 
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
@@ -452,9 +605,13 @@ async function captureCleanScreenshot() {
         const thumb = sources[0].thumbnail;
         if (!thumb.isEmpty()) {
           const imgSize = thumb.getSize();
+          const jpegBuf = thumb.toJPEG(nativeRes ? 88 : 75);
+          const dataUrl = (jpegBuf && jpegBuf.length > 0)
+            ? `data:image/jpeg;base64,${jpegBuf.toString('base64')}`
+            : thumb.toDataURL();
           return {
             success: true,
-            data_url: thumb.toDataURL(),
+            data_url: dataUrl,
             width: imgSize.width,
             height: imgSize.height
           };
@@ -495,14 +652,12 @@ async function captureCleanScreenshot() {
           return resolve({ success: false, error: stderr || error.message });
         }
         try {
-          resolve(JSON.parse(stdout.trim()));
+          resolve(parseBackendJson(stdout));
         } catch (parseErr) {
           resolve({ success: false, error: `Invalid screenshot response: ${stdout}` });
         }
       });
     });
-
-    return { success: false, error: 'Screen capture failed: no capture source available.' };
   } catch (err) {
     return { success: false, error: err.message };
   } finally {
@@ -620,13 +775,31 @@ ipcMain.handle('app-quit', () => {
 // History & Config
 ipcMain.handle('get-history', async () => {
   try {
-    if (!fs.existsSync(HISTORY_PATH)) {
-      return { success: true, data: [] };
+    try {
+      const daemonRes = await callDaemonControlGet('/assistant/history', 2000);
+      if (daemonRes && daemonRes.success && Array.isArray(daemonRes.data)) {
+        daemonRes.data.sort((a, b) => (b.id || 0) - (a.id || 0));
+        return daemonRes;
+      }
+    } catch (_) {}
+
+    if (fs.existsSync(HISTORY_PATH)) {
+      const raw = fs.readFileSync(HISTORY_PATH, 'utf-8');
+      const items = JSON.parse(raw || '[]');
+      items.sort((a, b) => (b.id || 0) - (a.id || 0));
+      return { success: true, data: items };
     }
-    const raw = fs.readFileSync(HISTORY_PATH, 'utf-8');
-    const items = JSON.parse(raw || '[]');
-    items.sort((a, b) => (b.id || 0) - (a.id || 0));
-    return { success: true, data: items };
+
+    try {
+      const cliOut = await runBackendCommand('history-get', [], { timeout: 6000 });
+      const parsed = parseBackendJson(cliOut);
+      if (parsed && parsed.success && Array.isArray(parsed.data)) {
+        parsed.data.sort((a, b) => (b.id || 0) - (a.id || 0));
+        return parsed;
+      }
+    } catch (_) {}
+
+    return { success: true, data: [] };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -634,16 +807,32 @@ ipcMain.handle('get-history', async () => {
 
 ipcMain.handle('delete-history-item', async (event, id) => {
   try {
-    if (!fs.existsSync(HISTORY_PATH)) return { success: true };
-    const raw = fs.readFileSync(HISTORY_PATH, 'utf-8');
-    let items = JSON.parse(raw || '[]');
-    items = items.filter(item => item.id !== id);
-    fs.writeFileSync(HISTORY_PATH, JSON.stringify(items, null, 2), 'utf-8');
+    try {
+      const daemonRes = await callDaemonControl('/assistant/history/delete', { id }, 3000);
+      if (daemonRes && typeof daemonRes === 'object' && ('success' in daemonRes)) {
+        return daemonRes;
+      }
+    } catch (_) {}
 
-    // Also remove encrypted audio file if present
-    const encPath = path.join(RECORDINGS_DIR, `${id}.enc`);
-    if (fs.existsSync(encPath)) {
-      try { fs.unlinkSync(encPath); } catch (_) {}
+    try {
+      const cliOut = await runBackendCommand('history-delete', [String(id)], { timeout: 6000 });
+      const parsed = parseBackendJson(cliOut);
+      if (parsed && typeof parsed === 'object' && ('success' in parsed)) {
+        return parsed;
+      }
+    } catch (_) {}
+
+    if (fs.existsSync(HISTORY_PATH)) {
+      const raw = fs.readFileSync(HISTORY_PATH, 'utf-8');
+      let items = JSON.parse(raw || '[]');
+      items = items.filter(item => item.id !== id);
+      fs.writeFileSync(HISTORY_PATH, JSON.stringify(items, null, 2), 'utf-8');
+    }
+    for (const ext of ['.wav.enc', '.enc']) {
+      const encPath = path.join(RECORDINGS_DIR, `${id}${ext}`);
+      if (fs.existsSync(encPath)) {
+        try { fs.unlinkSync(encPath); } catch (_) {}
+      }
     }
     return { success: true };
   } catch (err) {
@@ -653,6 +842,21 @@ ipcMain.handle('delete-history-item', async (event, id) => {
 
 ipcMain.handle('clear-history', async () => {
   try {
+    try {
+      const daemonRes = await callDaemonControl('/assistant/history/clear', {}, 3500);
+      if (daemonRes && typeof daemonRes === 'object' && ('success' in daemonRes)) {
+        return daemonRes;
+      }
+    } catch (_) {}
+
+    try {
+      const cliOut = await runBackendCommand('history-clear', [], { timeout: 6000 });
+      const parsed = parseBackendJson(cliOut);
+      if (parsed && typeof parsed === 'object' && ('success' in parsed)) {
+        return parsed;
+      }
+    } catch (_) {}
+
     fs.writeFileSync(HISTORY_PATH, JSON.stringify([], null, 2), 'utf-8');
     if (fs.existsSync(RECORDINGS_DIR)) {
       const files = fs.readdirSync(RECORDINGS_DIR);
@@ -726,6 +930,8 @@ ipcMain.handle('get-config', async () => {
       push_to_talk_hotkey: 'windows+alt',
       toggle_hotkey: 'windows+alt+h',
       ai_ptt_hotkey: 'windows+ctrl',
+      ai_toggle_hotkey: 'windows+ctrl',
+      ai_hotkey_mode: 'both',
       enable_sound: true,
       user_name: '',
       tts_service: 'edge-tts',
@@ -735,6 +941,9 @@ ipcMain.handle('get-config', async () => {
       tts_auto_speak_voice: true,
       theme: 'auto',
       screen_native_resolution: true,
+      enable_system_commands: true,
+      enable_screen_vision: true,
+      cascade_enabled: true,
       start_on_login: true
     };
     const isAutostart = await checkSystemAutostart();
@@ -763,6 +972,13 @@ ipcMain.handle('save-config', async (event, config) => {
 
     if (merged.start_on_login !== undefined) {
       await setSystemAutostart(Boolean(merged.start_on_login));
+    }
+
+    callDaemonControl('/reload-config', {}, 1500).catch(() => {});
+    for (const win of [mainWindow, assistantWindow]) {
+      if (win && !win.isDestroyed()) {
+        try { win.webContents.send('config-updated', merged); } catch (_) {}
+      }
     }
 
     return { success: true, data: merged };
@@ -803,7 +1019,7 @@ ipcMain.handle('get-vocabulary', async () => {
       runBackendCommand('vocab-get', [], { cwd: BASE_DIR }, (err, stdout) => {
         if (err) return resolve({ success: true, data: {} });
         try {
-          const res = JSON.parse(stdout.trim());
+          const res = parseBackendJson(stdout);
           resolve(res.data ? res : { success: true, data: res });
         } catch (_) {
           resolve({ success: true, data: {} });
@@ -836,7 +1052,7 @@ ipcMain.handle('get-macros', async () => {
     runBackendCommand('macro-get', [], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, data: [] });
       try {
-        const res = JSON.parse(stdout.trim());
+        const res = parseBackendJson(stdout);
         resolve(res.data ? res : { success: true, data: res });
       } catch (_) {
         resolve({ success: false, data: [] });
@@ -854,7 +1070,7 @@ ipcMain.handle('save-macro', async (event, macro) => {
     const payload = JSON.stringify(macro || {});
     runBackendCommand('macro-save', [payload], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, error: err.message });
-      try { resolve(JSON.parse(stdout.trim())); } catch (_) { resolve({ success: true }); }
+      try { resolve(parseBackendJson(stdout)); } catch (_) { resolve({ success: true }); }
     });
   });
 });
@@ -880,7 +1096,7 @@ ipcMain.handle('expand-macro', async (event, text) => {
     const payload = JSON.stringify(text || "");
     runBackendCommand('macro-expand', [payload], { cwd: BASE_DIR }, (err, stdout) => {
       if (err) return resolve({ success: false, expanded: text });
-      try { resolve(JSON.parse(stdout.trim())); } catch (_) { resolve({ success: true, expanded: text }); }
+      try { resolve(parseBackendJson(stdout)); } catch (_) { resolve({ success: true, expanded: text }); }
     });
   });
 });
@@ -941,7 +1157,7 @@ ipcMain.handle('retry-transcription', async (event, id) => {
         return resolve({ success: false, error: stderr || error.message });
       }
       try {
-        const res = JSON.parse(stdout.trim());
+        const res = parseBackendJson(stdout);
         resolve(res);
       } catch (parseErr) {
         resolve({ success: false, error: `Invalid runner response: ${stdout}` });
@@ -974,70 +1190,75 @@ ipcMain.handle('get-quota-summary', async () => {
   if (quotaCache && (now - quotaCacheTime < 20000)) {
     return quotaCache;
   }
-  // Deduplicate concurrent calls (prevent spawning duplicate workers)
+  // Deduplicate ALL concurrent callers (both daemon RPC and worker fallback)
   if (inFlightQuotaPromise) {
     return inFlightQuotaPromise;
   }
 
-  // Fast-path: In-process daemon control (< 2ms)
-  try {
-    const daemonRes = await callDaemonControl('/assistant/quota', {}, 2500);
-    if (daemonRes && daemonRes.success) {
-      quotaCache = daemonRes;
-      quotaCacheTime = Date.now();
-      return daemonRes;
-    }
-  } catch (_) {}
-
-  inFlightQuotaPromise = new Promise((resolve) => {
-    runBackendCommand('quota', [], { timeout: 4000 }, (error, stdout, stderr) => {
-      inFlightQuotaPromise = null;
-      if (error) {
-        // Fallback instantly to disk cache if backend worker timed out or errored
-        if (fs.existsSync(USER_CACHE_PATH)) {
-          try {
-            const cached = JSON.parse(fs.readFileSync(USER_CACHE_PATH, 'utf-8'));
-            const fallbackRes = {
-              success: true,
-              cached: true,
-              user: {
-                name: cached.name || cached.user_name || '',
-                email: cached.email || '',
-                planName: cached.planName || '',
-                planBadge: cached.planBadge || ''
-              },
-              gemini: {
-                weeklyPercentRemaining: cached.weekly_percent !== undefined ? cached.weekly_percent : 100,
-                fiveHourPercentRemaining: cached.five_hour_percent !== undefined ? cached.five_hour_percent : 100,
-                weeklyResetHuman: cached.weekly_reset || 'Active',
-                fiveHourResetHuman: cached.five_hour_reset || 'Active'
-              }
-            };
-            quotaCache = fallbackRes;
-            quotaCacheTime = Date.now();
-            return resolve(fallbackRes);
-          } catch (_) {}
-        }
-        return resolve({ success: false, error: stderr || error.message });
-      }
+  inFlightQuotaPromise = (async () => {
+    try {
+      await waitForDaemonReady(7500);
       try {
-        const res = JSON.parse(stdout.trim());
-        if (res.success) {
-          quotaCache = res;
+        const daemonRes = await callDaemonControl('/assistant/quota', {}, 10000);
+        if (daemonRes && daemonRes.success) {
+          quotaCache = daemonRes;
           quotaCacheTime = Date.now();
+          return daemonRes;
         }
-        resolve(res);
-      } catch (parseErr) {
-        resolve({ success: false, error: `Invalid quota response: ${stdout}` });
-      }
-    });
-  });
+      } catch (_) {}
+
+      return await new Promise((resolve) => {
+        runBackendCommand('quota', [], { timeout: 15000 }, (error, stdout, stderr) => {
+          if (error) {
+            if (fs.existsSync(USER_CACHE_PATH)) {
+              try {
+                const cached = JSON.parse(fs.readFileSync(USER_CACHE_PATH, 'utf-8'));
+                const fallbackRes = {
+                  success: true,
+                  cached: true,
+                  user: {
+                    name: cached.name || cached.user_name || '',
+                    email: cached.email || '',
+                    planName: cached.planName || '',
+                    planBadge: cached.planBadge || ''
+                  },
+                  gemini: {
+                    weeklyPercentRemaining: cached.weekly_percent !== undefined ? cached.weekly_percent : 100,
+                    fiveHourPercentRemaining: cached.five_hour_percent !== undefined ? cached.five_hour_percent : 100,
+                    weeklyResetHuman: cached.weekly_reset || 'Active',
+                    fiveHourResetHuman: cached.five_hour_reset || 'Active'
+                  }
+                };
+                quotaCache = fallbackRes;
+                quotaCacheTime = Date.now();
+                return resolve(fallbackRes);
+              } catch (_) {}
+            }
+            return resolve({ success: false, error: stderr || error.message });
+          }
+          try {
+            const res = parseBackendJson(stdout);
+            if (res.success) {
+              quotaCache = res;
+              quotaCacheTime = Date.now();
+            }
+            resolve(res);
+          } catch (parseErr) {
+            resolve({ success: false, error: `Invalid quota response: ${stdout}` });
+          }
+        });
+      });
+    } finally {
+      inFlightQuotaPromise = null;
+    }
+  })();
 
   return inFlightQuotaPromise;
 });
 
 let modelsCache = null;
 let modelsCacheTime = 0;
+let inFlightModelsPromise = null;
 
 const https = require('https');
 
@@ -1179,44 +1400,56 @@ ipcMain.handle('get-available-models', async () => {
   if (modelsCache && (now - modelsCacheTime < 30000)) {
     return modelsCache;
   }
+  if (inFlightModelsPromise) {
+    return inFlightModelsPromise;
+  }
 
-  // 1. In-process daemon control (< 1ms)
-  try {
-    const daemonRes = await callDaemonControl('/assistant/models', {}, 2000);
-    if (daemonRes && daemonRes.success) {
-      modelsCache = daemonRes;
-      modelsCacheTime = Date.now();
-      return daemonRes;
-    }
-  } catch (_) {}
-
-  // 2. Backend worker fallback
-  return new Promise((resolve) => {
-    runBackendCommand('models', [], { timeout: 4000 }, (error, stdout, stderr) => {
-      if (error) {
-        const cacheFile = path.join(DATA_DIR, 'models_cache.json');
-        if (fs.existsSync(cacheFile)) {
-          try {
-            const data = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
-            modelsCache = data;
-            modelsCacheTime = Date.now();
-            return resolve(data);
-          } catch (_) {}
-        }
-        return resolve({ success: false, error: stderr || error.message });
-      }
+  inFlightModelsPromise = (async () => {
+    try {
+      await waitForDaemonReady(7500);
+      // 1. In-process daemon control (< 1ms)
       try {
-        const res = JSON.parse(stdout.trim());
-        if (res.success) {
-          modelsCache = res;
+        const daemonRes = await callDaemonControl('/assistant/models', {}, 10000);
+        if (daemonRes && daemonRes.success) {
+          modelsCache = daemonRes;
           modelsCacheTime = Date.now();
+          return daemonRes;
         }
-        resolve(res);
-      } catch (parseErr) {
-        resolve({ success: false, error: `Invalid models response: ${stdout}` });
-      }
-    });
-  });
+      } catch (_) {}
+
+      // 2. Backend worker fallback
+      return await new Promise((resolve) => {
+        runBackendCommand('models', [], { timeout: 15000 }, (error, stdout, stderr) => {
+          if (error) {
+            const cacheFile = path.join(DATA_DIR, 'models_cache.json');
+            if (fs.existsSync(cacheFile)) {
+              try {
+                const data = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
+                modelsCache = data;
+                modelsCacheTime = Date.now();
+                return resolve(data);
+              } catch (_) {}
+            }
+            return resolve({ success: false, error: stderr || error.message });
+          }
+          try {
+            const res = parseBackendJson(stdout);
+            if (res.success) {
+              modelsCache = res;
+              modelsCacheTime = Date.now();
+            }
+            resolve(res);
+          } catch (parseErr) {
+            resolve({ success: false, error: `Invalid models response: ${stdout}` });
+          }
+        });
+      });
+    } finally {
+      inFlightModelsPromise = null;
+    }
+  })();
+
+  return inFlightModelsPromise;
 });
 
 // ===========================================================================
@@ -1237,11 +1470,21 @@ ipcMain.handle('toggle-assistant', () => {
   return { success: true };
 });
 
+ipcMain.handle('get-daemon-status', async () => {
+  try {
+    const res = await callDaemonControlGet('/status', 1500);
+    if (res && typeof res === 'object') {
+      return { success: true, online: true, ...res };
+    }
+  } catch (_) {}
+  return { success: true, online: false, status: 'offline', ls_connected: false };
+});
+
 ipcMain.handle('query-assistant', async (event, params) => {
   // 1. Primary Route: In-process Daemon Server (< 1ms dispatch, zero process startup delay)
   try {
-    const daemonRes = await callDaemonControl('/assistant/query', params, 45000);
-    if (daemonRes && daemonRes.success === true) {
+    const daemonRes = await callDaemonControl('/assistant/query', params, 120000);
+    if (daemonRes && typeof daemonRes === 'object' && ('success' in daemonRes)) {
       return daemonRes;
     }
   } catch (daemonErr) {
@@ -1251,12 +1494,26 @@ ipcMain.handle('query-assistant', async (event, params) => {
   // 2. Direct Fallback: Standalone daemon process execution (preserves full agentic prompt & MCP execution)
   return new Promise((resolve) => {
     const payload = JSON.stringify(params || {});
-    runBackendCommand('query', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    let cliArgs = [payload];
+    let tmpPayloadFile = null;
+    if (Buffer.byteLength(payload, 'utf8') > 12000) {
+      try {
+        tmpPayloadFile = path.join(os.tmpdir(), `agflow_query_${Date.now()}_${Math.random().toString(36).slice(2)}.json`);
+        fs.writeFileSync(tmpPayloadFile, payload, 'utf-8');
+        cliArgs = ['--payload-file', tmpPayloadFile];
+      } catch (_) {
+        tmpPayloadFile = null;
+      }
+    }
+    runBackendCommand('query', cliArgs, { maxBuffer: 15 * 1024 * 1024, timeout: 120000 }, (error, stdout, stderr) => {
+      if (tmpPayloadFile) {
+        try { fs.unlinkSync(tmpPayloadFile); } catch (_) {}
+      }
       if (error) {
         return resolve({ success: false, error: stderr || error.message });
       }
       try {
-        resolve(JSON.parse(stdout.trim()));
+        resolve(parseBackendJson(stdout));
       } catch (parseErr) {
         resolve({ success: false, error: `Invalid assistant response: ${stdout}` });
       }
@@ -1334,7 +1591,7 @@ ipcMain.handle('paste-to-active-window', async (event, text) => {
         return resolve({ success: false, error: stderr || error.message });
       }
       try {
-        resolve(JSON.parse(stdout.trim()));
+        resolve(parseBackendJson(stdout));
       } catch (parseErr) {
         resolve({ success: false, error: `Invalid paste response: ${stdout}` });
       }
@@ -1345,8 +1602,10 @@ ipcMain.handle('paste-to-active-window', async (event, text) => {
 ipcMain.handle('resize-assistant', async (event, size) => {
   if (assistantWindow && !assistantWindow.isDestroyed()) {
     const bounds = assistantWindow.getBounds();
-    const newW = (size && size.width) ? Math.round(size.width) : bounds.width;
-    const newH = (size && size.height) ? Math.round(size.height) : bounds.height;
+    const rawW = (size && size.width) ? Math.round(size.width) : bounds.width;
+    const rawH = (size && size.height) ? Math.round(size.height) : bounds.height;
+    const newW = Math.min(Math.max(rawW, 200), 960);
+    const newH = Math.min(Math.max(rawH, 200), 960);
     assistantWindow.setSize(newW, newH, true);
     try {
       let currentCfg = {};
@@ -1378,7 +1637,7 @@ ipcMain.handle('refine-prompt', async (event, params) => {
     runBackendCommand('refine', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) return resolve({ success: false, refined_text: (params && params.text) || '' });
       try {
-        resolve(JSON.parse(stdout.trim()));
+        resolve(parseBackendJson(stdout));
       } catch (parseErr) {
         resolve({ success: false, refined_text: (params && params.text) || '' });
       }
@@ -1396,7 +1655,7 @@ ipcMain.handle('web-search', async (event, query) => {
     runBackendCommand('search', [payload], { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) return resolve({ success: false, results: [] });
       try {
-        resolve(JSON.parse(stdout.trim()));
+        resolve(parseBackendJson(stdout));
       } catch (parseErr) {
         resolve({ success: false, results: [] });
       }
@@ -1407,13 +1666,15 @@ ipcMain.handle('web-search', async (event, query) => {
 ipcMain.handle('trigger-dictation', async (event, params) => {
   return new Promise((resolve) => {
     const action = (params && params.action) || 'toggle';
-    const payload = JSON.stringify({ action: action, session_type: 'ai' });
+    const sessionType = (params && params.session_type) || 'ai';
+    const payload = JSON.stringify({ action: action, session_type: sessionType });
     const req = http.request({
       hostname: '127.0.0.1',
       port: 48198,
+      path: '/dictation/trigger',
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
-      timeout: 1000
+      timeout: 1500
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -1422,6 +1683,7 @@ ipcMain.handle('trigger-dictation', async (event, params) => {
       });
     });
     req.on('error', () => resolve({ success: false, error: 'Daemon not reachable' }));
+    req.on('timeout', () => { req.destroy(); resolve({ success: false, error: 'Daemon request timed out' }); });
     req.write(payload);
     req.end();
   });
@@ -1437,29 +1699,39 @@ ipcMain.handle('get-system-theme', () => {
 });
 
 ipcMain.handle('get-tts-voices', async () => {
+  await waitForDaemonReady(7500);
   try {
-    const res = await callDaemonControlGet('/tts/voices', 3000);
+    const res = await callDaemonControlGet('/tts/voices', 6000);
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    runBackendCommand('tts-voices', [], { timeout: 4000 }, (error, stdout) => {
+    runBackendCommand('tts-voices', [], { timeout: 12000 }, (error, stdout) => {
       if (!error && stdout) {
-        try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
+        try { return resolve(parseBackendJson(stdout)); } catch (_) {}
       }
       resolve({ success: false, voices: [] });
     });
   });
 });
 
-ipcMain.handle('play-tts-demo', async (event, voice) => {
+ipcMain.handle('play-tts-demo', async (event, payload) => {
+  const voice = typeof payload === 'string' ? payload : (payload && payload.voice) || 'en-IN-NeerjaNeural';
+  let rate = (payload && typeof payload === 'object' && payload.rate) ? payload.rate : null;
+  if (!rate && fs.existsSync(CONFIG_PATH)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}');
+      rate = cfg.tts_rate || '+0%';
+    } catch (_) {}
+  }
+  const reqPayload = { voice, rate: rate || '+0%' };
   try {
-    const res = await callDaemonControl('/tts/demo', { voice }, 12000);
+    const res = await callDaemonControl('/tts/demo', reqPayload, 15000);
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    runBackendCommand('tts-demo', [JSON.stringify({ voice })], { timeout: 12000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+    runBackendCommand('tts-demo', [JSON.stringify(reqPayload)], { timeout: 15000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
       if (!error && stdout) {
-        try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
+        try { return resolve(parseBackendJson(stdout)); } catch (_) {}
       }
       resolve({ success: false, error: 'Failed to synthesize demo audio' });
     });
@@ -1468,13 +1740,13 @@ ipcMain.handle('play-tts-demo', async (event, voice) => {
 
 ipcMain.handle('synthesize-speech', async (event, params) => {
   try {
-    const res = await callDaemonControl('/tts/synth', params, 15000);
+    const res = await callDaemonControl('/tts/synth', params, 18000);
     if (res && res.success) return res;
   } catch (_) {}
   return new Promise((resolve) => {
-    runBackendCommand('tts-synth', [JSON.stringify(params || {})], { timeout: 15000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
+    runBackendCommand('tts-synth', [JSON.stringify(params || {})], { timeout: 18000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout) => {
       if (!error && stdout) {
-        try { return resolve(JSON.parse(stdout.trim())); } catch (_) {}
+        try { return resolve(parseBackendJson(stdout)); } catch (_) {}
       }
       resolve({ success: false, error: 'Speech synthesis failed' });
     });

@@ -17,6 +17,66 @@
       background-color: #0d0e12;
       color: #f1f5f9;
     }
+    html.light body,
+    html.light .bg-\[\#0d0e12\],
+    html.light .bg-\[\#0f1016\] {
+      background-color: #f6f4ef !important;
+      color: #1e2028 !important;
+    }
+    html.light .bg-\[\#14151b\],
+    html.light .bg-\[\#14151c\],
+    html.light .bg-\[\#15161d\],
+    html.light .bg-\[\#151722\],
+    html.light .bg-\[\#16171f\],
+    html.light .bg-\[\#161820\],
+    html.light .bg-\[\#181a22\],
+    html.light .bg-\[\#191b22\],
+    html.light .bg-\[\#1a1d26\] {
+      background-color: #ffffff !important;
+      color: #1e2028 !important;
+    }
+    html.light .bg-\[\#1b1d27\],
+    html.light .bg-\[\#1f1d2b\],
+    html.light .bg-\[\#1f2230\],
+    html.light .bg-\[\#222530\],
+    html.light .hover\:bg-\[\#16171f\]:hover,
+    html.light .hover\:bg-\[\#1a1d26\]:hover,
+    html.light .hover\:bg-\[\#20222e\]:hover,
+    html.light .hover\:bg-\[\#252837\]:hover {
+      background-color: #ece8df !important;
+    }
+    html.light .border-\[\#181a22\],
+    html.light .border-\[\#181a23\],
+    html.light .border-\[\#1b1d25\],
+    html.light .border-\[\#1f222d\],
+    html.light .border-\[\#20232c\],
+    html.light .border-\[\#20232f\],
+    html.light .border-\[\#222533\],
+    html.light .border-\[\#232632\],
+    html.light .border-\[\#242733\],
+    html.light .border-\[\#242735\],
+    html.light .border-\[\#262936\],
+    html.light .border-\[\#2b2e3b\] {
+      border-color: rgba(15, 23, 42, 0.12) !important;
+    }
+    html.light .text-white,
+    html.light .text-slate-100,
+    html.light .text-slate-200 {
+      color: #18181b !important;
+    }
+    html.light .text-slate-300 {
+      color: #3f3f46 !important;
+    }
+    html.light .text-slate-400,
+    html.light .text-slate-500 {
+      color: #52525b !important;
+    }
+    html.light .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.18);
+    }
+    html.light .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(15, 23, 42, 0.30);
+    }
     .custom-scroll::-webkit-scrollbar {
       width: 5px;
       height: 5px;
@@ -178,16 +238,16 @@
             </button>
 
             <!-- AntigravityFlow AI Quick Launch Pill -->
-            <button id="btn-quick-assistant" class="flex items-center space-x-1.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 px-3 py-1.5 rounded-full text-xs shadow-sm transition group cursor-pointer" title="Launch AntigravityFlow AI Assistant (Win+Ctrl+A)">
+            <button id="btn-quick-assistant" class="flex items-center space-x-1.5 bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/40 px-3 py-1.5 rounded-full text-xs shadow-sm transition group cursor-pointer" title="Launch AntigravityFlow AI Assistant">
               <span class="text-purple-400 font-bold text-[11px] group-hover:scale-110 transition-transform">✨</span>
               <span class="text-purple-300 font-semibold font-mono text-[10px] tracking-wide">AI ASSISTANT</span>
-              <kbd class="px-1.5 py-0.2 rounded bg-purple-900/60 border border-purple-400/40 font-mono text-[9px] text-purple-200">Win+Ctrl+A</kbd>
+              <kbd id="quick-ai-badge" class="px-1.5 py-0.2 rounded bg-purple-900/60 border border-purple-400/40 font-mono text-[9px] text-purple-200">Win+Ctrl</kbd>
             </button>
 
-            <!-- Engine Active Badge -->
-            <div class="flex items-center space-x-2 bg-[#14151b] border border-[#20232c] px-3.5 py-1.5 rounded-full text-xs shadow-sm select-none">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-              <span class="text-slate-300 font-medium">Engine Active</span>
+            <!-- Live Engine Status Badge -->
+            <div id="engine-status-badge" class="flex items-center space-x-2 bg-[#14151b] border border-[#20232c] px-3.5 py-1.5 rounded-full text-xs shadow-sm select-none" title="Background Daemon Status">
+              <span id="engine-status-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span id="engine-status-text" class="text-slate-300 font-medium">Checking Engine...</span>
             </div>
           </div>
         </div>
@@ -236,11 +296,16 @@
 
         <!-- Dictations List (Full Width) -->
         <div class="w-full space-y-3">
-          <!-- Section Header & Search -->
-          <div class="flex items-center justify-between pb-2 border-b border-[#1b1d25]">
-            <div class="flex items-center space-x-2.5">
-              <span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Recent Dictations</span>
+          <!-- Section Header, Lane Filters & Search -->
+          <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[#1b1d25]">
+            <div class="flex items-center space-x-2.5 flex-wrap gap-y-1.5">
+              <span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Recent Activity</span>
               <span id="dictations-count-badge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">0</span>
+              <div id="dictation-lane-filters" class="flex items-center space-x-1 pl-1">
+                <button type="button" data-lane="all" class="btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 cursor-pointer transition">All</button>
+                <button type="button" data-lane="dictation" class="btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#15161d] text-slate-400 border border-[#232632] hover:text-slate-200 cursor-pointer transition">Dictations</button>
+                <button type="button" data-lane="ai" class="btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#15161d] text-slate-400 border border-[#232632] hover:text-purple-300 cursor-pointer transition">✦ AI Queries</button>
+              </div>
             </div>
             <div class="relative">
               <input id="search-input" type="text" placeholder="Search dictations..." 
@@ -626,7 +691,7 @@
 
             <!-- Heatmap Contribution Matrix -->
             <div class="space-y-2 overflow-x-auto custom-scroll pb-2 min-w-0 max-w-full">
-              <div class="flex text-[10px] text-slate-400 space-x-8 pl-7">
+              <div id="heatmap-month-labels" class="flex text-[10px] text-slate-400 space-x-8 pl-7">
                 <span>Aug</span>
                 <span>Sep</span>
                 <span>Oct</span>
@@ -867,7 +932,7 @@
             <div>
               <div class="text-xs font-semibold text-white flex items-center gap-2">
                 <span>Local Google Antigravity Refiner Service</span>
-                <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">127.0.0.1:57071 • ONLINE</span>
+                <span id="ls-status-badge" class="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">CHECKING...</span>
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5">
                 Connected via local authenticated session. Sub-second zero-cost refinement running directly on your system.
@@ -882,16 +947,18 @@
 
         <!-- Model Selector & Modes Deck -->
         <div class="bg-[#14151b] p-5 rounded-2xl border border-[#20232c] space-y-4">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-4">
             <div>
               <label class="text-xs font-semibold text-slate-200">Active Gemini Model Choice</label>
               <div class="text-[11px] text-slate-400">Fast models deliver answers in under a second; larger models provide deep reasoning.</div>
             </div>
-            <select id="cfg-ai-model" class="bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-500 cursor-pointer">
-              <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE" selected>Gemini 2.5 Flash Lite (Fastest ~720ms - Default)</option>
-              <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH">Gemini 2.5 Flash (⚡ ~600ms)</option>
-              <option value="MODEL_PLACEHOLDER_M50">Gemini 3.1 Flash (🧠 Reasoning ~800ms)</option>
-              <option value="gemini-3.8-flash">Gemini 3.8 Flash (🔬 Thinking)</option>
+            <select id="cfg-ai-model" class="bg-[#191b22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-purple-500 cursor-pointer max-w-[300px]">
+              <optgroup label="🌟 Recommended Models">
+                <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE" selected>Gemini 2.5 Flash Lite (Fastest ~720ms - Default)</option>
+                <option value="MODEL_GOOGLE_GEMINI_2_5_FLASH">Gemini 2.5 Flash (⚡ ~600ms)</option>
+                <option value="MODEL_PLACEHOLDER_M50">Gemini 3.1 Flash (🧠 Reasoning ~800ms)</option>
+                <option value="gemini-3.8-flash">Gemini 3.8 Flash (🔬 Thinking)</option>
+              </optgroup>
             </select>
           </div>
 
@@ -1280,7 +1347,7 @@
           </div>
 
           <!-- Dedicated AI Execution / Assistant Shortcut -->
-          <div class="space-y-1.5 pt-2 border-t border-[#1f222d]">
+          <div class="space-y-2 pt-2 border-t border-[#1f222d]">
             <div class="flex items-center justify-between text-xs">
               <label class="text-slate-300 font-semibold flex items-center gap-1.5">
                 <span class="text-purple-400">⚡ AI Assistant &amp; Execution Shortcut</span>
@@ -1288,8 +1355,13 @@
               </label>
               <input id="cfg-ai-hotkey-enabled" type="checkbox" class="w-4 h-4 accent-purple-500 rounded cursor-pointer">
             </div>
-            <div class="flex items-center gap-2">
-              <input id="cfg-ai-hotkey" type="text" readonly class="flex-1 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-purple-300 font-mono font-semibold text-xs focus:outline-none focus:border-purple-500" value="windows+ctrl+a">
+            <div class="flex items-center gap-2 flex-wrap">
+              <input id="cfg-ai-hotkey" type="text" readonly class="flex-1 min-w-[160px] bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-purple-300 font-mono font-semibold text-xs focus:outline-none focus:border-purple-500" value="windows+ctrl">
+              <select id="cfg-ai-hotkey-mode" class="bg-[#181a22] border border-[#2b2e3b] rounded-xl px-2.5 py-2 text-slate-200 text-xs font-medium focus:outline-none focus:border-purple-500 cursor-pointer" title="AI Assistant Trigger Mode">
+                <option value="both">Both (Hold Voice / Tap Focus)</option>
+                <option value="hold">Hold Only (Push-to-Talk)</option>
+                <option value="toggle">Tap Only (Hands-Free Toggle)</option>
+              </select>
               <button id="btn-record-ai-hotkey" type="button" class="px-3.5 py-2 bg-[#222530] hover:bg-[#2c303f] text-slate-200 text-xs font-semibold rounded-xl border border-[#323646] transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
                 <span>⌨️ Record Key</span>
               </button>
@@ -1375,11 +1447,14 @@
                   <label for="cfg-tts-rate" class="text-slate-300 font-semibold">Speech Rate</label>
                   <span id="badge-tts-rate" class="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">+0%</span>
                 </div>
-                <input id="cfg-tts-rate" type="text" class="w-full bg-[#181a22] border border-[#2b2e3b] rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500" value="+0%" placeholder="+0% (e.g. +10%, -5%)">
+                <div class="flex items-center gap-2">
+                  <input id="cfg-tts-rate-slider" type="range" min="-50" max="150" step="5" value="0" class="flex-1 accent-amber-500 bg-[#181a22] rounded-lg h-1.5 cursor-pointer">
+                  <input id="cfg-tts-rate" type="text" class="w-20 bg-[#181a22] border border-[#2b2e3b] rounded-xl px-2.5 py-1.5 text-white font-mono text-xs text-center focus:outline-none focus:border-amber-500" value="+0%" placeholder="+0%">
+                </div>
                 <div class="flex justify-between text-[10px] text-slate-500 font-mono">
-                  <span>-20% (Slow)</span>
+                  <span>-50% (Slow)</span>
                   <span>+0% (Natural)</span>
-                  <span>+25% (Rapid)</span>
+                  <span>+150% (Ultra Fast)</span>
                 </div>
               </div>
             </div>
@@ -1430,13 +1505,21 @@
             </div>
           </div>
 
-          <!-- Audio & Startup Toggles -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <!-- Audio, IDE Cascade & Startup Toggles -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
             <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
               <input id="cfg-sound" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer">
               <div>
                 <div class="text-slate-200 font-medium">Soft Acoustic Chimes</div>
                 <div class="text-[11px] text-slate-500 mt-0.5">Discreet audio tones on start, stop, or mode switch</div>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+              <input id="cfg-cascade-enabled" type="checkbox" class="w-4 h-4 accent-purple-500 rounded mt-0.5 cursor-pointer" checked>
+              <div>
+                <div class="text-slate-200 font-medium">IDE Cascade Context Biasing</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Boost accuracy using open Antigravity IDE files &amp; workspace state</div>
               </div>
             </label>
 
@@ -1459,7 +1542,7 @@
                 <div>
                   <h3 class="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                     AntigravityFlow
-                    <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">v1.2.0 PRODUCTION</span>
+                    <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">v1.4.1 PRODUCTION</span>
                   </h3>
                   <p class="text-[11px] text-slate-400 mt-0.5">Context-Aware Real-Time Dictation &amp; Multimodal AI Copilot for Windows</p>
                 </div>
@@ -1701,12 +1784,6 @@ CORE EXECUTION RULES:
       const validMode = (mode === 'generative' || mode === 'custom') ? mode : 'flow';
       currentConfig.ai_preset_mode = validMode;
 
-      // Update Quick select dropdown on General tab if present
-      const quickModeSelect = document.getElementById('cfg-ai-mode-quick');
-      if (quickModeSelect && quickModeSelect.value !== validMode) {
-        quickModeSelect.value = validMode;
-      }
-
       // Update mode cards visual styling
       document.querySelectorAll('.btn-ai-mode').forEach(card => {
         const cardMode = card.dataset.mode;
@@ -1802,14 +1879,76 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
     }
 
+    let dashboardThemeSetting = 'auto';
+
+    function normalizeTtsRate(rate) {
+      let s = String(rate || '+0%').trim();
+      if (!s) return '+0%';
+      if (!s.endsWith('%')) {
+        if (/^[+-]?\d+$/.test(s)) {
+          const n = Math.max(-80, Math.min(150, parseInt(s, 10)));
+          return `${n >= 0 ? '+' : ''}${n}%`;
+        }
+        return '+0%';
+      }
+      return s;
+    }
+
+    function parseRateNumeric(rateStr) {
+      const m = String(rateStr || '0').match(/[+-]?\d+/);
+      return m ? Math.max(-50, Math.min(150, parseInt(m[0], 10))) : 0;
+    }
+
+    function syncDashboardTheme(theme) {
+      dashboardThemeSetting = theme || 'auto';
+      const apply = (isDark) => {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+      };
+      if (dashboardThemeSetting === 'dark') {
+        apply(true);
+      } else if (dashboardThemeSetting === 'light') {
+        apply(false);
+      } else {
+        apply(window.matchMedia('(prefers-color-scheme: dark)').matches);
+      }
+    }
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      if (dashboardThemeSetting === 'auto' || dashboardThemeSetting === 'system') {
+        document.documentElement.classList.toggle('dark', e.matches);
+        document.documentElement.classList.toggle('light', !e.matches);
+      }
+    });
+
+    function formatHotkeyPretty(combo) {
+      if (!combo) return 'Win+Ctrl';
+      return String(combo)
+        .split('+')
+        .map(p => {
+          const s = p.trim().toLowerCase();
+          if (s === 'windows' || s === 'win') return 'Win';
+          if (s === 'ctrl') return 'Ctrl';
+          if (s === 'alt') return 'Alt';
+          if (s === 'shift') return 'Shift';
+          return s.charAt(0).toUpperCase() + s.slice(1);
+        })
+        .join('+');
+    }
+
     function updateHeaderBadges(cfg) {
       const pttBadge = document.getElementById('header-ptt-badge');
       const toggleBadge = document.getElementById('header-toggle-badge');
       const aiBadge = document.getElementById('header-ai-badge');
       const aiBadgeContainer = document.getElementById('header-ai-container');
+      const quickAiBadge = document.getElementById('quick-ai-badge');
+      const btnQuickAsst = document.getElementById('btn-quick-assistant');
+      const aiComboRaw = (cfg.ai_ptt_hotkey || cfg.ai_toggle_hotkey || cfg.ai_hotkey || 'windows+ctrl');
       if (pttBadge) pttBadge.textContent = (cfg.push_to_talk_hotkey || 'windows+alt').toUpperCase();
       if (toggleBadge) toggleBadge.textContent = (cfg.toggle_hotkey || cfg.hotkey || 'windows+alt+h').toUpperCase();
-      if (aiBadge) aiBadge.textContent = (cfg.ai_ptt_hotkey || cfg.ai_hotkey || 'windows+ctrl').toUpperCase();
+      if (aiBadge) aiBadge.textContent = aiComboRaw.toUpperCase();
+      if (quickAiBadge) quickAiBadge.textContent = formatHotkeyPretty(aiComboRaw);
+      if (btnQuickAsst) btnQuickAsst.title = `Launch AntigravityFlow AI Assistant (${formatHotkeyPretty(aiComboRaw)})`;
       if (aiBadgeContainer) {
         aiBadgeContainer.style.display = (cfg.enable_ai_hotkey !== false) ? 'inline-flex' : 'none';
       }
@@ -1849,26 +1988,35 @@ Your objective is minimum tokens, maximum signal, and direct execution.
           const code = event.code || '';
           const key = (event.key || '').toLowerCase();
 
-          if (code.startsWith('Meta') || key === 'meta' || key === 'os' || key === 'win' || event.metaKey) {
+          if (code.startsWith('Meta') || key === 'meta' || key === 'os' || key === 'win') {
             return 'windows';
           }
-          if (code.startsWith('Control') || key === 'control' || key === 'ctrl' || event.ctrlKey) {
+          if (code.startsWith('Control') || key === 'control' || key === 'ctrl') {
             return 'ctrl';
           }
-          if (code.startsWith('Alt') || key === 'alt' || event.altKey) {
+          if (code.startsWith('Alt') || key === 'alt' || key === 'altgraph') {
             return 'alt';
           }
-          if (code.startsWith('Shift') || key === 'shift' || event.shiftKey) {
+          if (code.startsWith('Shift') || key === 'shift') {
             return 'shift';
           }
-          if (key === ' ' || code === 'Space') {
+          if (code === 'Space' || key === ' ') {
             return 'space';
           }
-          if (key === 'capslock' || code === 'CapsLock') {
+          if (code === 'CapsLock' || key === 'capslock') {
             return 'caps lock';
           }
-          if (key === 'escape' || code === 'Escape') {
+          if (code === 'Escape' || key === 'escape') {
             return 'escape';
+          }
+          if (code.startsWith('Key') && code.length === 4) {
+            return code.slice(3).toLowerCase();
+          }
+          if (code.startsWith('Digit') && code.length === 6) {
+            return code.slice(5);
+          }
+          if (/^F\d{1,2}$/.test(code)) {
+            return code.toLowerCase();
           }
           return key;
         }
@@ -1971,6 +2119,44 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
     }
 
+    let loadedTtsVoices = null;
+
+    async function loadTtsVoicesToUI(selectedVoice) {
+      const voiceSel = document.getElementById('cfg-tts-voice');
+      if (!voiceSel) return;
+      const targetVoice = selectedVoice || voiceSel.value || 'en-IN-NeerjaNeural';
+
+      try {
+        if (!loadedTtsVoices && window.api && window.api.getTtsVoices) {
+          const res = await window.api.getTtsVoices();
+          if (res && res.success && Array.isArray(res.voices) && res.voices.length > 0) {
+            loadedTtsVoices = res.voices;
+          }
+        }
+      } catch (_) {}
+
+      if (loadedTtsVoices && loadedTtsVoices.length > 0) {
+        const existingValues = new Set();
+        voiceSel.innerHTML = '';
+        loadedTtsVoices.forEach(v => {
+          const id = v.ShortName || v.id || v.voice;
+          if (!id || existingValues.has(id)) return;
+          existingValues.add(id);
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = v.label || v.FriendlyName || id;
+          voiceSel.appendChild(opt);
+        });
+        if (!existingValues.has(targetVoice)) {
+          const customOpt = document.createElement('option');
+          customOpt.value = targetVoice;
+          customOpt.textContent = targetVoice;
+          voiceSel.appendChild(customOpt);
+        }
+      }
+      voiceSel.value = targetVoice;
+    }
+
     function populateConfigUI(cfg) {
       if (!cfg) cfg = currentConfig;
       
@@ -1991,7 +2177,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       
       setCheck('cfg-ai-hotkey-enabled', cfg.enable_ai_hotkey !== false);
       setVal('cfg-ai-hotkey-mode', cfg.ai_hotkey_mode || 'both');
-      setVal('cfg-ai-hotkey', cfg.ai_ptt_hotkey || cfg.ai_hotkey || 'windows+ctrl');
+      setVal('cfg-ai-hotkey', cfg.ai_ptt_hotkey || cfg.ai_toggle_hotkey || cfg.ai_hotkey || 'windows+ctrl');
 
       setCheck('cfg-enable-system-commands', cfg.enable_system_commands !== false);
       setCheck('cfg-enable-screen-vision', cfg.enable_screen_vision !== false);
@@ -2001,14 +2187,9 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       
       const aiEnabled = cfg.enable_ai_polish === true;
       setCheck('cfg-ai-enabled', aiEnabled);
-      const quickAi = document.getElementById('cfg-ai-enabled-quick');
-      if (quickAi) quickAi.checked = aiEnabled;
-      const quickBox = document.getElementById('quick-ai-model-box');
-      if (quickBox) quickBox.classList.toggle('hidden', !aiEnabled);
 
       const activeModel = cfg.ai_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE';
       setVal('cfg-ai-model', activeModel);
-      setVal('cfg-ai-model-quick', activeModel);
 
       const activeMode = cfg.ai_preset_mode || 'flow';
       setActiveAiMode(activeMode, false);
@@ -2037,7 +2218,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const histLimitBadge = document.getElementById('badge-ctx-history-limit');
       if (histLimitBadge) histLimitBadge.textContent = `Last ${histLimit} dictations`;
 
-      // Desktop Gemini Assistant Model & Policy Loading
+      // Desktop Gemini Assistant & Flow Model Catalog Loading
       loadAssistantModelsToUI(cfg);
       const asstMode = cfg.ai_assistant_mode || 'general';
       setActiveAsstMode(asstMode, false);
@@ -2046,78 +2227,149 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       setVal('cfg-asst-prompt', asstPrompt);
 
       // Edge TTS & Theme Settings
-      setVal('cfg-tts-voice', cfg.tts_voice || 'en-IN-NeerjaNeural');
+      const desiredVoice = cfg.tts_voice || 'en-IN-NeerjaNeural';
+      setVal('cfg-tts-voice', desiredVoice);
+      loadTtsVoicesToUI(desiredVoice);
       setCheck('cfg-tts-enabled', cfg.tts_enabled !== false);
       setCheck('cfg-tts-auto-speak-voice', cfg.tts_auto_speak_voice !== false);
-      setVal('cfg-tts-rate', cfg.tts_rate || '+0%');
+
+      const normRate = normalizeTtsRate(cfg.tts_rate || '+0%');
+      setVal('cfg-tts-rate', normRate);
+      setVal('cfg-tts-rate-slider', parseRateNumeric(normRate));
       const rateBadge = document.getElementById('badge-tts-rate');
-      if (rateBadge) rateBadge.textContent = cfg.tts_rate || '+0%';
-      setVal('cfg-theme', cfg.theme || 'auto');
+      if (rateBadge) rateBadge.textContent = normRate;
+
+      const themeChoice = cfg.theme || 'auto';
+      setVal('cfg-theme', themeChoice);
+      syncDashboardTheme(themeChoice);
       setCheck('cfg-screen-native-res', cfg.screen_native_resolution !== false);
     }
 
     async function loadAssistantModelsToUI(cfg) {
       const asstModelSelect = document.getElementById('cfg-asst-model');
       const asstThinkingSelect = document.getElementById('cfg-asst-thinking-level');
-      if (!asstModelSelect || !window.api || !window.api.getAvailableModels) return;
+      const flowModelSelect = document.getElementById('cfg-ai-model');
+      if (!window.api || !window.api.getAvailableModels) return;
 
       try {
         const res = await window.api.getAvailableModels();
         if (!res || !res.success) return;
 
-        asstModelSelect.innerHTML = '';
+        const allModels = Array.isArray(res.allModels) ? res.allModels : [];
 
-        const grpPrimary = document.createElement('optgroup');
-        grpPrimary.label = "🌟 Recommended Models";
+        if (flowModelSelect) {
+          flowModelSelect.innerHTML = '';
+          const grpFlowPrimary = document.createElement('optgroup');
+          grpFlowPrimary.label = "🌟 Recommended Models";
+          [
+            ['MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE', 'Gemini 2.5 Flash Lite (Fastest ~720ms - Default)'],
+            ['MODEL_GOOGLE_GEMINI_2_5_FLASH', 'Gemini 2.5 Flash (⚡ ~600ms)'],
+            ['MODEL_PLACEHOLDER_M50', 'Gemini 3.1 Flash (🧠 Reasoning ~800ms)'],
+            ['gemini-3.8-flash', 'Gemini 3.8 Flash (🔬 Thinking)']
+          ].forEach(([val, lbl]) => {
+            const o = document.createElement('option');
+            o.value = val;
+            o.textContent = lbl;
+            grpFlowPrimary.appendChild(o);
+          });
+          flowModelSelect.appendChild(grpFlowPrimary);
 
-        const opt25 = document.createElement('option');
-        opt25.value = "MODEL_GOOGLE_GEMINI_2_5_FLASH";
-        opt25.textContent = "Gemini 2.5 Flash (⚡ ~600ms)";
-        grpPrimary.appendChild(opt25);
-
-        const opt31 = document.createElement('option');
-        opt31.value = "MODEL_PLACEHOLDER_M50";
-        opt31.textContent = "Gemini 3.1 Flash (🧠 Reasoning)";
-        grpPrimary.appendChild(opt31);
-
-        const opt38 = document.createElement('option');
-        opt38.value = "gemini-3.8-flash";
-        opt38.textContent = "Gemini 3.8 Flash (🔬 Thinking)";
-        grpPrimary.appendChild(opt38);
-
-        asstModelSelect.appendChild(grpPrimary);
-
-        const grpAdv = document.createElement('optgroup');
-        grpAdv.label = `✨ Advanced Models (Show All ${res.totalCount || 22})`;
-
-        (res.allModels || []).forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m.modelId || m.key;
-          const thinkBadge = m.supportsThinking ? " [Thinking]" : "";
-          opt.textContent = `${m.label}${thinkBadge}`;
-          grpAdv.appendChild(opt);
-        });
-
-        asstModelSelect.appendChild(grpAdv);
-
-        const savedModel = cfg.ai_assistant_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH';
-        if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(savedModel)) {
-          asstModelSelect.value = 'gemini-3.8-flash';
-          if (asstThinkingSelect) {
-            if (savedModel === 'MODEL_PLACEHOLDER_M318') asstThinkingSelect.value = 'high';
-            else if (savedModel === 'MODEL_PLACEHOLDER_M319') asstThinkingSelect.value = 'medium';
-            else if (savedModel === 'MODEL_PLACEHOLDER_M320') asstThinkingSelect.value = 'low';
+          const flowRecIds = new Set([
+            'MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE',
+            'MODEL_GOOGLE_GEMINI_2_5_FLASH',
+            'MODEL_PLACEHOLDER_M50',
+            'MODEL_PLACEHOLDER_M318',
+            'MODEL_PLACEHOLDER_M319',
+            'MODEL_PLACEHOLDER_M320'
+          ]);
+          const flowAdv = allModels.filter(m => !flowRecIds.has(m.modelId || m.key));
+          if (flowAdv.length > 0) {
+            const grpFlowAdv = document.createElement('optgroup');
+            grpFlowAdv.label = `✨ All Models (${flowAdv.length})`;
+            flowAdv.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m.modelId || m.key;
+              opt.textContent = `${m.label}${m.supportsThinking ? ' [Thinking]' : ''}`;
+              grpFlowAdv.appendChild(opt);
+            });
+            flowModelSelect.appendChild(grpFlowAdv);
           }
-        } else {
-          asstModelSelect.value = savedModel;
+
+          const savedFlowModel = cfg.ai_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE';
+          const flowHasOpt = Array.from(flowModelSelect.options).some(o => o.value === savedFlowModel);
+          if (!flowHasOpt && savedFlowModel) {
+            const customOpt = document.createElement('option');
+            customOpt.value = savedFlowModel;
+            customOpt.textContent = savedFlowModel;
+            flowModelSelect.appendChild(customOpt);
+          }
+          flowModelSelect.value = savedFlowModel;
         }
 
-        if (cfg.ai_assistant_thinking_level && asstThinkingSelect) {
-          asstThinkingSelect.value = cfg.ai_assistant_thinking_level;
+        if (asstModelSelect) {
+          asstModelSelect.innerHTML = '';
+
+          const grpPrimary = document.createElement('optgroup');
+          grpPrimary.label = "🌟 Recommended Models";
+          [
+            ['MODEL_GOOGLE_GEMINI_2_5_FLASH', 'Gemini 2.5 Flash (⚡ ~600ms)'],
+            ['MODEL_PLACEHOLDER_M50', 'Gemini 3.1 Flash (🧠 Reasoning)'],
+            ['gemini-3.8-flash', 'Gemini 3.8 Flash (🔬 Thinking)']
+          ].forEach(([val, lbl]) => {
+            const o = document.createElement('option');
+            o.value = val;
+            o.textContent = lbl;
+            grpPrimary.appendChild(o);
+          });
+          asstModelSelect.appendChild(grpPrimary);
+
+          const asstRecIds = new Set([
+            'MODEL_GOOGLE_GEMINI_2_5_FLASH',
+            'MODEL_PLACEHOLDER_M50',
+            'MODEL_PLACEHOLDER_M318',
+            'MODEL_PLACEHOLDER_M319',
+            'MODEL_PLACEHOLDER_M320'
+          ]);
+          const asstAdv = allModels.filter(m => !asstRecIds.has(m.modelId || m.key));
+          const grpAdv = document.createElement('optgroup');
+          grpAdv.label = `✨ Advanced Models (${asstAdv.length})`;
+
+          asstAdv.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.modelId || m.key;
+            const thinkBadge = m.supportsThinking ? " [Thinking]" : "";
+            opt.textContent = `${m.label}${thinkBadge}`;
+            grpAdv.appendChild(opt);
+          });
+
+          asstModelSelect.appendChild(grpAdv);
+
+          const savedModel = cfg.ai_assistant_model || 'MODEL_GOOGLE_GEMINI_2_5_FLASH';
+          if (['MODEL_PLACEHOLDER_M318', 'MODEL_PLACEHOLDER_M319', 'MODEL_PLACEHOLDER_M320'].includes(savedModel)) {
+            asstModelSelect.value = 'gemini-3.8-flash';
+            if (asstThinkingSelect) {
+              if (savedModel === 'MODEL_PLACEHOLDER_M318') asstThinkingSelect.value = 'high';
+              else if (savedModel === 'MODEL_PLACEHOLDER_M319') asstThinkingSelect.value = 'medium';
+              else if (savedModel === 'MODEL_PLACEHOLDER_M320') asstThinkingSelect.value = 'low';
+            }
+          } else {
+            const exists = Array.from(asstModelSelect.options).some(o => o.value === savedModel);
+            if (!exists && savedModel) {
+              const customOpt = document.createElement('option');
+              customOpt.value = savedModel;
+              customOpt.textContent = savedModel;
+              asstModelSelect.appendChild(customOpt);
+            }
+            asstModelSelect.value = savedModel;
+          }
+
+          if (cfg.ai_assistant_thinking_level && asstThinkingSelect) {
+            asstThinkingSelect.value = cfg.ai_assistant_thinking_level;
+          }
+          updateAsstThinkingVisibility();
         }
-        updateAsstThinkingVisibility();
       } catch (e) {
-        console.error('Error loading assistant models in UI:', e);
+        console.error('Error loading models in UI:', e);
       }
     }
 
@@ -2225,7 +2477,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const ttsAutoSpeak = ttsAutoSpeakEl ? ttsAutoSpeakEl.checked : (currentConfig.tts_auto_speak_voice !== false);
 
       const ttsRateEl = document.getElementById('cfg-tts-rate');
-      const ttsRate = (ttsRateEl?.value || currentConfig.tts_rate || '+0%').trim();
+      const ttsRate = normalizeTtsRate(ttsRateEl?.value || currentConfig.tts_rate || '+0%');
 
       const themeEl = document.getElementById('cfg-theme');
       const themeVal = themeEl?.value || currentConfig.theme || 'auto';
@@ -2262,8 +2514,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         hotkey: toggleVal,
         enable_ai_hotkey: aiHotkeyEnabled,
         ai_hotkey_mode: aiHotkeyMode,
-        ai_ptt_hotkey: 'windows+ctrl',
-        ai_toggle_hotkey: 'windows+ctrl+h',
+        ai_ptt_hotkey: aiHotkey,
+        ai_toggle_hotkey: aiHotkey,
         ai_hotkey: aiHotkey,
         enable_system_commands: sysCommands,
         enable_screen_vision: screenVision,
@@ -2299,10 +2551,17 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         screen_native_resolution: screenNativeRes
       };
 
+      if (ttsRateEl) ttsRateEl.value = ttsRate;
+      const rateBadgeEl = document.getElementById('badge-tts-rate');
+      if (rateBadgeEl) rateBadgeEl.textContent = ttsRate;
+      const rateSliderEl = document.getElementById('cfg-tts-rate-slider');
+      if (rateSliderEl) rateSliderEl.value = parseRateNumeric(ttsRate);
+
       if (window.api && window.api.saveConfig) {
         await window.api.saveConfig(cfg);
       }
       currentConfig = cfg;
+      syncDashboardTheme(cfg.theme);
       const greetingEl = document.getElementById('user-greeting');
       if (greetingEl) {
         greetingEl.textContent = cfg.user_name && cfg.user_name.trim() ? `Welcome back, ${cfg.user_name.trim()}` : 'Welcome back';
@@ -2316,12 +2575,13 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     if (btnPlayVoiceDemoSettings) {
       btnPlayVoiceDemoSettings.addEventListener('click', async () => {
         const v = document.getElementById('cfg-tts-voice')?.value || 'en-IN-NeerjaNeural';
+        const r = normalizeTtsRate(document.getElementById('cfg-tts-rate')?.value || '+0%');
         btnPlayVoiceDemoSettings.disabled = true;
         const origText = btnPlayVoiceDemoSettings.innerHTML;
         btnPlayVoiceDemoSettings.innerHTML = `<span class="animate-spin text-xs">⏳</span> Playing...`;
         try {
           if (window.api && window.api.playTtsDemo) {
-            const res = await window.api.playTtsDemo(v);
+            const res = await window.api.playTtsDemo({ voice: v, rate: r });
             if (res && res.success) {
               const audioSrc = res.data_url || (res.audio_b64 ? `data:${res.format || 'audio/mp3'};base64,${res.audio_b64}` : '');
               if (audioSrc) {
@@ -2355,41 +2615,31 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     }
 
     const ttsRateInput = document.getElementById('cfg-tts-rate');
+    const ttsRateSlider = document.getElementById('cfg-tts-rate-slider');
     if (ttsRateInput) {
       ttsRateInput.addEventListener('input', () => {
         const b = document.getElementById('badge-tts-rate');
         if (b) b.textContent = ttsRateInput.value || '+0%';
+        if (ttsRateSlider) ttsRateSlider.value = parseRateNumeric(ttsRateInput.value);
       });
-    }
-
-    // Bidirectional sync for Quick Controls <-> AI Tab Controls
-    const quickAiToggle = document.getElementById('cfg-ai-enabled-quick');
-    const mainAiToggle = document.getElementById('cfg-ai-enabled');
-    const quickAiSelect = document.getElementById('cfg-ai-model-quick');
-    const mainAiSelect = document.getElementById('cfg-ai-model');
-
-    if (quickAiToggle && mainAiToggle) {
-      quickAiToggle.addEventListener('change', () => {
-        mainAiToggle.checked = quickAiToggle.checked;
-        const box = document.getElementById('quick-ai-model-box');
-        if (box) box.classList.toggle('hidden', !quickAiToggle.checked);
-        saveAllConfig();
-      });
-      mainAiToggle.addEventListener('change', () => {
-        quickAiToggle.checked = mainAiToggle.checked;
-        const box = document.getElementById('quick-ai-model-box');
-        if (box) box.classList.toggle('hidden', !mainAiToggle.checked);
+      ttsRateInput.addEventListener('change', () => {
+        const normalized = normalizeTtsRate(ttsRateInput.value);
+        ttsRateInput.value = normalized;
+        const b = document.getElementById('badge-tts-rate');
+        if (b) b.textContent = normalized;
+        if (ttsRateSlider) ttsRateSlider.value = parseRateNumeric(normalized);
         saveAllConfig();
       });
     }
-
-    if (quickAiSelect && mainAiSelect) {
-      quickAiSelect.addEventListener('change', () => {
-        mainAiSelect.value = quickAiSelect.value;
-        saveAllConfig();
+    if (ttsRateSlider) {
+      ttsRateSlider.addEventListener('input', () => {
+        const n = parseInt(ttsRateSlider.value, 10) || 0;
+        const fmt = `${n >= 0 ? '+' : ''}${n}%`;
+        if (ttsRateInput) ttsRateInput.value = fmt;
+        const b = document.getElementById('badge-tts-rate');
+        if (b) b.textContent = fmt;
       });
-      mainAiSelect.addEventListener('change', () => {
-        quickAiSelect.value = mainAiSelect.value;
+      ttsRateSlider.addEventListener('change', () => {
         saveAllConfig();
       });
     }
@@ -2431,11 +2681,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     }
 
     // Instant real-time auto-save listeners on all settings toggles
-    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-hotkey-enabled', 'cfg-ai-hotkey-mode', 'cfg-tts-voice', 'cfg-tts-enabled', 'cfg-tts-auto-speak-voice', 'cfg-theme', 'cfg-screen-native-res'].forEach(id => {
+    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-hotkey-enabled', 'cfg-ai-hotkey-mode', 'cfg-tts-voice', 'cfg-tts-enabled', 'cfg-tts-auto-speak-voice', 'cfg-theme', 'cfg-screen-native-res', 'cfg-enable-system-commands', 'cfg-enable-screen-vision'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => saveAllConfig());
     });
-    ['cfg-user-name', 'cfg-tts-rate'].forEach(id => {
+    ['cfg-user-name'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => saveAllConfig());
     });
@@ -2843,13 +3093,78 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     const btnWinClose = document.getElementById('btn-win-close');
     if (btnWinClose) btnWinClose.addEventListener('click', () => window.api.close());
 
+    let activeLaneFilter = 'all';
+
+    function getFilteredHistory() {
+      const searchEl = document.getElementById('search-input');
+      const q = searchEl ? searchEl.value.toLowerCase().trim() : '';
+      return (allHistory || []).filter(item => {
+        if (activeLaneFilter === 'ai' && item.session_type !== 'ai') return false;
+        if (activeLaneFilter === 'dictation' && item.session_type === 'ai') return false;
+        if (q && !(item.text || '').toLowerCase().includes(q) && !(item.app_name || '').toLowerCase().includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderFilteredDictations() {
+      renderDictations(getFilteredHistory());
+    }
+
+    document.querySelectorAll('.btn-lane-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeLaneFilter = btn.dataset.lane || 'all';
+        document.querySelectorAll('.btn-lane-filter').forEach(b => {
+          const isActive = (b.dataset.lane === activeLaneFilter);
+          if (isActive) {
+            b.className = activeLaneFilter === 'ai'
+              ? 'btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/40 cursor-pointer transition'
+              : 'btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 cursor-pointer transition';
+          } else {
+            b.className = 'btn-lane-filter px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[#15161d] text-slate-400 border border-[#232632] hover:text-slate-200 cursor-pointer transition';
+          }
+        });
+        renderFilteredDictations();
+      });
+    });
+
+    async function refreshEngineAndLsStatus() {
+      const dotEl = document.getElementById('engine-status-dot');
+      const textEl = document.getElementById('engine-status-text');
+      const lsBadge = document.getElementById('ls-status-badge');
+      if (!window.api || !window.api.getDaemonStatus) return;
+
+      try {
+        const res = await window.api.getDaemonStatus();
+        const online = Boolean(res && res.online);
+        if (dotEl && textEl) {
+          if (online) {
+            dotEl.className = 'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]';
+            textEl.textContent = res.recording ? 'Listening...' : 'Engine Active';
+          } else {
+            dotEl.className = 'w-2 h-2 rounded-full bg-rose-400';
+            textEl.textContent = 'Engine Offline';
+          }
+        }
+        if (lsBadge) {
+          if (online && res.ls_connected) {
+            lsBadge.className = 'text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full';
+            lsBadge.textContent = res.ls_port ? `127.0.0.1:${res.ls_port} • ONLINE` : 'CONNECTED • ONLINE';
+          } else if (online) {
+            lsBadge.className = 'text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full';
+            lsBadge.textContent = 'IDE SESSION OFFLINE (OPEN ANTIGRAVITY)';
+          } else {
+            lsBadge.className = 'text-[9px] font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full';
+            lsBadge.textContent = 'DAEMON OFFLINE';
+          }
+        }
+      } catch (_) {}
+    }
+
     // Search filter
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        const filtered = allHistory.filter(i => (i.text || '').toLowerCase().includes(q));
-        renderDictations(filtered);
+      searchInput.addEventListener('input', () => {
+        renderFilteredDictations();
       });
     }
 
@@ -2859,6 +3174,9 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       btnClearHistory.addEventListener('click', async () => {
         if (confirm('Clear all dictation history and securely delete encrypted recordings?')) {
           await window.api.clearHistory();
+          allHistory = [];
+          renderFilteredDictations();
+          updateTopStats([]);
           loadData();
         }
       });
@@ -2868,6 +3186,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
 
     // Load Data with Instant Cache (< 1ms)
     async function loadData() {
+      refreshEngineAndLsStatus();
+
       // 1. Instant User Identity & Badges from Local Cache (< 0.1ms)
       if (window.api && window.api.getUserCache) {
         try {
@@ -2893,45 +3213,50 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       }
 
       // 2. Load Config (< 1ms)
-      try {
-        const cfgRes = await window.api.getConfig();
-        if (cfgRes && cfgRes.success && cfgRes.data) {
-          currentConfig = cfgRes.data;
-          try {
-            populateConfigUI(currentConfig);
-          } catch (popErr) {
-            console.error('Error populating config UI:', popErr);
+      if (window.api && window.api.getConfig) {
+        try {
+          const cfgRes = await window.api.getConfig();
+          if (cfgRes && cfgRes.success && cfgRes.data) {
+            currentConfig = cfgRes.data;
+            try {
+              populateConfigUI(currentConfig);
+            } catch (popErr) {
+              console.error('Error populating config UI:', popErr);
+            }
+            const customName = (currentConfig.user_name && currentConfig.user_name.trim() !== 'Copy') ? currentConfig.user_name.trim() : '';
+            const greetingEl = document.getElementById('user-greeting');
+            if (greetingEl) greetingEl.textContent = customName ? `Welcome back, ${customName}` : 'Welcome back';
+            updateHeaderBadges(currentConfig);
           }
-          const customName = (currentConfig.user_name && currentConfig.user_name.trim() !== 'Copy') ? currentConfig.user_name.trim() : '';
-          const greetingEl = document.getElementById('user-greeting');
-          if (greetingEl) greetingEl.textContent = customName ? `Welcome back, ${customName}` : 'Welcome back';
-          updateHeaderBadges(currentConfig);
+        } catch (cfgErr) {
+          console.error('Error loading config:', cfgErr);
         }
-      } catch (cfgErr) {
-        console.error('Error loading config:', cfgErr);
       }
 
       // 3. Load SQLite / Sync History (< 2ms)
-      try {
-        const histRes = await window.api.getHistory();
+      if (window.api && window.api.getHistory) {
+        try {
+          const histRes = await window.api.getHistory();
         if (histRes && histRes.success) {
           const newHist = histRes.data || [];
           const prevCount = allHistory.length;
           const prevFirstId = prevCount > 0 ? allHistory[0].id : null;
+          const prevFirstText = prevCount > 0 ? allHistory[0].text : null;
           const newCount = newHist.length;
           const newFirstId = newCount > 0 ? newHist[0].id : null;
+          const newFirstText = newCount > 0 ? newHist[0].text : null;
           
           allHistory = newHist;
           // Always render on initial load, or whenever data changes
-          if (!hasInitialRender || prevCount !== newCount || prevFirstId !== newFirstId) {
+          if (!hasInitialRender || prevCount !== newCount || prevFirstId !== newFirstId || prevFirstText !== newFirstText) {
             hasInitialRender = true;
-            renderDictations(allHistory);
+            renderFilteredDictations();
             updateTopStats(allHistory);
           }
         } else {
           if (!hasInitialRender) {
             hasInitialRender = true;
-            renderDictations([]);
+            renderFilteredDictations();
             updateTopStats([]);
           }
         }
@@ -2939,9 +3264,10 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         console.error('Error fetching history:', histErr);
         if (!hasInitialRender) {
           hasInitialRender = true;
-          renderDictations([]);
+          renderFilteredDictations();
           updateTopStats([]);
         }
+      }
       }
 
       // 4. Background Non-Blocking Quota Refresh
@@ -3044,11 +3370,12 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       if (badge) badge.textContent = items.length;
 
       if (!items || items.length === 0) {
+        const activeHotkey = (currentConfig.toggle_hotkey || currentConfig.push_to_talk_hotkey || 'windows+alt').toUpperCase();
         container.innerHTML = `
           <div class="text-center py-16 text-slate-500 space-y-2">
             <div class="text-2xl">🎙️</div>
-            <div class="text-xs font-medium">No dictations found</div>
-            <div class="text-[11px] text-slate-600">Press [Ctrl+Shift+S] anywhere on your PC to dictate.</div>
+            <div class="text-xs font-medium">No activity found</div>
+            <div class="text-[11px] text-slate-600">Press [${escapeHtml(activeHotkey)}] anywhere on your PC to dictate.</div>
           </div>
         `;
         return;
@@ -3058,19 +3385,21 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         const timeDisplay = item.time_str || (item.timestamp ? item.timestamp.split(' ')[1] : '');
         const isPlaying = currentPlayingId === item.id;
         const appLabel = (item.app_name || '').replace('.exe', '');
+        const isAiLane = item.session_type === 'ai';
 
         return `
           <div class="group relative rounded-xl hover:bg-[#16171f] transition px-4 py-3.5 border-b border-[#181a23] flex items-start space-x-4">
             
-            <!-- Left: Time & App Badge -->
+            <!-- Left: Time, Lane & App Badge -->
             <div class="w-24 shrink-0 pt-0.5 flex flex-col space-y-1 select-none">
-              <span class="text-xs text-slate-400 font-mono font-medium">${timeDisplay}</span>
+              <span class="text-xs text-slate-400 font-mono font-medium">${escapeHtml(timeDisplay)}</span>
+              ${isAiLane ? `<span class="text-[9px] text-purple-300 font-mono font-semibold w-fit bg-purple-500/15 px-1.5 py-0.2 rounded border border-purple-500/30">✦ AI</span>` : ''}
               ${appLabel ? `<span class="text-[10px] text-slate-500 font-mono truncate max-w-[88px] bg-[#181a24] px-1.5 py-0.5 rounded border border-[#242735]" title="${escapeHtml(item.app_name)}">${escapeHtml(appLabel)}</span>` : ''}
             </div>
 
             <!-- Middle: Dictation Text & Metadata -->
-            <div class="flex-1 pr-3">
-              <p class="text-xs text-slate-200 leading-relaxed font-normal selection:bg-emerald-500/30">
+            <div class="flex-1 pr-3 min-w-0">
+              <p class="text-xs text-slate-200 leading-relaxed font-normal selection:bg-emerald-500/30 break-words">
                 ${escapeHtml(item.text)}
               </p>
               
@@ -3146,7 +3475,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       if (currentPlayingId === id && !audioPlayer.paused) {
         audioPlayer.pause();
         currentPlayingId = null;
-        renderDictations(allHistory);
+        renderFilteredDictations();
         return;
       }
 
@@ -3159,11 +3488,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       currentPlayingId = id;
       audioPlayer.src = res.audioUrl;
       audioPlayer.play();
-      renderDictations(allHistory);
+      renderFilteredDictations();
 
       audioPlayer.onended = () => {
         currentPlayingId = null;
-        renderDictations(allHistory);
+        renderFilteredDictations();
       };
     }
 
@@ -3206,12 +3535,13 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       if (res.success && res.data) {
         const idx = allHistory.findIndex(i => i.id === id);
         if (idx !== -1) {
-          allHistory[idx] = res.data;
-          renderDictations(allHistory);
+          allHistory[idx] = { ...allHistory[idx], ...res.data };
+          renderFilteredDictations();
+          updateTopStats(allHistory);
         }
       } else {
         alert(`Retry failed: ${res.error || 'Unknown error'}`);
-        renderDictations(allHistory);
+        renderFilteredDictations();
       }
     }
 
@@ -3220,7 +3550,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       if (confirm('Delete this dictation and its encrypted recording?')) {
         await window.api.deleteHistoryItem(id);
         allHistory = allHistory.filter(i => i.id !== id);
-        renderDictations(allHistory);
+        renderFilteredDictations();
         updateTopStats(allHistory);
       }
     }
@@ -3372,6 +3702,21 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const totalDays = totalCols * 7;
       const startDate = new Date(endDate);
       startDate.setDate(endDate.getDate() - totalDays + 1);
+
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthLabelsEl = document.getElementById('heatmap-month-labels');
+      if (monthLabelsEl) {
+        const seenMonths = [];
+        for (let c = 0; c < totalCols; c++) {
+          const colDate = new Date(startDate);
+          colDate.setDate(startDate.getDate() + c * 7);
+          const mLabel = monthNames[colDate.getMonth()];
+          if (seenMonths.length === 0 || seenMonths[seenMonths.length - 1] !== mLabel) {
+            seenMonths.push(mLabel);
+          }
+        }
+        monthLabelsEl.innerHTML = seenMonths.map(m => `<span>${m}</span>`).join('');
+      }
 
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -3601,6 +3946,15 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    if (window.api && window.api.onConfigUpdated) {
+      window.api.onConfigUpdated((cfg) => {
+        if (!cfg || typeof cfg !== 'object') return;
+        currentConfig = cfg;
+        try { populateConfigUI(currentConfig); } catch (_) {}
+        updateHeaderBadges(currentConfig);
+      });
     }
 
     // Auto-refresh when pre-warmed window is shown/focused, and low-frequency refresh if kept open and visible

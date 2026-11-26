@@ -4,6 +4,9 @@ import json
 import os
 import re
 import ssl
+import subprocess
+import sys
+import threading
 import time
 import urllib.request
 import uuid
@@ -27,8 +30,15 @@ import db
 _SPAWNED_LS_PROC = None
 _SPAWNED_LS_PORT = None
 _SPAWNED_LS_TOKEN = None
+_LS_START_LOCK = threading.Lock()
 
-def find_available_port(start_port=57071, max_attempts=20):
+def _log(msg: str):
+    try:
+        print(msg, file=sys.stderr, flush=True)
+    except Exception:
+        pass
+
+def find_available_port(start_port=57071, max_attempts=30):
     """Finds an available local port for standalone language_server binding."""
     import socket
     for p in range(start_port, start_port + max_attempts):
@@ -40,49 +50,80 @@ def find_available_port(start_port=57071, max_attempts=20):
             continue
     return start_port
 
-def _save_server_cache(port, csrf_token):
-    """Persists active port & token to cache for instant sub-millisecond reuse."""
+def _get_cache_paths():
     cache_dirs = [db.DATA_DIR]
     appdata = os.environ.get('APPDATA')
     if appdata:
-        cache_dirs.append(os.path.join(appdata, 'AntigravityFlow'))
+        app_dir = os.path.join(appdata, 'AntigravityFlow')
+        if os.path.normcase(app_dir) != os.path.normcase(db.DATA_DIR):
+            cache_dirs.append(app_dir)
+    return [os.path.join(cd, ".server_cache.json") for cd in cache_dirs]
 
-    for cd in cache_dirs:
+def _save_server_cache(port, csrf_token, spawned_pid=None):
+    """Persists active port, token, and optional standalone PID to cache for instant reuse."""
+    payload = {"port": port, "csrf_token": csrf_token}
+    if spawned_pid:
+        payload["spawned_pid"] = spawned_pid
+    for cache_file in _get_cache_paths():
         try:
-            os.makedirs(cd, exist_ok=True)
-            with open(os.path.join(cd, ".server_cache.json"), "w", encoding="utf-8") as f:
-                json.dump({"port": port, "csrf_token": csrf_token}, f)
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(payload, f)
         except Exception:
             pass
 
 def find_language_server_binary():
     """Finds installed language_server.exe binary path on Windows."""
+    local_app = os.environ.get('LOCALAPPDATA', '')
+    user_prof = os.environ.get('USERPROFILE', '')
+    prog_files = os.environ.get('PROGRAMFILES', '')
     candidates = [
-        os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe'),
-        os.path.join(os.environ.get('USERPROFILE', ''), '.gemini', 'bin', 'language_server.exe'),
-        os.path.join(os.environ.get('PROGRAMFILES', ''), 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        os.path.join(local_app, 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        os.path.join(user_prof, '.gemini', 'bin', 'language_server.exe'),
+        os.path.join(prog_files, 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        os.path.join(local_app, 'Programs', 'Antigravity IDE', 'resources', 'bin', 'language_server.exe'),
     ]
     for c in candidates:
         if c and os.path.isfile(c):
             return c
+    # Shallow search in Antigravity IDE / Antigravity extensions if bin path moved
+    for root_dir in (
+        os.path.join(local_app, 'Programs', 'Antigravity'),
+        os.path.join(local_app, 'Programs', 'Antigravity IDE'),
+    ):
+        if os.path.isdir(root_dir):
+            for r, _dirs, files in os.walk(root_dir):
+                for fname in files:
+                    if fname.lower().startswith('language_server') and fname.lower().endswith('.exe'):
+                        return os.path.join(r, fname)
     return None
 
+def _kill_pid_tree_if_standalone(pid: int):
+    """Terminates standalone language_server spawned by AntigravityFlow (never touches Antigravity IDE's own LS)."""
+    try:
+        p = psutil.Process(int(pid))
+        pname = (p.name() or '').lower()
+        if 'language_server' not in pname:
+            return
+        cmdline = ' '.join(p.cmdline() or []).lower()
+        # Only kill standalone instances started without --host_bridge_url (not owned by Antigravity IDE)
+        if '--host_bridge_url' in cmdline:
+            return
+        for child in p.children(recursive=True):
+            try:
+                child.kill()
+            except Exception:
+                pass
+        p.kill()
+    except Exception:
+        pass
+
 def terminate_spawned_language_server():
-    """Cleanly terminates the language_server process and its children if launched by AntigravityFlow."""
+    """Cleanly terminates the standalone language_server process and its children if launched by AntigravityFlow."""
     global _SPAWNED_LS_PROC
     if _SPAWNED_LS_PROC:
         try:
-            pid = _SPAWNED_LS_PROC.pid
-            try:
-                p = psutil.Process(pid)
-                for child in p.children(recursive=True):
-                    try:
-                        child.kill()
-                    except Exception:
-                        pass
-                p.kill()
-            except Exception:
-                pass
+            _kill_pid_tree_if_standalone(_SPAWNED_LS_PROC.pid)
             _SPAWNED_LS_PROC.terminate()
             _SPAWNED_LS_PROC.wait(timeout=1.0)
         except Exception:
@@ -92,15 +133,29 @@ def terminate_spawned_language_server():
                 pass
         _SPAWNED_LS_PROC = None
 
+    # Also clean up cached standalone spawned_pid if still alive from earlier CLI worker
+    for cache_file in _get_cache_paths():
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    data = json.load(f) or {}
+                spid = data.get("spawned_pid")
+                if spid:
+                    _kill_pid_tree_if_standalone(spid)
+                    data.pop("spawned_pid", None)
+                    with open(cache_file, "w", encoding="utf-8") as fw:
+                        json.dump(data, fw)
+        except Exception:
+            pass
+
 def start_language_server_process():
     """Attempts to auto-launch language_server.exe with explicit port and token if not running."""
     global _SPAWNED_LS_PROC, _SPAWNED_LS_PORT, _SPAWNED_LS_TOKEN
     ls_bin = find_language_server_binary()
     if not ls_bin:
-        print("[LLM Refiner] Notice: language_server.exe binary not found in standard paths.")
+        _log("[LLM Refiner] Notice: language_server.exe binary not found in standard paths.")
         return None
     try:
-        import uuid
         csrf_token = str(uuid.uuid4())
         chosen_port = find_available_port(start_port=57071)
         cmd = [
@@ -119,18 +174,37 @@ def start_language_server_process():
         ]
         flags = 0
         if os.name == 'nt':
-            flags = subprocess.CREATE_NO_WINDOW | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
-        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+            flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=flags,
+            close_fds=True
+        )
         _SPAWNED_LS_PROC = proc
         _SPAWNED_LS_PORT = chosen_port
         _SPAWNED_LS_TOKEN = csrf_token
-        print(f"[LLM Refiner] Auto-started language_server.exe (PID: {proc.pid}) on port {chosen_port}")
+        _log(f"[LLM Refiner] Auto-started language_server.exe (PID: {proc.pid}) on port {chosen_port}")
         return proc
     except Exception as e:
-        print(f"[LLM Refiner] Notice: Could not auto-start language_server: {e}")
+        _log(f"[LLM Refiner] Notice: Could not auto-start language_server: {e}")
         return None
 
-def discover_server(raise_on_error=True, auto_start=True):
+def _probe_https_port(port: int, csrf_token: str, timeout: float = 0.5) -> bool:
+    try:
+        req = urllib.request.Request(
+            f"https://127.0.0.1:{port}/",
+            headers={"x-codeium-csrf-token": csrf_token}
+        )
+        with urllib.request.urlopen(req, context=ctx, timeout=timeout) as res:
+            return res.status == 200
+    except Exception:
+        return False
+
+def _probe_running_servers():
+    """Finds any responsive already-running language_server.exe (from Antigravity IDE or prior standalone start)."""
     # 1. Ultra-fast Cache Check: Validate cached port and token (< 15ms)
     cache_path = os.path.join(db.DATA_DIR, ".server_cache.json")
     if os.path.exists(cache_path):
@@ -139,108 +213,119 @@ def discover_server(raise_on_error=True, auto_start=True):
                 c = json.load(f)
             cached_port = c.get("port")
             cached_token = c.get("csrf_token")
-            if cached_port and cached_token:
-                req = urllib.request.Request(
-                    f"https://127.0.0.1:{cached_port}/",
-                    headers={"x-codeium-csrf-token": cached_token}
-                )
-                with urllib.request.urlopen(req, context=ctx, timeout=0.25) as res:
-                    if res.status == 200:
-                        return cached_port, cached_token
+            if cached_port and cached_token and _probe_https_port(cached_port, cached_token, timeout=0.45):
+                return cached_port, cached_token
         except Exception:
             pass
 
-    # 2. Check if language_server is already running anywhere on the system
-    server_proc = None
+    # 2. Check all running language_server processes on the system via psutil (instant, no netstat overhead)
+    candidates = []
     for p in psutil.process_iter(['name', 'cmdline', 'pid']):
         try:
             name = (p.info.get('name') or '').lower()
             if 'language_server' in name:
-                server_proc = p
-                break
+                candidates.append(p)
         except Exception:
             continue
 
-    if server_proc:
-        cmd_list = server_proc.info.get('cmdline') or []
-        cmd = ' '.join(cmd_list)
-        token_match = re.search(r'--csrf_token\s+([a-f0-9-]+)', cmd)
-        csrf_token = token_match.group(1) if token_match else None
-
-        ports = []
-        # Check explicit --https_server_port if present and != 0
-        p_match = re.search(r'--https_server_port\s+(\d+)', cmd)
-        if p_match:
-            try:
-                p_val = int(p_match.group(1))
-                if p_val != 0:
-                    ports.append(p_val)
-            except Exception:
-                pass
-
-        # Check host bridge hint: --host_bridge_url=http://127.0.0.1:(\d+) -> https is bridge + 1
-        hb_match = re.search(r'--host_bridge_url=https?://127\.0\.0\.1:(\d+)', cmd)
-        if hb_match:
-            try:
-                hb_port = int(hb_match.group(1))
-                ports.extend([hb_port + 1, hb_port])
-            except Exception:
-                pass
-
-        # Check netstat -ano for server_proc.pid (100% reliable on Windows)
+    for server_proc in candidates:
         try:
-            out = subprocess.check_output('netstat -ano', shell=True, text=True, timeout=2.0)
-            for line in out.splitlines():
-                if str(server_proc.pid) in line and 'LISTENING' in line:
-                    m = re.search(r'(?:127\.0\.0\.1|0\.0\.0\.0):(\d+)', line)
-                    if m:
-                        p_val = int(m.group(1))
-                        if p_val not in ports:
-                            ports.append(p_val)
-        except Exception:
-            pass
+            cmd_list = server_proc.info.get('cmdline') or []
+            cmd = ' '.join(cmd_list)
+            token_match = re.search(r'--csrf_token[=\s]+([a-f0-9-]+)', cmd, re.IGNORECASE)
+            csrf_token = token_match.group(1) if token_match else None
+            if not csrf_token:
+                continue
 
-        # Fallback candidate ports
-        for candidate in [57071, 57072, 57073, 57074, 57075, 61906, 61907]:
-            if candidate not in ports:
-                ports.append(candidate)
+            ports = []
+            # Explicit --https_server_port (if nonzero)
+            p_match = re.search(r'--https_server_port[=\s]+(\d+)', cmd)
+            if p_match:
+                try:
+                    p_val = int(p_match.group(1))
+                    if p_val > 0:
+                        ports.append(p_val)
+                except Exception:
+                    pass
 
-        if csrf_token:
+            # Direct psutil net_connections lookup (fast <1ms, handles random ephemeral port 0!)
+            try:
+                for conn in server_proc.net_connections(kind='inet'):
+                    if getattr(conn, 'status', '') == 'LISTEN' and conn.laddr:
+                        lp = int(conn.laddr.port)
+                        if lp not in ports:
+                            ports.append(lp)
+            except Exception:
+                pass
+
+            # Fallback netstat -ano if net_connections failed
+            if not ports:
+                try:
+                    flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) if os.name == 'nt' else 0
+                    out = subprocess.check_output('netstat -ano', shell=True, text=True, timeout=2.0, creationflags=flags)
+                    pid_str = str(server_proc.pid)
+                    for line in out.splitlines():
+                        if pid_str in line and 'LISTENING' in line:
+                            m = re.search(r'(?:127\.0\.0\.1|0\.0\.0\.0):(\d+)', line)
+                            if m:
+                                p_val = int(m.group(1))
+                                if p_val not in ports:
+                                    ports.append(p_val)
+                except Exception:
+                    pass
+
+            # Fallback host bridge hint & standard ports
+            hb_match = re.search(r'--host_bridge_url=https?://127\.0\.0\.1:(\d+)', cmd)
+            if hb_match:
+                try:
+                    hb_port = int(hb_match.group(1))
+                    for candidate in (hb_port + 1, hb_port):
+                        if candidate not in ports:
+                            ports.append(candidate)
+                except Exception:
+                    pass
+
+            for candidate in (57071, 57072, 57073, 57074, 57075, 61906, 61907):
+                if candidate not in ports:
+                    ports.append(candidate)
+
+            is_standalone = '--host_bridge_url' not in cmd.lower()
             for port in ports:
-                try:
-                    req = urllib.request.Request(
-                        f"https://127.0.0.1:{port}/",
-                        headers={"x-codeium-csrf-token": csrf_token}
-                    )
-                    with urllib.request.urlopen(req, context=ctx, timeout=0.35) as res:
-                        if res.status == 200:
-                            _save_server_cache(port, csrf_token)
-                            return port, csrf_token
-                except Exception:
-                    continue
+                if _probe_https_port(port, csrf_token, timeout=0.5):
+                    _save_server_cache(port, csrf_token, spawned_pid=server_proc.pid if is_standalone else None)
+                    return port, csrf_token
+        except Exception:
+            continue
 
-    # 3. Not running or unresponsive: Auto-launch standalone process if requested
+    return None, None
+
+def discover_server(raise_on_error=True, auto_start=True):
+    port, csrf_token = _probe_running_servers()
+    if port and csrf_token:
+        return port, csrf_token
+
+    # 3. Not running or unresponsive: Auto-launch standalone process safely under lock
     if auto_start:
-        proc = start_language_server_process()
-        if proc and _SPAWNED_LS_PORT and _SPAWNED_LS_TOKEN:
-            port = _SPAWNED_LS_PORT
-            csrf_token = _SPAWNED_LS_TOKEN
-            # Poll port with backoff for up to 6.0 seconds
-            start_poll = time.time()
-            while time.time() - start_poll < 6.0:
-                time.sleep(0.25)
-                try:
-                    req = urllib.request.Request(
-                        f"https://127.0.0.1:{port}/",
-                        headers={"x-codeium-csrf-token": csrf_token}
-                    )
-                    with urllib.request.urlopen(req, context=ctx, timeout=0.35) as res:
-                        if res.status == 200:
-                            _save_server_cache(port, csrf_token)
-                            print(f"[LLM Refiner] Connected to standalone language_server on port {port} in {time.time() - start_poll:.2f}s")
-                            return port, csrf_token
-                except Exception:
-                    continue
+        with _LS_START_LOCK:
+            # Re-check inside lock in case another thread just started it
+            port, csrf_token = _probe_running_servers()
+            if port and csrf_token:
+                return port, csrf_token
+
+            proc = start_language_server_process()
+            if proc and _SPAWNED_LS_PORT and _SPAWNED_LS_TOKEN:
+                port = _SPAWNED_LS_PORT
+                csrf_token = _SPAWNED_LS_TOKEN
+                # Poll port for up to 8.0s with 0.8s TLS handshake allowance
+                start_poll = time.time()
+                while time.time() - start_poll < 8.0:
+                    if proc.poll() is not None:
+                        break
+                    time.sleep(0.25)
+                    if _probe_https_port(port, csrf_token, timeout=0.8):
+                        _save_server_cache(port, csrf_token, spawned_pid=proc.pid)
+                        _log(f"[LLM Refiner] Connected to standalone language_server on port {port} in {time.time() - start_poll:.2f}s")
+                        return port, csrf_token
 
     if raise_on_error:
         raise RuntimeError("Antigravity language_server.exe is not running or responsive.")
@@ -290,8 +375,8 @@ def polish_with_gemini(
         return raw_text
 
     clean_input = raw_text.strip()
-    # Don't waste an LLM call on tiny 1-2 word utterances like 'yes' or 'stop'
-    if len(clean_input.split()) < 3:
+    # Don't waste an LLM call on tiny 1-2 word utterances in regular flow mode
+    if preset_mode not in ("generative", "custom") and len(clean_input.split()) < 3:
         return clean_input
 
     try:
@@ -309,14 +394,15 @@ def polish_with_gemini(
     target_model = model if model else PRIMARY_MODEL
     
     # 1. Resolve instruction: explicit system_prompt > mode preset prompt
+    cfg = config or {}
     if system_prompt and system_prompt.strip():
         instruction = system_prompt.strip()
     else:
-        instruction = get_preset_prompt(preset_mode)
+        custom_prompt = cfg.get("ai_custom_prompt", "")
+        instruction = get_preset_prompt(preset_mode, custom_prompt)
 
     # 2. Fetch past conversation/dictations context (~1,000 - 2,000 words memory)
     recent_history = []
-    cfg = config or {}
     hist_limit = int(cfg.get("ctx_history_limit", 5))
     try:
         if cfg.get("ctx_include_history", True) and cfg.get("enable_deep_context", True):
@@ -337,7 +423,7 @@ def polish_with_gemini(
 
     # Fast direct single-shot GetModelResponse (~720ms - 1000ms on Flash Lite)
     try:
-        conn = http.client.HTTPSConnection('127.0.0.1', port, context=ctx, timeout=4.0)
+        conn = http.client.HTTPSConnection('127.0.0.1', port, context=ctx, timeout=12.0)
         body = {"prompt": full_prompt, "model": target_model}
         frame = make_grpc_web_frame(json.dumps(body).encode("utf-8"))
         conn.request("POST", "/exa.language_server_pb.LanguageServerService/GetModelResponse", body=frame, headers=headers)
@@ -349,7 +435,9 @@ def polish_with_gemini(
             data = json.loads(raw[5:5+length].decode("utf-8"))
             resp_text = data.get("response", "").strip()
             if resp_text:
-                return resp_text.strip('"').strip("'")
+                if len(resp_text) >= 2 and resp_text[0] == resp_text[-1] and resp_text[0] in ('"', "'"):
+                    resp_text = resp_text[1:-1].strip()
+                return resp_text
     except Exception as e:
         print(f"[LLM Refiner] GetModelResponse ({target_model}) failed: {e}; using raw transcript.")
 

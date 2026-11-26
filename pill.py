@@ -295,10 +295,13 @@ class FloatingPill:
 
             now = time.time()
             # Safety watchdog: prevent pill from sticking on screen
-            if self.state == "processing" and (now - self._last_active_time > 8.0):
+            if self.state == "idle":
+                self.hide()
+                return
+            elif self.state == "processing" and (now - self._last_active_time > 8.0):
                 self.reset_and_hide()
                 return
-            elif self.state == "recording" and (now - self._last_active_time > 45.0):
+            elif self.state == "recording" and ((now - self._last_active_time > 45.0) or (now - self._show_time > 180.0)):
                 self.reset_and_hide()
                 return
 
@@ -334,6 +337,7 @@ class FloatingPill:
                 self.anim_job = None
             if self.root and self.root.winfo_exists():
                 self.root.withdraw()
+                self.root.update_idletasks()
         except Exception:
             pass
 

@@ -49,9 +49,14 @@ ctx.verify_mode = ssl.CERT_NONE
 
 ASSISTANT_SYSTEM_PROMPT = prompts.PROMPT_ASSISTANT_GENERAL
 
-def capture_screen(save_path: str = None) -> dict:
+def capture_screen(save_path: str = None, enforce_policy: bool = True) -> dict:
     """Captures the primary monitor screen and returns base64 JPEG and resolution."""
     try:
+        cfg = db.load_config() if hasattr(db, "load_config") else {}
+        if enforce_policy and not cfg.get("enable_screen_vision", True):
+            return {"success": False, "error": "Screen Vision is disabled in Settings."}
+        native_res = cfg.get("screen_native_resolution", True)
+
         # Flash visual feedback on desktop
         try:
             import winsound
@@ -187,13 +192,14 @@ def capture_screen(save_path: str = None) -> dict:
         if img is None:
             return {"success": False, "error": "Screen capture failed"}
 
-        # Native resolution (1080p pixel-perfect for crisp code, punctuation, and math).
-        # Only clamp if display is 4K (>1920x1080) to avoid excessive file size.
-        if img.width > 1920 or img.height > 1080:
-            img.thumbnail((1920, 1080), Image.Resampling.BILINEAR)
-        
+        max_w, max_h = (1920, 1080) if native_res else (1280, 720)
+        jpg_quality = 88 if native_res else 75
+        if img.width > max_w or img.height > max_h:
+            img.thumbnail((max_w, max_h), Image.Resampling.BILINEAR)
+
         target_file = save_path or os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
-        img.save(target_file, "JPEG", quality=85)
+        os.makedirs(os.path.dirname(target_file), exist_ok=True)
+        img.save(target_file, "JPEG", quality=jpg_quality)
 
         with open(target_file, "rb") as f:
             b64 = base64.b64encode(f.read()).decode("ascii")
@@ -231,8 +237,7 @@ def execute_system_command(command: str, shell: str = "powershell", enforce_poli
         except Exception:
             pass
 
-    # Normalize interactive GUI binaries so they execute non-blocking
-    # Auto-wrap interactive GUI binaries across single-line and multi-line scripts so they never block
+    # Auto-wrap standalone interactive GUI binary lines so they never block
     gui_names = {
         'notepad', 'notepad.exe', 'explorer', 'explorer.exe', 'calc', 'calc.exe',
         'mspaint', 'mspaint.exe', 'code', 'code.cmd', 'code.exe', 'taskmgr', 'taskmgr.exe'
@@ -241,12 +246,15 @@ def execute_system_command(command: str, shell: str = "powershell", enforce_poli
     for line in clean_cmd.splitlines():
         trimmed = line.strip()
         parts = trimmed.split(None, 1)
-        if parts and parts[0].lower() in gui_names and not trimmed.lower().startswith(('start-process', 'start ', '& ')):
+        is_compound = any(tok in trimmed for tok in ('|', ';', '&&', '||'))
+        if parts and parts[0].lower() in gui_names and not is_compound and not trimmed.lower().startswith(('start-process', 'start ', '& ')):
             indent = line[:len(line) - len(line.lstrip())]
             binary = parts[0]
-            args = parts[1] if len(parts) > 1 else ''
+            args = parts[1].strip() if len(parts) > 1 else ''
             if shell == "powershell":
                 if args:
+                    if not ((args.startswith("'") and args.endswith("'")) or (args.startswith('"') and args.endswith('"'))):
+                        args = "'" + args.replace("'", "''") + "'"
                     wrapped_lines.append(f"{indent}Start-Process {binary} -ArgumentList {args}")
                 else:
                     wrapped_lines.append(f"{indent}Start-Process {binary}")
@@ -312,8 +320,13 @@ def execute_mcp_tool(tool_name: str, arguments: dict = None, enforce_policy: boo
             max_results = int(args.get("max_results", 50))
             import fnmatch
             matches = []
+            skip_dirs = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', '$recycle.bin', 'system volume information'}
+            deadline = time.time() + 8.0
             if os.path.exists(search_path):
                 for root, dirs, files in os.walk(search_path):
+                    dirs[:] = [d for d in dirs if d.lower() not in skip_dirs]
+                    if time.time() > deadline:
+                        break
                     for fname in files:
                         if fnmatch.fnmatch(fname.lower(), pattern.lower()):
                             full_p = os.path.join(root, fname)
@@ -347,21 +360,44 @@ def execute_mcp_tool(tool_name: str, arguments: dict = None, enforce_policy: boo
             dir_path = os.path.expandvars(os.path.expanduser(args.get("path", ".")))
             recursive = bool(args.get("recursive", False))
             items = []
+            skip_dirs = {'.git', 'node_modules', '__pycache__', '.venv', 'venv'}
             if os.path.exists(dir_path) and os.path.isdir(dir_path):
-                entries = os.scandir(dir_path)
-                for entry in entries:
-                    try:
-                        is_dir = entry.is_dir()
-                        sz = entry.stat().st_size if not is_dir else 0
-                        items.append({
-                            "name": entry.name,
-                            "is_dir": is_dir,
-                            "size_bytes": sz
-                        })
-                    except Exception:
-                        pass
-                    if len(items) >= 100:
-                        break
+                if recursive:
+                    for root, dirs, files in os.walk(dir_path):
+                        dirs[:] = [d for d in dirs if d.lower() not in skip_dirs]
+                        rel_root = os.path.relpath(root, dir_path)
+                        for d in dirs:
+                            rel_p = d if rel_root == "." else os.path.join(rel_root, d)
+                            items.append({"name": rel_p, "is_dir": True, "size_bytes": 0})
+                            if len(items) >= 200:
+                                break
+                        for f in files:
+                            if len(items) >= 200:
+                                break
+                            rel_p = f if rel_root == "." else os.path.join(rel_root, f)
+                            full_p = os.path.join(root, f)
+                            try:
+                                sz = os.path.getsize(full_p)
+                            except Exception:
+                                sz = 0
+                            items.append({"name": rel_p, "is_dir": False, "size_bytes": sz})
+                        if len(items) >= 200:
+                            break
+                else:
+                    with os.scandir(dir_path) as entries:
+                        for entry in entries:
+                            try:
+                                is_dir = entry.is_dir()
+                                sz = entry.stat().st_size if not is_dir else 0
+                                items.append({
+                                    "name": entry.name,
+                                    "is_dir": is_dir,
+                                    "size_bytes": sz
+                                })
+                            except Exception:
+                                pass
+                            if len(items) >= 200:
+                                break
             return {
                 "success": True,
                 "tool": tool_name,
@@ -413,7 +449,8 @@ def execute_mcp_tool(tool_name: str, arguments: dict = None, enforce_policy: boo
             target = os.path.expandvars(os.path.expanduser(args.get("path") or args.get("app") or args.get("target", "")))
             if not target:
                 return {"success": False, "tool": tool_name, "error": "Path or application name required"}
-            res = execute_system_command(f"Start-Process '{target}'")
+            safe_target = target.replace("'", "''")
+            res = execute_system_command(f"Start-Process '{safe_target}'", enforce_policy=False)
             return {
                 "success": res["success"],
                 "tool": tool_name,
@@ -611,6 +648,7 @@ def get_available_models_catalog() -> dict:
         overrides = {
             "gemini-2.5-flash": "Gemini 2.5 Flash",
             "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+            "gemini-2.5-flash-thinking": "Gemini 2.5 Flash (Thinking)",
             "gemini-3.1-flash-lite": "Gemini 3.1 Flash",
             "gemini-3.8-flash-high": "Gemini 3.8 Flash (High)",
             "gemini-3.8-flash-medium": "Gemini 3.8 Flash (Medium)",
@@ -664,7 +702,11 @@ def get_available_models_catalog() -> dict:
 
     all_models = []
     for k, v in raw_models.items():
-        m_id = v.get("model") or k
+        if "disabled" in k.lower() or k.startswith("tab_"):
+            continue
+        m_id = v.get("model") or ""
+        if not m_id:
+            continue
         label = clean_name(k, v)
         supports_thinking = v.get("supportsThinking", False)
         thinking_budget = v.get("thinkingBudget")
@@ -689,11 +731,20 @@ def get_available_models_catalog() -> dict:
         "totalCount": len(all_models)
     }
 
-    try:
-        with open(catalog_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2)
-    except Exception:
-        pass
+    if len(all_models) > 0:
+        try:
+            with open(catalog_path, "w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2)
+        except Exception:
+            pass
+    elif os.path.exists(catalog_path):
+        try:
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            if isinstance(cached, dict) and cached.get("allModels"):
+                return cached
+        except Exception:
+            pass
 
     return result
 
@@ -948,7 +999,8 @@ def query_gemini_assistant(
     model: str = None,
     system_instruction: str = None,
     screenshot_info: dict = None,
-    enable_web_search: bool = False
+    enable_web_search: bool = False,
+    mode: str = None
 ) -> dict:
     """Queries Gemini via local Language Server with multi-turn memory, system prompt, vision, web citations,
     and autonomous multi-step execution loop for system/file inspections."""
@@ -961,13 +1013,20 @@ def query_gemini_assistant(
     cfg = db.load_config() if hasattr(db, "load_config") else {}
     target_model = model or cfg.get("ai_assistant_model") or "MODEL_GOOGLE_GEMINI_2_5_FLASH"
     enable_system_commands = cfg.get("enable_system_commands", True)
+    enable_screen_vision = cfg.get("enable_screen_vision", True)
 
-    if not system_instruction:
-        mode = cfg.get("ai_assistant_mode", "general")
-        custom_prompt = cfg.get("ai_assistant_custom_prompt", "")
-        instruction = prompts.get_assistant_preset_prompt(mode, custom_prompt)
+    if system_instruction and system_instruction.strip():
+        instruction = system_instruction.strip()
     else:
-        instruction = system_instruction
+        resolved_mode = mode or cfg.get("ai_assistant_mode", "general")
+        saved_presets = cfg.get("ai_assistant_presets", {}) if isinstance(cfg.get("ai_assistant_presets"), dict) else {}
+        if resolved_mode == "custom":
+            custom_prompt = cfg.get("ai_assistant_custom_prompt") or cfg.get("ai_assistant_system_prompt") or ""
+            instruction = prompts.get_assistant_preset_prompt("custom", custom_prompt)
+        elif saved_presets.get(resolved_mode):
+            instruction = saved_presets[resolved_mode]
+        else:
+            instruction = prompts.get_assistant_preset_prompt(resolved_mode, "")
 
     # Check for direct system command trigger (e.g. prompt starts with '$ ' or '> ' or 'run: ')
     is_direct_command = False
@@ -1029,21 +1088,32 @@ def query_gemini_assistant(
 
     # Auto-detect screen analysis & question-solving intent
     is_screen_req = False
-    if screenshot_info and (screenshot_info.get("file_path") or screenshot_info.get("data_url")):
+    has_explicit_image = bool(screenshot_info and (screenshot_info.get("file_path") or screenshot_info.get("data_url")))
+    if has_explicit_image:
         is_screen_req = True
-    elif is_screen_query(clean_prompt):
+    elif enable_screen_vision and is_screen_query(clean_prompt):
         is_screen_req = True
 
     # 1. Resolve raw image bytes and file path for multimodal vision & OCR
     media_items = []
     raw_b64 = None
     snap_path = None
+    img_mime = "image/jpeg"
+    img_ext = "jpg"
 
     if screenshot_info:
-        if screenshot_info.get("data_url") and "," in screenshot_info["data_url"]:
-            raw_b64 = screenshot_info["data_url"].split(",", 1)[-1]
+        data_url = screenshot_info.get("data_url") or ""
+        if data_url and "," in data_url:
+            header_part, raw_b64 = data_url.split(",", 1)
+            if "image/png" in header_part.lower():
+                img_mime = "image/png"
+                img_ext = "png"
+            elif "image/webp" in header_part.lower():
+                img_mime = "image/webp"
+                img_ext = "webp"
             try:
-                snap_path = os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
+                snap_path = os.path.join(db.DATA_DIR, f"latest_screenshot.{img_ext}")
+                os.makedirs(os.path.dirname(snap_path), exist_ok=True)
                 raw_bytes = base64.b64decode(raw_b64)
                 with open(snap_path, "wb") as f:
                     f.write(raw_bytes)
@@ -1051,21 +1121,19 @@ def query_gemini_assistant(
                 print(f"[Assistant] Error saving data_url screenshot: {b64_err}")
         elif screenshot_info.get("file_path") and os.path.exists(screenshot_info["file_path"]):
             snap_path = screenshot_info["file_path"]
+            if snap_path.lower().endswith(".png"):
+                img_mime = "image/png"
+                img_ext = "png"
             try:
                 with open(snap_path, "rb") as f:
                     raw_b64 = base64.b64encode(f.read()).decode("ascii")
             except Exception:
                 pass
 
-    if not raw_b64 and is_screen_req:
-        default_snap = os.path.join(db.DATA_DIR, "latest_screenshot.jpg")
-        if os.path.exists(default_snap):
-            snap_path = default_snap
-        else:
-            # Capture screen directly if not already on disk
-            captured = capture_screen()
-            if captured.get("success"):
-                snap_path = captured.get("file_path")
+    if not raw_b64 and is_screen_req and enable_screen_vision:
+        captured = capture_screen(enforce_policy=False)
+        if captured.get("success"):
+            snap_path = captured.get("file_path")
         if snap_path and os.path.exists(snap_path):
             try:
                 with open(snap_path, "rb") as f:
@@ -1090,9 +1158,9 @@ def query_gemini_assistant(
         except Exception as img_err:
             print(f"[Assistant] Image decoding notice: {img_err}")
 
-        art_uri = stage_media_artifact(raw_b64, mime_type="image/jpeg", display_name="user_screenshot.jpg")
+        art_uri = stage_media_artifact(raw_b64, mime_type=img_mime, display_name=f"user_screenshot.{img_ext}")
         if art_uri:
-            media_items.append({"mimeType": "image/jpeg", "uri": art_uri})
+            media_items.append({"mimeType": img_mime, "uri": art_uri})
 
     # 3. Screen intelligence (foreground application & active control)
     screen_intel = None
@@ -1234,8 +1302,10 @@ def query_gemini_assistant(
         current_ctx_prompt = full_prompt
 
         import re
+        lower_clean = clean_prompt.lower()
+        is_explanatory_query = bool(re.match(r"^(how to|how do i|how can i|what is|what are|what does|explain|show me an example|give me an example|tutorial)\b", lower_clean))
         action_verbs = ("create", "make", "write", "open", "launch", "run", "execute", "delete", "remove", "save", "start", "kill", "search", "list", "check", "find", "count")
-        user_wants_action = any(re.search(r'\b' + v + r'\b', clean_prompt.lower()) for v in action_verbs)
+        user_wants_action = (not is_explanatory_query) and any(re.search(r'\b' + v + r'\b', lower_clean) for v in action_verbs)
 
         for step_idx in range(1, 7):
             is_tool_call = False
@@ -1268,8 +1338,8 @@ def query_gemini_assistant(
                         tool_type = "powershell"
                         cmd = candidate_cmd
 
-            # 3. Check for actionable ```powershell, ```pwsh, ```cmd, or ```bash blocks
-            if not is_tool_call:
+            # 3. Check for actionable ```powershell, ```pwsh, ```cmd, or ```bash blocks (only on imperative action prompts)
+            if not is_tool_call and not is_explanatory_query:
                 ps_match = re.search(r"```(?:powershell|pwsh|cmd|bash|bat)\s*([\s\S]*?)\s*```", current_resp, re.IGNORECASE)
                 if ps_match:
                     candidate_cmd = ps_match.group(1).strip()
@@ -1285,8 +1355,9 @@ def query_gemini_assistant(
                         cmd = candidate_cmd
 
             # 4. Anti-Hallucination Guardrail:
-            # If no tool call detected on step 1, but user requested an action, and model claimed it did it
-            if not is_tool_call and step_idx == 1 and user_wants_action and len(steps_executed) == 0:
+            # If no non-vision tool call detected on step 1, but user requested an action, and model claimed it did it
+            has_action_step = any(s.get("type") != "screen_vision" for s in steps_executed)
+            if not is_tool_call and step_idx == 1 and user_wants_action and not has_action_step:
                 claim_patterns = [
                     r"\bi (have|already) (created|made|written|opened|launched|executed|saved|deleted|started)\b",
                     r"\bi've (created|made|written|opened|launched|executed|saved|deleted|started)\b",
@@ -1506,9 +1577,13 @@ def query_gemini_assistant(
                 thinking_text = next_thinking
             current_ctx_prompt = follow_up_prompt
 
+        final_resp = current_resp.strip()
+        if len(final_resp) >= 2 and final_resp[0] == final_resp[-1] and final_resp[0] in ('"', "'"):
+            final_resp = final_resp[1:-1].strip()
+
         return {
             "success": True,
-            "response": current_resp.strip('"').strip("'"),
+            "response": final_resp,
             "thinking": thinking_text,
             "model": target_model,
             "web_search_active": len(web_citations) > 0,
@@ -1533,108 +1608,143 @@ def paste_to_active_window(text: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def _safe_print_json(obj):
+    """Writes pure JSON safely without crashing if the caller closed stdout or timed out."""
+    target = getattr(sys, "_CLI_JSON_STDOUT", None) or sys.stdout
+    if target is None:
+        return
+    try:
+        payload = json.dumps(obj, ensure_ascii=False)
+        target.write(payload + "\n")
+        target.flush()
+    except (OSError, BrokenPipeError, ValueError):
+        pass
+
+def _read_cli_payload(argv, default="{}"):
+    """Reads CLI argument payload from inline JSON or `--payload-file <path>` (cleans up temp file)."""
+    if len(argv) <= 2:
+        return default
+    if argv[2] == "--payload-file" and len(argv) > 3:
+        fpath = argv[3]
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                return f.read()
+        finally:
+            try:
+                os.remove(fpath)
+            except Exception:
+                pass
+    return argv[2]
+
 def main():
-    if len(sys.argv) > 1:
-        cmd = sys.argv[1].lower()
-        if cmd == "query":
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-            except Exception:
-                params = {"prompt": raw_input}
-            result = query_gemini_assistant(
-                prompt=params.get("prompt") or params.get("message", ""),
-                history=params.get("history", []),
-                model=params.get("model"),
-                system_instruction=params.get("system_instruction") or params.get("system_prompt"),
-                screenshot_info=params.get("screenshot_info"),
-                enable_web_search=params.get("enable_web_search") or params.get("web_search", False)
-            )
-            print(json.dumps(result, ensure_ascii=False))
+    try:
+        if len(sys.argv) > 1:
+            cmd = sys.argv[1].lower()
+            if cmd == "query":
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                except Exception:
+                    params = {"prompt": raw_input}
+                result = query_gemini_assistant(
+                    prompt=params.get("prompt") or params.get("message", ""),
+                    history=params.get("history", []),
+                    model=params.get("model"),
+                    system_instruction=params.get("system_instruction") or params.get("system_prompt"),
+                    screenshot_info=params.get("screenshot_info"),
+                    enable_web_search=params.get("enable_web_search") or params.get("web_search", False),
+                    mode=params.get("mode")
+                )
+                _safe_print_json(result)
 
-        elif cmd == "models":
-            result = get_available_models_catalog()
-            print(json.dumps(result, ensure_ascii=False))
+            elif cmd == "models":
+                result = get_available_models_catalog()
+                _safe_print_json(result)
 
-        elif cmd == "refine":
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-            except Exception:
-                params = {"text": raw_input}
-            result = refine_voice_prompt(
-                raw_text=params.get("text", ""),
-                model=params.get("model")
-            )
-            print(json.dumps(result, ensure_ascii=False))
+            elif cmd == "refine":
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                except Exception:
+                    params = {"text": raw_input}
+                result = refine_voice_prompt(
+                    raw_text=params.get("text", ""),
+                    model=params.get("model")
+                )
+                _safe_print_json(result)
 
-        elif cmd == "search":
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-            except Exception:
-                params = {"query": raw_input}
-            result = search_web_unified(params.get("query", ""))
-            print(json.dumps(result, ensure_ascii=False))
+            elif cmd == "search":
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                except Exception:
+                    params = {"query": raw_input}
+                result = search_web_unified(params.get("query", ""))
+                _safe_print_json(result)
 
-        elif cmd == "exec":
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-                command_str = params.get("command", "")
-                shell_type = params.get("shell", "powershell")
-            except Exception:
-                command_str = raw_input
-                shell_type = "powershell"
-            res = execute_system_command(command_str, shell=shell_type)
-            print(json.dumps(res, ensure_ascii=False))
+            elif cmd == "exec":
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                    command_str = params.get("command", "")
+                    shell_type = params.get("shell", "powershell")
+                except Exception:
+                    command_str = raw_input
+                    shell_type = "powershell"
+                res = execute_system_command(command_str, shell=shell_type)
+                _safe_print_json(res)
 
-        elif cmd == "screenshot":
-            res = capture_screen()
-            print(json.dumps(res, ensure_ascii=False))
+            elif cmd == "screenshot":
+                res = capture_screen()
+                _safe_print_json(res)
 
-        elif cmd == "paste":
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-                text_to_paste = params.get("text", "")
-            except Exception:
-                text_to_paste = raw_input
-            res = paste_to_active_window(text_to_paste)
-            print(json.dumps(res, ensure_ascii=False))
-        elif cmd == "tts-synth":
-            import edge_tts_service
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-            except Exception:
-                params = {"text": raw_input}
-            res = edge_tts_service.synthesize_text(
-                text=params.get("text", ""),
-                voice=params.get("voice", "en-IN-NeerjaNeural"),
-                rate=params.get("rate", "+0%")
-            )
-            print(json.dumps(res, ensure_ascii=False))
+            elif cmd == "paste":
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                    text_to_paste = params.get("text", "")
+                except Exception:
+                    text_to_paste = raw_input
+                res = paste_to_active_window(text_to_paste)
+                _safe_print_json(res)
 
-        elif cmd == "tts-demo":
-            import edge_tts_service
-            raw_input = sys.argv[2] if len(sys.argv) > 2 else "{}"
-            try:
-                params = json.loads(raw_input)
-                voice = params.get("voice", "en-IN-NeerjaNeural")
-            except Exception:
-                voice = raw_input or "en-IN-NeerjaNeural"
-            res = edge_tts_service.get_demo_audio(voice=voice)
-            print(json.dumps(res, ensure_ascii=False))
+            elif cmd == "tts-synth":
+                import edge_tts_service
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                except Exception:
+                    params = {"text": raw_input}
+                res = edge_tts_service.synthesize_text(
+                    text=params.get("text", ""),
+                    voice=params.get("voice", "en-IN-NeerjaNeural"),
+                    rate=params.get("rate", "+0%")
+                )
+                _safe_print_json(res)
 
-        elif cmd == "tts-voices":
-            import edge_tts_service
-            voices = edge_tts_service.get_voices_catalog()
-            print(json.dumps({"success": True, "voices": voices}, ensure_ascii=False))
+            elif cmd == "tts-demo":
+                import edge_tts_service
+                raw_input = _read_cli_payload(sys.argv, "{}")
+                try:
+                    params = json.loads(raw_input)
+                    voice = params.get("voice", "en-IN-NeerjaNeural")
+                    rate = params.get("rate", "+0%")
+                except Exception:
+                    voice = raw_input or "en-IN-NeerjaNeural"
+                    rate = "+0%"
+                res = edge_tts_service.get_demo_audio(voice=voice, rate=rate)
+                _safe_print_json(res)
+
+            elif cmd == "tts-voices":
+                import edge_tts_service
+                voices = edge_tts_service.get_voices_catalog()
+                _safe_print_json({"success": True, "voices": voices})
+            else:
+                _safe_print_json({"success": False, "error": f"Unknown command: {cmd}"})
         else:
-            print(json.dumps({"success": False, "error": f"Unknown command: {cmd}"}))
-    else:
-        print(json.dumps({"success": True, "status": "Assistant Service Ready"}))
+            _safe_print_json({"success": True, "status": "Assistant Service Ready"})
+    except Exception as e:
+        _safe_print_json({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
     main()

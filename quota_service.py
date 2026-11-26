@@ -12,6 +12,7 @@ weekly and 5-hour rolling limits, with plan-aware projections (Free, Pro, Ultra)
 import http.client
 import json
 import ssl
+import sys
 import time
 from datetime import datetime
 import llm_refiner
@@ -20,6 +21,35 @@ import db
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
+
+def _cached_quota_response():
+    cached = db.get_user_profile()
+    if not cached:
+        return None
+    return {
+        "success": True,
+        "cached": True,
+        "user": {
+            "name": cached.get("user_name", "") or cached.get("name", ""),
+            "email": cached.get("user_email", "") or cached.get("email", ""),
+            "planName": cached.get("plan_name", "") or cached.get("planName", ""),
+            "planBadge": cached.get("plan_badge", "") or cached.get("planBadge", ""),
+            "availablePromptCredits": cached.get("availablePromptCredits", 0),
+            "availableFlowCredits": cached.get("availableFlowCredits", 0)
+        },
+        "gemini": {
+            "weeklyPercentRemaining": float(cached.get("weekly_percent", 100.0)),
+            "fiveHourPercentRemaining": float(cached.get("five_hour_percent", 100.0)),
+            "weeklyResetHuman": cached.get("weekly_reset", "Active"),
+            "fiveHourResetHuman": cached.get("five_hour_reset", "Active")
+        },
+        "thirdParty": {
+            "weeklyPercentRemaining": float(cached.get("tp_weekly_percent", 100.0)),
+            "fiveHourPercentRemaining": float(cached.get("tp_five_hour_percent", 100.0)),
+            "weeklyResetHuman": cached.get("tp_weekly_reset", "Active"),
+            "fiveHourResetHuman": cached.get("tp_five_hour_reset", "Active")
+        }
+    }
 
 # Word allowances approximations based on model token weights and tier capacities
 PLAN_SPECS = {
@@ -77,24 +107,9 @@ def get_quota_summary() -> dict:
     try:
         port, csrf_token = llm_refiner.discover_server()
     except Exception as e:
-        cached = db.get_user_profile()
-        if cached:
-            return {
-                "success": True,
-                "cached": True,
-                "user": {
-                    "name": cached.get("user_name", "") or cached.get("name", ""),
-                    "email": cached.get("user_email", "") or cached.get("email", ""),
-                    "planName": cached.get("plan_name", "") or cached.get("planName", ""),
-                    "planBadge": cached.get("plan_badge", "") or cached.get("planBadge", "")
-                },
-                "gemini": {
-                    "weeklyPercentRemaining": float(cached.get("weekly_percent", 100.0)),
-                    "fiveHourPercentRemaining": float(cached.get("five_hour_percent", 100.0)),
-                    "weeklyResetHuman": cached.get("weekly_reset", "Active"),
-                    "fiveHourResetHuman": cached.get("five_hour_reset", "Active")
-                }
-            }
+        cached_resp = _cached_quota_response()
+        if cached_resp:
+            return cached_resp
         return {"success": False, "error": f"Language server offline: {e}"}
 
     headers = {
@@ -116,7 +131,7 @@ def get_quota_summary() -> dict:
             l = int.from_bytes(raw[1:5], "big")
             quota_raw = json.loads(raw[5:5+l].decode("utf-8")).get("response", {})
     except Exception as e:
-        print(f"[QuotaService] RetrieveUserQuotaSummary error: {e}")
+        print(f"[QuotaService] RetrieveUserQuotaSummary error: {e}", file=sys.stderr)
 
     # 2. Retrieve User Status & Plan
     user_status = {}
@@ -140,7 +155,12 @@ def get_quota_summary() -> dict:
             raw_plan = plan_info.get("planName") or "Pro"
             plan_name = raw_plan.capitalize()
     except Exception as e:
-        print(f"[QuotaService] GetUserStatus error: {e}")
+        print(f"[QuotaService] GetUserStatus error: {e}", file=sys.stderr)
+
+    if quota_raw is None and not user_status:
+        cached_resp = _cached_quota_response()
+        if cached_resp:
+            return cached_resp
 
     detected_plan_key = "pro"
     lower_plan = plan_name.lower()
@@ -265,19 +285,26 @@ def get_quota_summary() -> dict:
         "rawGroups": parsed_groups
     }
 
-    try:
-        db.save_user_profile({
-            "name": user_name,
-            "email": user_email,
-            "planName": plan_name,
-            "planBadge": plan_badge,
-            "weekly_percent": round(weekly_frac * 100.0, 1),
-            "five_hour_percent": round(five_h_frac * 100.0, 1),
-            "weekly_reset": gemini_summary["weekly_reset_human"],
-            "five_hour_reset": gemini_summary["five_hour_reset_human"]
-        })
-    except Exception:
-        pass
+    if user_status or quota_raw is not None:
+        try:
+            db.save_user_profile({
+                "name": user_name,
+                "email": user_email,
+                "planName": plan_name,
+                "planBadge": plan_badge,
+                "weekly_percent": round(weekly_frac * 100.0, 1),
+                "five_hour_percent": round(five_h_frac * 100.0, 1),
+                "weekly_reset": gemini_summary["weekly_reset_human"],
+                "five_hour_reset": gemini_summary["five_hour_reset_human"],
+                "availablePromptCredits": res_dict["user"]["availablePromptCredits"],
+                "availableFlowCredits": res_dict["user"]["availableFlowCredits"],
+                "tp_weekly_percent": res_dict["thirdParty"]["weeklyPercentRemaining"],
+                "tp_five_hour_percent": res_dict["thirdParty"]["fiveHourPercentRemaining"],
+                "tp_weekly_reset": res_dict["thirdParty"]["weeklyResetHuman"],
+                "tp_five_hour_reset": res_dict["thirdParty"]["fiveHourResetHuman"]
+            })
+        except Exception:
+            pass
 
     return res_dict
 
