@@ -2,6 +2,20 @@
 
 All notable changes to **AntigravityFlow** are documented in this file.
 
+## [1.5.0] - 2026-11-28
+
+### Added
+- **Focus Audio During Dictation (`audio_focus.py`, `daemon.py`, `ui/index.html`)**: Automatically pauses active playing Windows media sessions via WinRT SMTC (`winrt.windows.media.control`) and silently mutes background app & system sound sessions via WASAPI `ISimpleAudioVolume::SetMute` while dictating (without changing Windows Master Volume or triggering Mute OSD), restoring previous play/mute states on stop, cancel, or shutdown. Controlled by the new **Focus Audio During Dictation** Settings toggle (`auto_mute_media_on_dictate`).
+- **Configurable Dashboard Memory Mode (`ui/main.js`, `db.py`, `ui/index.html`)**: Keeps the Dashboard pre-warmed by default (`keep_dashboard_in_memory: true`) for instant `<30ms` reopen, with a Settings opt-out (**Keep Dashboard Loaded in Memory**) enabling Low-RAM lazy creation & window destruction on close.
+- **Pre-Compiled Static Tailwind CSS (`ui/tailwind.css`, `ui/package.json`)**: Replaced the runtime `tailwind.min.js` JIT compiler with a build-time minified `tailwind.css` bundle, significantly cutting Dashboard & Assistant renderer memory usage and startup CPU work.
+
+### Improved & Fixed
+- **Standalone Language Server Optimization (`llm_refiner.py`)**: Added verified non-breaking flags (`--disable_telemetry=true`, `--use_ls_chrome_devtools_mcp=false`, `--use_custom_page_actions=false`, `--mquery_for_context_module=false`, `--max_num_tracked_workspaces=2`, `--limit_go_max_procs=2`) and `GOGC=50` / `GOMEMLIMIT=128MiB` while fixing headless startup issues and startup discovery locking (`_LS_START_LOCK` + spawned PID lifecycle cleanup).
+- **Resilient Edge Neural TTS (`edge_tts_service.py`, `ui/index.html`)**: Added multi-attempt async WebSocket retries (`_synthesize_with_retries_async`), speakable-text & control-byte guards, and optional fallback voice recovery to eliminate intermittent `NoAudioReceived` synthesis failures, alongside non-blocking inline error status feedback in Settings.
+- **Startup & Process Lifecycle (`ui/main.js`, `daemon.py`, `assistant_service.py`, `quota_service.py`, `pill.py`)**: Deduplicated daemon readiness polling across startup IPCs to eliminate cold CLI unpack stampedes, preserved PyInstaller parent bootloader exit cleanup in `shutdown()`, switched tray exit to graceful Electron shutdown over bridge port `48199`, added thread-safe `RLock` and non-blocking callbacks, and resolved PTT release races.
+
+---
+
 ## [1.4.1] - 2026-11-26
 
 ### Added

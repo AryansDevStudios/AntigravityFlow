@@ -73,7 +73,9 @@ DEFAULT_CONFIG = {
     "tts_rate": "+0%",
     "tts_auto_speak_voice": True,
     "theme": "auto",
-    "screen_native_resolution": True
+    "screen_native_resolution": True,
+    "keep_dashboard_in_memory": True,
+    "auto_mute_media_on_dictate": True
 }
 
 def get_db():

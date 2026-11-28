@@ -4,12 +4,12 @@
 
 **Real-Time Voice Dictation, Encrypted Local Audio Vault & Multimodal AI Copilot for Google Antigravity on Windows**
 
-[![Version](https://img.shields.io/badge/version-v1.4.1-amber?style=for-the-badge)](https://github.com/AryansDevStudios/AntigravityFlow/releases/tag/v1.4.1)
+[![Version](https://img.shields.io/badge/version-v1.5.0-amber?style=for-the-badge)](https://github.com/AryansDevStudios/AntigravityFlow/releases/tag/v1.5.0)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20ARM64%20%7C%20x86-0078D6?style=for-the-badge&logo=windows)](https://github.com/AryansDevStudios/AntigravityFlow/releases/latest)
 [![Build](https://img.shields.io/github/actions/workflow/status/AryansDevStudios/AntigravityFlow/build-windows.yml?branch=master&style=for-the-badge&label=Windows%20Build)](https://github.com/AryansDevStudios/AntigravityFlow/actions/workflows/build-windows.yml)
 [![License](https://img.shields.io/badge/license-MIT-emerald?style=for-the-badge)](LICENSE)
 
-[Download Latest Release](https://github.com/AryansDevStudios/AntigravityFlow/releases/latest) · [Release Notes (v1.4.1)](RELEASE_NOTES.md) · [Changelog](CHANGELOG.md) · [API Catalog](docs/API_CATALOG.md)
+[Download Latest Release](https://github.com/AryansDevStudios/AntigravityFlow/releases/latest) · [Release Notes (v1.5.0)](RELEASE_NOTES.md) · [Changelog](CHANGELOG.md) · [API Catalog](docs/API_CATALOG.md)
 
 </div>
 
@@ -38,7 +38,7 @@
   - **Activity History & Search**: Filter across **All**, **Dictations**, and **✦ AI Queries**, search transcripts, play decrypted audio in-memory, export `.wav` files, or re-transcribe recordings.
   - **Insights Analytics**: 16-week activity contribution heatmap, WPM speedometer gauge, current/longest streak tracking, fix estimates, category breakdown, and live Google Antigravity account quota cards.
   - **Custom Vocabulary & Speech Macros**: Define case-sensitive/symbol vocabulary rules (`c++` → `C++`, `.net` → `.NET`, `k8s` → `Kubernetes`) and reusable macro expansions (`{date}`, `{time}`, `{clipboard}`, `{cursor}`).
-  - **AI Policy & Deep Context Sensors**: Switch Dictation Modes (`flow`, `generative`, `custom`) and Assistant Modes (`general`, `developer`, `concise`, `custom`), configure reasoning budgets, UIA sensors, IDE Cascade context biasing, Command Execution & Screen Vision safety toggles, and **System Auto / Dark / Crisp Light** themes.
+  - **AI Policy & Deep Context Sensors**: Switch Dictation Modes (`flow`, `generative`, `custom`) and Assistant Modes (`general`, `developer`, `concise`, `custom`), configure reasoning budgets, UIA sensors, IDE Cascade context biasing, Focus Audio during dictation, Low-RAM vs Instant Reopen dashboard mode, Command Execution & Screen Vision safety toggles, and **System Auto / Dark / Crisp Light** themes.
 
 ---
 
@@ -63,9 +63,9 @@ No Python or Node.js installation is required. Download the installer matching y
 
 | Architecture | Installer Asset |
 |---|---|
-| **Windows x64 (Standard)** | `AntigravityFlow-Installer-1.4.1-x64.exe` / `AntigravityFlow-Setup-1.4.1-x64.exe` |
-| **Windows ARM64 (Snapdragon / Surface)** | `AntigravityFlow-Setup-1.4.1-arm.exe` |
-| **Windows x86 (32-bit)** | `AntigravityFlow-Setup-1.4.1-x32.exe` |
+| **Windows x64 (Standard)** | `AntigravityFlow-Installer-1.5.0-x64.exe` / `AntigravityFlow-Setup-1.5.0-x64.exe` |
+| **Windows ARM64 (Snapdragon / Surface)** | `AntigravityFlow-Setup-1.5.0-arm.exe` |
+| **Windows x86 (32-bit)** | `AntigravityFlow-Setup-1.5.0-x32.exe` |
 
 > Running a newer installer updates existing installations in-place while preserving your local settings, vocabulary, macros, and encrypted recordings vault under `%APPDATA%\AntigravityFlow`.
 

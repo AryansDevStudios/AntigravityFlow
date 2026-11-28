@@ -64,7 +64,7 @@ jobs:
 
       - name: Run Structural & Syntax Verification
         run: |
-          python -m py_compile daemon.py assistant_service.py db.py llm_refiner.py quota_service.py edge_tts_service.py formatter.py retranscribe.py system_context.py batch_transcriber.py accumulator.py dsp_pipeline.py context_peeker.py pill.py prompts.py crypto_audio.py build_app.py
+          python -m py_compile daemon.py assistant_service.py audio_focus.py db.py llm_refiner.py quota_service.py edge_tts_service.py formatter.py retranscribe.py system_context.py batch_transcriber.py accumulator.py dsp_pipeline.py context_peeker.py pill.py prompts.py crypto_audio.py build_app.py
           python tools/verify_index_html.py
 
       - name: Compile Python Daemon Binary (PyInstaller)

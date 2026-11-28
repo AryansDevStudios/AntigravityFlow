@@ -82,10 +82,14 @@ function getBackendExecutable() {
 }
 
 let isSpawningDaemon = false;
+let daemonSpawnTimer = null;
+let inFlightDaemonWaitPromise = null;
+
 function spawnDaemonProcess() {
-  if (isSpawningDaemon) return;
+  if (isSpawningDaemon || isAppQuitting) return;
   isSpawningDaemon = true;
-  setTimeout(() => { isSpawningDaemon = false; }, 3000);
+  if (daemonSpawnTimer) clearTimeout(daemonSpawnTimer);
+  daemonSpawnTimer = setTimeout(() => { isSpawningDaemon = false; }, 12000);
 
   const exe = getBackendExecutable();
   const { spawn } = require('child_process');
@@ -110,6 +114,7 @@ function spawnDaemonProcess() {
 
 let daemonSupervisorInterval = null;
 let isAppQuitting = false;
+let shutdownDispatched = false;
 const appBootTime = Date.now();
 
 function parseBackendJson(stdout) {
@@ -141,7 +146,9 @@ function checkDaemonReadyOnce(timeoutMs = 450) {
       timeout: timeoutMs
     }, (res) => {
       res.resume();
-      resolve(res.statusCode === 200);
+      const ok = res.statusCode === 200;
+      if (ok) isSpawningDaemon = false;
+      resolve(ok);
     });
     req.on('error', () => resolve(false));
     req.on('timeout', () => { req.destroy(); resolve(false); });
@@ -149,16 +156,26 @@ function checkDaemonReadyOnce(timeoutMs = 450) {
   });
 }
 
-async function waitForDaemonReady(maxWaitMs = 7500) {
+async function waitForDaemonReady(maxWaitMs = 15000) {
   if (isAppQuitting) return false;
   if (await checkDaemonReadyOnce(350)) return true;
-  if (Date.now() - appBootTime > 15000) return false;
-  const deadline = Date.now() + maxWaitMs;
-  while (Date.now() < deadline && !isAppQuitting) {
-    await new Promise(r => setTimeout(r, 300));
-    if (await checkDaemonReadyOnce(350)) return true;
-  }
-  return false;
+  if (inFlightDaemonWaitPromise) return inFlightDaemonWaitPromise;
+
+  const effectiveWaitMs = (Date.now() - appBootTime > 30000) ? Math.min(maxWaitMs, 2500) : maxWaitMs;
+  inFlightDaemonWaitPromise = (async () => {
+    try {
+      const deadline = Date.now() + effectiveWaitMs;
+      while (Date.now() < deadline && !isAppQuitting) {
+        await new Promise(r => setTimeout(r, 150));
+        if (await checkDaemonReadyOnce(350)) return true;
+      }
+      return false;
+    } finally {
+      inFlightDaemonWaitPromise = null;
+    }
+  })();
+
+  return inFlightDaemonWaitPromise;
 }
 
 function ensureDaemonRunning() {
@@ -171,6 +188,7 @@ function ensureDaemonRunning() {
     timeout: 500
   }, (res) => {
     res.resume();
+    if (res.statusCode === 200) isSpawningDaemon = false;
   });
   pingReq.on('error', () => {
     if (!isAppQuitting) spawnDaemonProcess();
@@ -251,20 +269,47 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('disable-breakpad');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
+function readMainConfigSync() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}') || {};
+    }
+  } catch (_) {}
+  return {};
+}
+
+function shouldKeepDashboardInMemory() {
+  const cfg = readMainConfigSync();
+  return cfg.keep_dashboard_in_memory !== false;
+}
+
+function showMainWindow() {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try { mainWindow.webContents.setBackgroundThrottling(false); } catch (_) {}
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      return;
+    }
+    createWindow(true);
+  } catch (_) {}
+}
+
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    try {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    } catch (_) {}
+    showMainWindow();
   });
 
-  let shutdownDispatched = false;
+  // Keep background daemon, tray bridge, and hotkey engine alive even if all UI windows are destroyed in Low-RAM mode
+  app.on('window-all-closed', (e) => {
+    if (!isAppQuitting) {
+      e.preventDefault();
+    }
+  });
+
   app.on('before-quit', (e) => {
     isAppQuitting = true;
     if (daemonSupervisorInterval) {
@@ -286,7 +331,7 @@ if (!gotTheLock) {
       app.exit(0);
     };
 
-    const fallbackTimer = setTimeout(finishQuit, 400);
+    const fallbackTimer = setTimeout(finishQuit, 800);
     try {
       const postReq = http.request({
         hostname: '127.0.0.1',
@@ -294,7 +339,7 @@ if (!gotTheLock) {
         path: '/shutdown',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        timeout: 350
+        timeout: 700
       }, (res) => {
         res.resume();
         clearTimeout(fallbackTimer);
@@ -314,7 +359,7 @@ if (!gotTheLock) {
       postReq.on('timeout', () => {
         postReq.destroy();
       });
-      postReq.write('{}');
+      postReq.write(JSON.stringify({ source: 'electron' }));
       postReq.end();
     } catch (_) {
       clearTimeout(fallbackTimer);
@@ -331,30 +376,33 @@ if (!gotTheLock) {
     daemonSupervisorInterval = setInterval(ensureDaemonRunning, 10000);
 
     // Sync single unified Windows Task Manager startup registry entry
+    const bootCfg = readMainConfigSync();
     let autostartSetting = true;
-    if (fs.existsSync(CONFIG_PATH)) {
-      try {
-        const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8') || '{}');
-        if (cfg.start_on_login !== undefined) autostartSetting = Boolean(cfg.start_on_login);
-      } catch (_) {}
-    }
+    if (bootCfg.start_on_login !== undefined) autostartSetting = Boolean(bootCfg.start_on_login);
     setSystemAutostart(autostartSetting).catch(() => {});
 
-    createWindow();
+    const isHiddenBoot = process.argv.includes('--hidden');
+    const keepInMemory = bootCfg.keep_dashboard_in_memory !== false;
+    // Default (keepInMemory=true): pre-warm hidden Dashboard for <30ms instant launch.
+    // Low-RAM mode (keepInMemory=false) + --hidden: defer Dashboard creation until user opens it.
+    if (!isHiddenBoot || keepInMemory) {
+      createWindow(!isHiddenBoot);
+    }
     createAssistantWindow();
     startAssistantBridgeServer();
 
     app.on('activate', () => {
-      if (mainWindow) {
-        mainWindow.show();
-      } else {
-        createWindow();
-      }
+      showMainWindow();
     });
   });
 }
 
-function createWindow() {
+function createWindow(showOnReady = !process.argv.includes('--hidden')) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (showOnReady) showMainWindow();
+    return mainWindow;
+  }
+
   const iconPath = path.join(__dirname, 'icon.ico');
 
   mainWindow = new BrowserWindow({
@@ -371,6 +419,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: !showOnReady,
       spellcheck: false
     }
   });
@@ -399,12 +448,33 @@ function createWindow() {
     }
   });
 
-  const isHidden = process.argv.includes('--hidden');
-  mainWindow.once('ready-to-show', () => {
-    if (!isHidden) {
-      mainWindow.show();
+  mainWindow.on('show', () => {
+    try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setBackgroundThrottling(false); } catch (_) {}
+  });
+  mainWindow.on('hide', () => {
+    try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setBackgroundThrottling(true); } catch (_) {}
+  });
+
+  mainWindow.on('close', (e) => {
+    if (isAppQuitting) return;
+    if (shouldKeepDashboardInMemory()) {
+      e.preventDefault();
+      mainWindow.hide();
     }
   });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed() && showOnReady) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  return mainWindow;
 }
 
 function createAssistantWindow() {
@@ -693,11 +763,7 @@ function startAssistantBridgeServer() {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true }));
           } else if (data.action === 'show-dashboard') {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              if (mainWindow.isMinimized()) mainWindow.restore();
-              mainWindow.show();
-              mainWindow.focus();
-            }
+            showMainWindow();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true }));
           } else if (data.action === 'reload') {
@@ -726,6 +792,23 @@ function startAssistantBridgeServer() {
             }
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true }));
+          } else if (data.action === 'quit') {
+            isAppQuitting = true;
+            shutdownDispatched = true;
+            if (daemonSupervisorInterval) {
+              clearInterval(daemonSupervisorInterval);
+              daemonSupervisorInterval = null;
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+            setImmediate(() => {
+              try {
+                if (assistantWindow && !assistantWindow.isDestroyed()) assistantWindow.destroy();
+                if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+              } catch (_) {}
+              app.exit(0);
+            });
+            return;
           }
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
@@ -762,9 +845,13 @@ ipcMain.handle('window-maximize', () => {
   }
 });
 ipcMain.handle('window-close', () => {
-  if (mainWindow) {
-    // Hide window instead of cold-quitting: next opening is instantaneous (< 30ms)!
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (shouldKeepDashboardInMemory()) {
+    // Keep pre-warmed for instant (< 30ms) reopen
     mainWindow.hide();
+  } else {
+    // Low-RAM Mode: destroy BrowserWindow and release ~150+ MB renderer memory
+    mainWindow.close();
   }
 });
 ipcMain.handle('app-quit', () => {
@@ -775,8 +862,9 @@ ipcMain.handle('app-quit', () => {
 // History & Config
 ipcMain.handle('get-history', async () => {
   try {
+    await waitForDaemonReady(15000);
     try {
-      const daemonRes = await callDaemonControlGet('/assistant/history', 2000);
+      const daemonRes = await callDaemonControlGet('/assistant/history', 2500);
       if (daemonRes && daemonRes.success && Array.isArray(daemonRes.data)) {
         daemonRes.data.sort((a, b) => (b.id || 0) - (a.id || 0));
         return daemonRes;
@@ -944,7 +1032,9 @@ ipcMain.handle('get-config', async () => {
       enable_system_commands: true,
       enable_screen_vision: true,
       cascade_enabled: true,
-      start_on_login: true
+      start_on_login: true,
+      keep_dashboard_in_memory: true,
+      auto_mute_media_on_dictate: true
     };
     const isAutostart = await checkSystemAutostart();
     if (!fs.existsSync(CONFIG_PATH)) {
@@ -1014,6 +1104,13 @@ ipcMain.handle('get-vocabulary', async () => {
         return { success: true, data: parsed };
       }
     }
+    await waitForDaemonReady(15000);
+    try {
+      const daemonRes = await callDaemonControlGet('/assistant/vocabulary', 2500);
+      if (daemonRes && daemonRes.success) {
+        return daemonRes;
+      }
+    } catch (_) {}
     // Fallback: seed from formatter.load_vocabulary() via daemon
     return new Promise((resolve) => {
       runBackendCommand('vocab-get', [], { cwd: BASE_DIR }, (err, stdout) => {
@@ -1042,8 +1139,9 @@ ipcMain.handle('save-vocabulary', async (event, vocab) => {
 
 // Speech Macros & Snippets Engine
 ipcMain.handle('get-macros', async () => {
+  await waitForDaemonReady(15000);
   try {
-    const daemonRes = await callDaemonControl('/assistant/macros', {}, 2000);
+    const daemonRes = await callDaemonControl('/assistant/macros', {}, 2500);
     if (daemonRes && daemonRes.success) {
       return daemonRes;
     }
@@ -1197,7 +1295,7 @@ ipcMain.handle('get-quota-summary', async () => {
 
   inFlightQuotaPromise = (async () => {
     try {
-      await waitForDaemonReady(7500);
+      await waitForDaemonReady(15000);
       try {
         const daemonRes = await callDaemonControl('/assistant/quota', {}, 10000);
         if (daemonRes && daemonRes.success) {
@@ -1406,7 +1504,7 @@ ipcMain.handle('get-available-models', async () => {
 
   inFlightModelsPromise = (async () => {
     try {
-      await waitForDaemonReady(7500);
+      await waitForDaemonReady(15000);
       // 1. In-process daemon control (< 1ms)
       try {
         const daemonRes = await callDaemonControl('/assistant/models', {}, 10000);
@@ -1699,7 +1797,7 @@ ipcMain.handle('get-system-theme', () => {
 });
 
 ipcMain.handle('get-tts-voices', async () => {
-  await waitForDaemonReady(7500);
+  await waitForDaemonReady(15000);
   try {
     const res = await callDaemonControlGet('/tts/voices', 6000);
     if (res && res.success) return res;

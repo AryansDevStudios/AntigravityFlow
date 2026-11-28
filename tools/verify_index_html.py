@@ -16,7 +16,8 @@ for btn_id in [
     "nav-dictations", "nav-insights", "nav-vocab", "nav-ai", "nav-general",
     "btn-launch-assistant", "btn-quick-assistant",
     "btn-save-vocab", "btn-save-ai", "btn-save-settings",
-    "cfg-enable-system-commands", "cfg-enable-screen-vision"
+    "cfg-enable-system-commands", "cfg-enable-screen-vision",
+    "cfg-auto-mute-media", "cfg-keep-dashboard-memory"
 ]:
     assert f'id="{btn_id}"' in html, f"Missing element #{btn_id}"
     print(f"[OK] Found element #{btn_id}")

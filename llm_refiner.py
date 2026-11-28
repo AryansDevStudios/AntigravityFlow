@@ -170,8 +170,17 @@ def start_language_server_process():
             "--app_data_dir", "antigravity",
             "--api_server_url", "https://generativelanguage.googleapis.com",
             "--cloud_code_endpoint", "https://daily-cloudcode-pa.googleapis.com",
-            "--enable_sidecars"
+            "--enable_sidecars",
+            "--disable_telemetry=true",
+            "--use_ls_chrome_devtools_mcp=false",
+            "--use_custom_page_actions=false",
+            "--mquery_for_context_module=false",
+            "--max_num_tracked_workspaces=2",
+            "--limit_go_max_procs=2"
         ]
+        ls_env = os.environ.copy()
+        ls_env.setdefault("GOGC", "50")
+        ls_env.setdefault("GOMEMLIMIT", "128MiB")
         flags = 0
         if os.name == 'nt':
             flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000) | getattr(subprocess, 'DETACHED_PROCESS', 0x00000008)
@@ -181,6 +190,7 @@ def start_language_server_process():
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             creationflags=flags,
+            env=ls_env,
             close_fds=True
         )
         _SPAWNED_LS_PROC = proc

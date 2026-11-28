@@ -38,10 +38,21 @@ try:
 except Exception:
     pass
 
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
+
+winrt_binaries = []
+winrt_hidden = []
+for _pkg in ('winrt.runtime', 'winrt.system', 'winrt.windows.foundation', 'winrt.windows.foundation.collections', 'winrt.windows.storage.streams', 'winrt.windows.media.control'):
+    try:
+        winrt_binaries += collect_dynamic_libs(_pkg)
+        winrt_hidden += collect_submodules(_pkg)
+    except Exception:
+        pass
+
 a = Analysis(
     ['daemon.py'],
     pathex=[base_dir],
-    binaries=[],
+    binaries=winrt_binaries,
     datas=datas,
     hiddenimports=[
         'sounddevice',
@@ -58,6 +69,8 @@ a = Analysis(
         'winreg',
         'ctypes',
         'ctypes.wintypes',
+        'comtypes',
+        'audio_focus',
         'crypto_audio',
         'batch_transcriber',
         'context_peeker',
@@ -74,8 +87,9 @@ a = Analysis(
         'prompts',
         'quota_service',
         'uiautomation',
-        'retranscribe'
-    ],
+        'retranscribe',
+        'winrt',
+    ] + winrt_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

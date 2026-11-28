@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AntigravityFlow</title>
   <link rel="icon" type="image/png" href="icon.png">
-  <script src="tailwind.min.js"></script>
+  <link rel="stylesheet" href="tailwind.css">
   <style>
     * {
       box-sizing: border-box;
@@ -1439,6 +1439,7 @@
                     <span>▶ Play Demo</span>
                   </button>
                 </div>
+                <div id="tts-demo-status" class="hidden text-[11px] text-rose-400 mt-1"></div>
               </div>
 
               <!-- Speech Rate Slider -->
@@ -1532,6 +1533,25 @@
             </label>
           </div>
 
+          <!-- Dictation Focus Audio & Dashboard Memory Mode -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+              <input id="cfg-auto-mute-media" type="checkbox" class="w-4 h-4 accent-amber-500 rounded mt-0.5 cursor-pointer" checked>
+              <div>
+                <div class="text-slate-200 font-medium">Focus Audio During Dictation (Pause &amp; Silent Mute)</div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">Automatically pause active media/videos (YouTube, Spotify, etc.) and silently mute background apps &amp; system sounds while dictating&#8212;without changing Windows Master Volume&#8212;then resume on stop.</div>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-[#181a22] border border-[#242733] cursor-pointer">
+              <input id="cfg-keep-dashboard-memory" type="checkbox" class="w-4 h-4 accent-emerald-500 rounded mt-0.5 cursor-pointer" checked>
+              <div>
+                <div class="text-slate-200 font-medium">Keep Dashboard Loaded in Memory (Instant Reopen)</div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">Keep Dashboard warm in background (~150 MB RAM) for instant (&lt;30ms) launch. Turn OFF for Low-RAM Mode to skip hidden boot &amp; destroy Dashboard on close (frees RAM; reopens in ~0.5&#8211;4s on slower drives).</div>
+              </div>
+            </label>
+          </div>
+
           <!-- About & Project Credits Card -->
           <div class="p-5 rounded-2xl border border-[#262936] bg-[#14151c] space-y-4 shadow-lg">
             <div class="flex items-center justify-between pb-3 border-b border-[#20232f]">
@@ -1542,7 +1562,7 @@
                 <div>
                   <h3 class="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                     AntigravityFlow
-                    <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">v1.4.1 PRODUCTION</span>
+                    <span class="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">v1.5.0 PRODUCTION</span>
                   </h3>
                   <p class="text-[11px] text-slate-400 mt-0.5">Context-Aware Real-Time Dictation &amp; Multimodal AI Copilot for Windows</p>
                 </div>
@@ -2182,6 +2202,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       setCheck('cfg-enable-system-commands', cfg.enable_system_commands !== false);
       setCheck('cfg-enable-screen-vision', cfg.enable_screen_vision !== false);
       setCheck('cfg-sound', cfg.enable_sound !== false);
+      setCheck('cfg-auto-mute-media', cfg.auto_mute_media_on_dictate !== false);
+      setCheck('cfg-keep-dashboard-memory', cfg.keep_dashboard_in_memory !== false);
       setCheck('cfg-start-login', cfg.start_on_login !== false);
       setCheck('cfg-cascade-enabled', cfg.enable_context_cascade !== false);
       
@@ -2494,6 +2516,12 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       const soundEl = document.getElementById('cfg-sound');
       const soundVal = soundEl ? soundEl.checked : (currentConfig.enable_sound !== false);
 
+      const autoMuteEl = document.getElementById('cfg-auto-mute-media');
+      const autoMuteVal = autoMuteEl ? autoMuteEl.checked : (currentConfig.auto_mute_media_on_dictate !== false);
+
+      const keepDashEl = document.getElementById('cfg-keep-dashboard-memory');
+      const keepDashVal = keepDashEl ? keepDashEl.checked : (currentConfig.keep_dashboard_in_memory !== false);
+
       const cascadeEl = document.getElementById('cfg-cascade-enabled');
       const cascadeVal = cascadeEl ? cascadeEl.checked : (currentConfig.enable_context_cascade !== false);
 
@@ -2520,6 +2548,8 @@ Your objective is minimum tokens, maximum signal, and direct execution.
         enable_system_commands: sysCommands,
         enable_screen_vision: screenVision,
         enable_sound: soundVal,
+        auto_mute_media_on_dictate: autoMuteVal,
+        keep_dashboard_in_memory: keepDashVal,
         start_on_login: startLoginVal,
         enable_context_cascade: cascadeVal,
         enable_ai_polish: aiPolishVal,
@@ -2576,6 +2606,11 @@ Your objective is minimum tokens, maximum signal, and direct execution.
       btnPlayVoiceDemoSettings.addEventListener('click', async () => {
         const v = document.getElementById('cfg-tts-voice')?.value || 'en-IN-NeerjaNeural';
         const r = normalizeTtsRate(document.getElementById('cfg-tts-rate')?.value || '+0%');
+        const statusEl = document.getElementById('tts-demo-status');
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.classList.add('hidden');
+        }
         btnPlayVoiceDemoSettings.disabled = true;
         const origText = btnPlayVoiceDemoSettings.innerHTML;
         btnPlayVoiceDemoSettings.innerHTML = `<span class="animate-spin text-xs">⏳</span> Playing...`;
@@ -2601,12 +2636,20 @@ Your objective is minimum tokens, maximum signal, and direct execution.
                 console.warn('No audio src returned for voice demo', res);
               }
             } else {
-              console.error('Demo error from server:', res?.error);
-              alert('Voice synthesis failed: ' + (res?.error || 'Unknown error'));
+              const errMsg = res?.error || 'Unable to reach Edge TTS service. Check internet connectivity and retry.';
+              console.error('Demo error from server:', errMsg);
+              if (statusEl) {
+                statusEl.textContent = `Voice synthesis failed: ${errMsg}`;
+                statusEl.classList.remove('hidden');
+              }
             }
           }
         } catch (err) {
           console.error('Demo error:', err);
+          if (statusEl) {
+            statusEl.textContent = `Voice synthesis failed: ${err.message || err}`;
+            statusEl.classList.remove('hidden');
+          }
         } finally {
           btnPlayVoiceDemoSettings.disabled = false;
           btnPlayVoiceDemoSettings.innerHTML = origText;
@@ -2681,7 +2724,7 @@ Your objective is minimum tokens, maximum signal, and direct execution.
     }
 
     // Instant real-time auto-save listeners on all settings toggles
-    ['cfg-dictation-mode', 'cfg-sound', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-hotkey-enabled', 'cfg-ai-hotkey-mode', 'cfg-tts-voice', 'cfg-tts-enabled', 'cfg-tts-auto-speak-voice', 'cfg-theme', 'cfg-screen-native-res', 'cfg-enable-system-commands', 'cfg-enable-screen-vision'].forEach(id => {
+    ['cfg-dictation-mode', 'cfg-sound', 'cfg-auto-mute-media', 'cfg-keep-dashboard-memory', 'cfg-start-login', 'cfg-cascade-enabled', 'cfg-ai-hotkey-enabled', 'cfg-ai-hotkey-mode', 'cfg-tts-voice', 'cfg-tts-enabled', 'cfg-tts-auto-speak-voice', 'cfg-theme', 'cfg-screen-native-res', 'cfg-enable-system-commands', 'cfg-enable-screen-vision'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => saveAllConfig());
     });

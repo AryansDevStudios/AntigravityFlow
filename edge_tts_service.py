@@ -103,7 +103,7 @@ def normalize_rate(rate: str) -> str:
     val = min(150, val)
     return f"+{val}%"
 
-async def _synthesize_async(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+0%", pitch: str = "+0Hz") -> bytes:
+async def _synthesize_once_async(text: str, voice: str, rate: str, pitch: str) -> bytes:
     communicate = edge_tts.Communicate(text=text, voice=voice, rate=rate, pitch=pitch)
     audio_data = bytearray()
     async for chunk in communicate.stream():
@@ -111,7 +111,45 @@ async def _synthesize_async(text: str, voice: str = "en-IN-NeerjaNeural", rate: 
             audio_data.extend(chunk["data"])
     return bytes(audio_data)
 
-def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+0%", pitch: str = "+0Hz") -> dict:
+
+async def _synthesize_with_retries_async(
+    text: str,
+    voice: str = "en-IN-NeerjaNeural",
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
+    max_attempts: int = 4,
+    allow_fallback: bool = True,
+) -> tuple:
+    """Synthesizes speech with retries against transient Edge-TTS NoAudioReceived drops."""
+    last_err = None
+    attempts = [(voice, rate, d) for d in (0.0, 0.15, 0.35, 0.65)[:max_attempts]]
+
+    if allow_fallback:
+        for fb_voice in ("en-IN-NeerjaNeural", "en-US-JennyNeural"):
+            if fb_voice != voice:
+                attempts.append((fb_voice, rate, 0.25))
+
+    for idx, (target_voice, target_rate, delay_sec) in enumerate(attempts):
+        if idx > 0 and delay_sec > 0:
+            await asyncio.sleep(delay_sec)
+        try:
+            data = await _synthesize_once_async(text=text, voice=target_voice, rate=target_rate, pitch=pitch)
+            if data:
+                return data, target_voice
+            last_err = RuntimeError("Empty audio generated")
+        except Exception as e:
+            last_err = e
+
+    raise last_err if last_err else RuntimeError("Edge TTS failed without returning audio.")
+
+
+def synthesize_text(
+    text: str,
+    voice: str = "en-IN-NeerjaNeural",
+    rate: str = "+0%",
+    pitch: str = "+0Hz",
+    allow_fallback: bool = True,
+) -> dict:
     if not text or not text.strip():
         return {"success": False, "error": "Empty text"}
 
@@ -147,8 +185,21 @@ def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+
         spoken_text = clean_text_for_speech(clean_text)
         if not spoken_text:
             spoken_text = clean_text
+        # Strip XML control bytes that can trigger Edge-TTS SSML rejection
+        spoken_text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", " ", spoken_text).strip()
+        if not spoken_text or not re.search(r"[^\W_]", spoken_text, re.UNICODE):
+            return {"success": False, "error": "No speakable words in text"}
 
-        raw_mp3 = asyncio.run(_synthesize_async(spoken_text, voice=norm_voice, rate=norm_rate, pitch=pitch))
+        raw_mp3, used_voice = asyncio.run(
+            _synthesize_with_retries_async(
+                spoken_text,
+                voice=norm_voice,
+                rate=norm_rate,
+                pitch=pitch,
+                max_attempts=4,
+                allow_fallback=allow_fallback,
+            )
+        )
         if not raw_mp3:
             return {"success": False, "error": "Empty audio generated"}
 
@@ -164,7 +215,7 @@ def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+
 
         return {
             "success": True,
-            "voice": norm_voice,
+            "voice": used_voice,
             "rate": norm_rate,
             "data_url": data_url,
             "audio_b64": b64,
@@ -175,12 +226,14 @@ def synthesize_text(text: str, voice: str = "en-IN-NeerjaNeural", rate: str = "+
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 def get_demo_audio(voice: str = "en-IN-NeerjaNeural", rate: str = "+0%") -> dict:
     matched = next((v for v in EDGE_VOICES if v["id"] == voice), None)
     if not matched:
         matched = EDGE_VOICES[0]
     sample_text = matched["sample"]
-    return synthesize_text(sample_text, voice=matched["id"], rate=rate)
+    return synthesize_text(sample_text, voice=matched["id"], rate=rate, allow_fallback=False)
+
 
 def get_voices_catalog() -> list:
     return EDGE_VOICES

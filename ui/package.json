@@ -1,7 +1,7 @@
 {
   "name": "antigravity-flow",
   "productName": "AntigravityFlow",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Smart Voice Dictation & Multimodal AI Assistant for Google Antigravity",
   "author": "AryansDevStudios",
   "license": "MIT",
@@ -11,17 +11,24 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:x64": "electron-builder --win --x64",
-    "dist:ia32": "electron-builder --win --ia32",
-    "dist:arm64": "electron-builder --win --arm64",
-    "dist:all": "electron-builder --win --x64 --ia32 --arm64"
+    "build:css": "tailwindcss -c tailwind.config.js -i tailwind.input.css -o tailwind.css --minify",
+    "start": "npm run build:css && electron .",
+    "pack": "npm run build:css && electron-builder --dir",
+    "dist": "npm run build:css && electron-builder",
+    "dist:x64": "npm run build:css && electron-builder --win --x64",
+    "dist:ia32": "npm run build:css && electron-builder --win --ia32",
+    "dist:arm64": "npm run build:css && electron-builder --win --arm64",
+    "dist:all": "npm run build:css && electron-builder --win --x64 --ia32 --arm64"
   },
   "build": {
     "appId": "com.antigravityflow.app",
     "productName": "AntigravityFlow",
+    "files": [
+      "**/*",
+      "!tailwind.min.js",
+      "!tailwind.input.css",
+      "!tailwind.config.js"
+    ],
     "win": {
       "target": [
         "nsis"
@@ -46,7 +53,8 @@
   },
   "devDependencies": {
     "electron": "^33.2.1",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "tailwindcss": "^3.4.17"
   },
   "dependencies": {
     "katex": "^0.19.1",

@@ -98,6 +98,10 @@ from formatter import format_transcript
 from accumulator import TranscriptAccumulator
 import batch_transcriber
 import llm_refiner
+try:
+    import audio_focus
+except Exception:
+    audio_focus = None
 import system_context
 import prompts
 import traceback
@@ -413,11 +417,16 @@ def start_daemon_control_server(daemon_instance, port=48198):
                     self.wfile.write(b'{"success": true}')
                     return
                 elif self.path == "/shutdown":
+                    initiated_by_electron = (data.get("source") == "electron")
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
                     self.wfile.write(b'{"status": "shutting_down"}')
-                    threading.Thread(target=daemon_instance.shutdown, daemon=True).start()
+                    threading.Thread(
+                        target=daemon_instance.shutdown,
+                        kwargs={"initiated_by_electron": initiated_by_electron},
+                        daemon=True
+                    ).start()
                     return
                 elif self.path == "/assistant/history":
                     items = db.get_history(limit=500)
@@ -972,6 +981,7 @@ class DictationDaemon:
     def __init__(self, pill_widget: FloatingPill = None, defer_connect: bool = False):
         self.cfg = db.load_config()
         self.enable_sound = self.cfg.get("enable_sound", True)
+        self.auto_mute_media_on_dictate = self.cfg.get("auto_mute_media_on_dictate", True)
         self.enable_context_cascade = self.cfg.get("enable_context_cascade", True)
         self.toggle_hotkey = self.cfg.get("toggle_hotkey", self.cfg.get("hotkey", "windows+alt+h"))
         self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "windows+alt")
@@ -985,6 +995,9 @@ class DictationDaemon:
         self.pill = pill_widget
         self.is_recording = False
         self.session_lock = threading.RLock()
+        self._shutdown_lock = threading.Lock()
+        self._shutting_down = False
+        self._shutdown_done = threading.Event()
 
         self.audio_queue = queue.Queue()
         self.accumulator = TranscriptAccumulator()
@@ -1275,6 +1288,12 @@ class DictationDaemon:
                 print(f"[Daemon] Failed to open microphone: {e}")
                 self.input_stream = None
 
+            if self.input_stream is not None and getattr(self, "auto_mute_media_on_dictate", True) and audio_focus is not None:
+                try:
+                    audio_focus.get_controller().acquire()
+                except Exception as e:
+                    print(f"[Daemon] Audio focus acquire error: {e}")
+
             play_sound("start", self.enable_sound)
             if session_type == "ai":
                 self.update_tray_tooltip(f"AntigravityFlow: AI Assistant ({mode.upper()})... ⚡🎙️")
@@ -1434,6 +1453,12 @@ class DictationDaemon:
                         pass
                     self.input_stream = None
 
+                if audio_focus is not None:
+                    try:
+                        audio_focus.get_controller().restore()
+                    except Exception as e:
+                        print(f"[Daemon] Audio focus restore error: {e}")
+
                 # 4. Inject 4 frames (160ms) of comfort trailing silence to cleanly resolve final phonemes
                 silence_frame = b'\x00' * 1280
                 for _ in range(4):
@@ -1581,6 +1606,11 @@ class DictationDaemon:
                     except Exception:
                         pass
                     self.input_stream = None
+                if audio_focus is not None:
+                    try:
+                        audio_focus.get_controller().restore()
+                    except Exception:
+                        pass
                 if self.pill:
                     self.pill.root.after(0, lambda: [self.pill.set_state("idle"), self.pill.hide()])
                 self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
@@ -1607,6 +1637,11 @@ class DictationDaemon:
                 except Exception:
                     pass
                 self.input_stream = None
+            if audio_focus is not None:
+                try:
+                    audio_focus.get_controller().restore()
+                except Exception:
+                    pass
 
             try:
                 self.audio_queue.put(None)
@@ -1629,57 +1664,102 @@ class DictationDaemon:
             self.dsp.reset()
             self.update_tray_tooltip(f"AntigravityFlow: Idle ({self.toggle_hotkey.upper()} / {self.ptt_hotkey.upper()})")
 
-    def shutdown(self):
+    def shutdown(self, initiated_by_electron: bool = False):
         """Clean shutdown of daemon services, tray icon, floating pill, and child processes."""
+        with self._shutdown_lock:
+            if self._shutting_down:
+                return
+            self._shutting_down = True
+
         print("[Daemon] Initiating clean shutdown sequence...")
         try:
-            self.stop_requested.set()
-            self.is_recording = False
-            if self.input_stream:
+            try:
+                self.stop_requested.set()
+                self.is_recording = False
+                if self.input_stream:
+                    try:
+                        self.input_stream.stop()
+                        self.input_stream.close()
+                    except Exception:
+                        pass
+                    self.input_stream = None
+            except Exception:
+                pass
+            if audio_focus is not None:
                 try:
-                    self.input_stream.stop()
-                    self.input_stream.close()
+                    audio_focus.get_controller().restore(wait_smtc=True)
                 except Exception:
                     pass
-                self.input_stream = None
-        except Exception:
-            pass
-        try:
-            keyboard.unhook_all()
-        except Exception:
-            pass
-        try:
-            if self.tray_icon:
-                self.tray_icon.stop()
-        except Exception:
-            pass
-        try:
-            if self.pill and self.pill.root:
-                self.pill.root.after(0, self.pill.root.destroy)
-        except Exception:
-            pass
-        try:
-            llm_refiner.terminate_spawned_language_server()
-        except Exception:
-            pass
-        try:
-            current_pid = os.getpid()
-            for p in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                keyboard.unhook_all()
+            except Exception:
+                pass
+            try:
+                if self.tray_icon:
+                    self.tray_icon.stop()
+            except Exception:
+                pass
+            try:
+                llm_refiner.terminate_spawned_language_server()
+            except Exception:
+                pass
+
+            if not initiated_by_electron:
+                # Ask Electron UI on bridge 48199 to quit gracefully first (cleans renderers & GPU process cleanly)
                 try:
-                    if p.pid == current_pid:
-                        continue
-                    pname = (p.info.get('name') or '').lower()
-                    pcmd = ' '.join(p.info.get('cmdline') or []).lower()
-                    if pname == 'antigravityflow.exe':
-                        p.kill()
-                    elif 'electron.exe' in pname and 'antigravityflow' in pcmd:
-                        p.kill()
-                    elif pname == 'antigravityflowdaemon.exe':
-                        p.kill()
+                    req = urllib.request.Request(
+                        "http://127.0.0.1:48199",
+                        data=b'{"action": "quit"}',
+                        headers={"content-type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=0.6) as res:
+                        res.read()
+                    deadline = time.time() + 0.8
+                    while time.time() < deadline:
+                        alive = any(
+                            (p.info.get("name") or "").lower() == "antigravityflow.exe"
+                            for p in psutil.process_iter(["name"])
+                        )
+                        if not alive:
+                            break
+                        time.sleep(0.05)
                 except Exception:
                     pass
-        except Exception:
-            pass
+
+            try:
+                current_pid = os.getpid()
+                parent_pid = os.getppid()
+                for p in psutil.process_iter(['pid', 'name', 'cmdline']):
+                    try:
+                        if p.pid == current_pid:
+                            continue
+                        pname = (p.info.get('name') or '').lower()
+                        pcmd = ' '.join(p.info.get('cmdline') or []).lower()
+                        # Never kill our own PyInstaller parent bootloader so it can clean up _MEI temp dir and exit 0
+                        if p.pid == parent_pid and 'antigravityflowdaemon' in pname:
+                            continue
+                        if not initiated_by_electron and pname == 'antigravityflow.exe':
+                            p.kill()
+                        elif not initiated_by_electron and 'electron.exe' in pname and 'antigravityflow' in pcmd:
+                            p.kill()
+                        elif pname == 'antigravityflowdaemon.exe':
+                            p.kill()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # Tear down Tkinter pill ONLY after all child/UI cleanups are done so mainloop() never aborts shutdown mid-flight
+            try:
+                if self.pill and self.pill.root:
+                    self.pill.root.after(0, self.pill.root.destroy)
+                    time.sleep(0.05)
+            except Exception:
+                pass
+        finally:
+            self._shutdown_done.set()
+
         os._exit(0)
 
     def reload_config(self, connect_async: bool = False):
@@ -1688,6 +1768,12 @@ class DictationDaemon:
         self.ptt_hotkey = self.cfg.get("push_to_talk_hotkey", "windows+alt")
         self.dictation_mode = self.cfg.get("dictation_mode", "both")
         self.enable_sound = self.cfg.get("enable_sound", True)
+        self.auto_mute_media_on_dictate = self.cfg.get("auto_mute_media_on_dictate", True)
+        if not self.auto_mute_media_on_dictate and audio_focus is not None:
+            try:
+                audio_focus.get_controller().restore()
+            except Exception:
+                pass
         self.enable_context_cascade = self.cfg.get("enable_context_cascade", True)
         self.enable_ai_polish = self.cfg.get("enable_ai_polish", False)
         self.ai_model = self.cfg.get("ai_model", "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE")
@@ -1889,6 +1975,8 @@ def main():
         print(f"[>] Quick-Paste: Tap [{daemon.paste_last_hotkey.upper()}] to instantly paste last dictation.")
 
         pill.root.mainloop()
+        if getattr(daemon, "_shutting_down", False):
+            daemon._shutdown_done.wait(timeout=3.0)
     except Exception as e:
         import traceback
         err_msg = traceback.format_exc()
